@@ -66,7 +66,9 @@ tmasm -i test.asm -o test.bin -l test.lst
 
 Contributing
 ------------
-The assembler is written in Scala, and requires Java 8.
+The assembler is written in Scala, and requires Java 8. The build system is
+Maven. I use Scala's Parser Combinators. I use TDD rigourously, and require
+contributions to keep code coverage/testability as high as possible. 
 
 All contributions are welcome!
 
