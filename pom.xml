@@ -1,0 +1,50 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+
+    <groupId>org.devzendo</groupId>
+    <artifactId>transputer-macro-assembler-parent</artifactId>
+    <version>0.0.1-SNAPSHOT</version>
+    <packaging>pom</packaging>
+    <name>Transputer Macro Assembler - Top level project</name>
+    <description>A simple Macro Assembler, using a subset of MASM syntax, for
+the Transputer instruction set. Generates binary output or ELF object files.
+(Apache License v2) 2018 Matt Gumbley, DevZendo.org
+    </description>
+    <url>http://devzendo.github.io/parachute</url>
+
+    <organization>
+        <name>DevZendo.org</name>
+        <url>http://devzendo.org/</url>
+    </organization>
+
+    <licenses>
+        <license>
+            <name>The Apache Software License, Version 2.0</name>
+            <url>http://www.apache.org/licenses/LICENSE-2.0.txt</url>
+            <distribution>repo</distribution>
+        </license>
+    </licenses>
+
+    <scm>
+        <url>https://bitbucket.org/devzendo/transputer-macro-assembler/</url>
+        <connection>scm:hg:https://bitbucket.org/devzendo/transputer-macro-assembler/</connection>
+        <developerConnection>scm:hg:https://bitbucket.org/devzendo/transputer-macro-assembler/</developerConnection>
+    </scm>
+
+    <developers>
+        <developer>
+            <id>matt.gumbley</id>
+            <name>Matt Gumbley</name>
+            <email>matt.gumbley@devzendo.org</email>
+        </developer>
+    </developers>
+
+    <modules>
+        <module>tma-assembler</module>
+        <module>tma-osx</module>
+    </modules>
+
+</project>

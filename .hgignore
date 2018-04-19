@@ -1,0 +1,9 @@
+syntax: glob
+.DS_Store
+*.iml
+.idea
+.idea/
+dependency-reduced-pom.xml
+syntax: regexp
+^target$
+
