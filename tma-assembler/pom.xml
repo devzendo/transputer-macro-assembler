@@ -107,15 +107,39 @@
             <id>ci</id>
             <build>
                 <plugins>
+                    <!-- org.owasp:dependency-check-maven:3.0.2:check -Dformat=xml org.pitest:pitest-maven:1.1.9:mutationCoverage -DoutputFormats=xml,html  -->
                     <plugin>
                         <groupId>org.owasp</groupId>
                         <artifactId>dependency-check-maven</artifactId>
                         <version>3.1.2</version>
+                        <executions>
+                            <execution>
+                                <goals>
+                                    <goal>check</goal>
+                                </goals>
+                            </execution>
+                        </executions>
+                        <configuration>
+                            <format>xml</format>
+                        </configuration>
                     </plugin>
                     <plugin>
                         <groupId>org.pitest</groupId>
                         <artifactId>pitest-maven</artifactId>
                         <version>1.1.9</version>
+                        <executions>
+                            <execution>
+                                <goals>
+                                    <goal>mutationCoverage</goal>
+                                </goals>
+                            </execution>
+                        </executions>
+                        <configuration>
+                            <outputFormats>
+                                <outputFormat>xml</outputFormat>
+                                <outputFormat>html</outputFormat>
+                            </outputFormats>
+                        </configuration>
                     </plugin>
                 </plugins>
             </build>
