@@ -24,7 +24,7 @@ import org.devzendo.commoncode.resource.ResourceLoader
 import scala.io.Source
 
 class AssemblerMain(val argList: List[String]) {
-    import AssemblerMain.logger
+    val logger = org.log4s.getLogger
 
     val assemblerProperties = loadAssemblerProperties()
 
@@ -80,7 +80,10 @@ class AssemblerMain(val argList: List[String]) {
 
             case _ => {
                 if (f.startsWith("-")) {
-                    errorQuit("Unknown command line option: '" + f + "'")
+                    logger.error("Unknown command line option: '" + f + "'")
+                    logger.error("")
+                    usage()
+                    quit()
                 }
                 asmFile = existingFile("assembly", f)
             }
@@ -114,7 +117,7 @@ class AssemblerMain(val argList: List[String]) {
     }
 
     def usage() {
-        logger.info(AssemblerMain.appName)
+        version()
         logger.info("tmasm [options] file.asm")
         logger.info("Assembler options:")
         logger.info("--help, -?               - just display this help text")
@@ -160,7 +163,6 @@ class AssemblerMain(val argList: List[String]) {
 }
 
 object AssemblerMain {
-    private val logger = org.log4s.getLogger
     private val appName = "Transputer Macro Assembler"
 
     /**

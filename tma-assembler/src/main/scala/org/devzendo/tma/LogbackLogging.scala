@@ -26,6 +26,8 @@ import ch.qos.logback.core.{ConsoleAppender, LayoutBase}
 import org.slf4j.Logger
 
 import scala.collection.mutable
+import ch.qos.logback.classic.LoggerContext
+import org.slf4j.LoggerFactory
 
 object LogbackLogging {
     private val lineSep: String = System.getProperty("line.separator")
@@ -74,24 +76,24 @@ object LogbackLogging {
             }
         }
 
-        val lc = new LoggerContext()
+        val lc = LoggerFactory.getILoggerFactory.asInstanceOf[LoggerContext]
+        val rootLogger = lc.getLogger(Logger.ROOT_LOGGER_NAME)
+        rootLogger.detachAndStopAllAppenders()
+
+        val layout = createLayout(bLevel, bClasses, bThreads, bTimes)
+        layout.setContext(lc)
+        layout.start()
 
         val ca = new ConsoleAppender[ILoggingEvent]
         ca.setContext(lc)
         ca.setName("console")
         val encoder = new LayoutWrappingEncoder[ILoggingEvent]
         encoder.setContext(lc)
-
-        val layout = createLayout(bLevel, bClasses, bThreads, bTimes)
-
-        layout.setContext(lc)
-        layout.start()
         encoder.setLayout(layout)
 
         ca.setEncoder(encoder)
         ca.start()
 
-        val rootLogger = lc.getLogger(Logger.ROOT_LOGGER_NAME)
         rootLogger.addAppender(ca)
 
         rootLogger.setLevel(
@@ -103,12 +105,6 @@ object LogbackLogging {
     }
 
     private def createLayout(bLevel: Boolean, bClasses: Boolean, bThreads: Boolean, bTimes: Boolean) = {
-        val sb = new StringBuilder
-        if (bLevel) sb.append("%-5p ")
-        if (bTimes) sb.append("%d{ISO8601} ")
-        if (bClasses) sb.append("%c{1} ")
-        if (bThreads) sb.append("[%t] ")
-        sb.append("%m\n")
         new LayoutBase[ILoggingEvent] {
             override def doLayout(event: ILoggingEvent): String = {
 
