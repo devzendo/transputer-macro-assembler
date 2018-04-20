@@ -16,10 +16,25 @@
 
 package org.devzendo.tma
 
-class AssemblyParser {
+import scala.util.parsing.combinator._
+
+class AssemblyParser(val debugParser: Boolean) {
     val logger = org.log4s.getLogger
 
+    @throws(classOf[AssemblyParserException])
     def parse(lineAndNumber: (String, Int)) = {
+        val line = lineAndNumber._1
+        val number = lineAndNumber._2
+        def sanitizedInput = nullToEmpty(line).trim()
+        if (debugParser) {
+            logger.debug("parsing " + number + "|" + sanitizedInput + "|")
+        }
+        if (sanitizedInput.size > 0) {
+        }
+    }
+
+    private def nullToEmpty(input: String): String = {
+        if (input == null) "" else input
 
     }
 

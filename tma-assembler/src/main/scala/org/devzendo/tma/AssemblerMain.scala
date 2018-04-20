@@ -33,6 +33,7 @@ class AssemblerMain(val argList: List[String]) {
     var outputFile: Option[File] = None
     var binaryFile: Option[File] = None
     var listingFile: Option[File] = None
+    var debugParser = false
 
     def existingFile(fileType: String, f: String): Option[File] = {
         val file = new File(f)
@@ -65,6 +66,7 @@ class AssemblerMain(val argList: List[String]) {
             case "--help" => { usage(); exit() }
             case "-?" => { usage(); exit() }
             case "--version"  => { version(); exit() }
+            case "-p" | "--parser"  => { debugParser = true }
 
             case "-o" | "--output" => {
                 outputFile = expectFileName()
@@ -100,16 +102,21 @@ class AssemblerMain(val argList: List[String]) {
     }
 
     def start(): Unit = {
-        val parser = new AssemblyParser()
+        val parser = new AssemblyParser(debugParser)
         val asm = asmFile.get
         logger.debug("Reading lines from " + asm.getName)
-        Source.fromFile(asm).getLines().zipWithIndex.foreach(parser.parse)
-        logger.debug("Parsing complete")
-        val model: AssemblyModel = parser.createModel
+        try {
+            Source.fromFile(asm).getLines().zipWithIndex.foreach(parser.parse)
+            logger.debug("Parsing complete")
+            val model: AssemblyModel = parser.createModel
 
-        outputFile.foreach(new ELFWriter(_).encode(model))
-        binaryFile.foreach(new BinaryWriter(_).encode(model))
-        listingFile.foreach(new ListingWriter(_).encode(model))
+            outputFile.foreach(new ELFWriter(_).encode(model))
+            binaryFile.foreach(new BinaryWriter(_).encode(model))
+            listingFile.foreach(new ListingWriter(_).encode(model))
+        } catch {
+            case ape: AssemblyParserException =>
+                logger.error(ape.getMessage)
+        }
     }
 
     // -----------------------------------------------------------------------------------------------------------------
@@ -128,6 +135,7 @@ class AssemblerMain(val argList: List[String]) {
         logger.info("-o|--output output.o     - create an ELF output file")
         logger.info("-b|--binary output       - create a binary output file")
         logger.info("-l|--listing output.lst  - create a listing file")
+        logger.info("-p|--parser              - enable parser diagnostics")
         logger.info("Logging output control options:")
         logger.info("--debug                  - set the log level to debug (default is info)")
         logger.info("--warn                   - set the log level to warning")
