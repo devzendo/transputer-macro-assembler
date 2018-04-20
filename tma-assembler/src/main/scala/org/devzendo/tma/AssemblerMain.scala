@@ -101,7 +101,10 @@ class AssemblerMain(val argList: List[String]) {
 
     def start(): Unit = {
         val parser = new AssemblyParser()
-        Source.fromFile(asmFile.get).getLines().zipWithIndex.foreach(parser.parse)
+        val asm = asmFile.get
+        logger.debug("Reading lines from " + asm.getName)
+        Source.fromFile(asm).getLines().zipWithIndex.foreach(parser.parse)
+        logger.debug("Parsing complete")
         val model: AssemblyModel = parser.createModel
 
         outputFile.foreach(new ELFWriter(_).encode(model))

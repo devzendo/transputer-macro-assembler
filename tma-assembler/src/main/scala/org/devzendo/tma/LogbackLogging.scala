@@ -16,18 +16,16 @@
 
 package org.devzendo.tma
 
-import java.time.{Instant, ZoneId, ZonedDateTime}
 import java.time.format.DateTimeFormatter
+import java.time.{Instant, ZoneId, ZonedDateTime}
 
-import ch.qos.logback.classic.spi.ILoggingEvent
 import ch.qos.logback.classic.{Level, LoggerContext}
+import ch.qos.logback.classic.spi.ILoggingEvent
 import ch.qos.logback.core.encoder.LayoutWrappingEncoder
 import ch.qos.logback.core.{ConsoleAppender, LayoutBase}
-import org.slf4j.Logger
+import org.slf4j.{Logger, LoggerFactory}
 
 import scala.collection.mutable
-import ch.qos.logback.classic.LoggerContext
-import org.slf4j.LoggerFactory
 
 object LogbackLogging {
     private val lineSep: String = System.getProperty("line.separator")
@@ -114,7 +112,7 @@ object LogbackLogging {
                     sbuf.append(" ")
                 }
                 if (bTimes) {
-                    val timeInLong = event.getTimeStamp - event.getLoggerContextVO.getBirthTime
+                    val timeInLong = event.getTimeStamp
                     val zdt = ZonedDateTime.ofInstant(Instant.ofEpochMilli(timeInLong), ZoneId.systemDefault)
                     sbuf.append(zdt.format(DateTimeFormatter.ISO_OFFSET_DATE_TIME))
                     sbuf.append(" ")

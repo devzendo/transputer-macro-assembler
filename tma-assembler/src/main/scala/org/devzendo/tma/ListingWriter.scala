@@ -19,6 +19,10 @@ package org.devzendo.tma
 import java.io.File
 
 class ListingWriter(val outputFile: File) {
-    def encode(model: AssemblyModel): Unit = ???
+    val logger = org.log4s.getLogger
+
+    def encode(model: AssemblyModel): Unit = {
+        logger.info("Writing listing file " + outputFile.getName)
+    }
 
 }

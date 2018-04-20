@@ -17,11 +17,13 @@
 package org.devzendo.tma
 
 class AssemblyParser {
+    val logger = org.log4s.getLogger
+
     def parse(lineAndNumber: (String, Int)) = {
 
     }
 
     def createModel: AssemblyModel = {
-        ???
+        new AssemblyModel
     }
 }
