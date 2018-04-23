@@ -16,10 +16,20 @@
 
 package org.devzendo.tma
 
+import org.devzendo.tma.ast.Line
+
+import scala.collection.mutable
 import scala.util.parsing.combinator._
 
 class AssemblyParser(val debugParser: Boolean) {
+
     val logger = org.log4s.getLogger
+
+    val lines = mutable.ArrayBuffer[Line]()
+
+    def getLines() = {
+        lines.toList
+    }
 
     @throws(classOf[AssemblyParserException])
     def parse(lineAndNumber: (String, Int)) = {
@@ -29,8 +39,12 @@ class AssemblyParser(val debugParser: Boolean) {
         if (debugParser) {
             logger.debug("parsing " + number + "|" + sanitizedInput + "|")
         }
-        if (sanitizedInput.size > 0) {
+        if (number < 1) {
+            throw new AssemblyParserException("Line numbers must be positive")
         }
+//        if (sanitizedInput.size > 0) {
+            lines += Line(number, sanitizedInput, List.empty)
+//        }
     }
 
     private def nullToEmpty(input: String): String = {
