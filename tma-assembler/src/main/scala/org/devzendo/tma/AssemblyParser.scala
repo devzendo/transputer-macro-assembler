@@ -16,7 +16,7 @@
 
 package org.devzendo.tma
 
-import org.devzendo.tma.ast.Line
+import org.devzendo.tma.ast._
 
 import scala.collection.mutable
 import scala.util.parsing.combinator._
@@ -32,19 +32,39 @@ class AssemblyParser(val debugParser: Boolean) {
     }
 
     @throws(classOf[AssemblyParserException])
-    def parse(lineAndNumber: (String, Int)) = {
+    def parse(lineAndNumber: (String, Int)): Line = {
         val line = lineAndNumber._1
         val number = lineAndNumber._2
+
         def sanitizedInput = nullToEmpty(line).trim()
+
         if (debugParser) {
             logger.debug("parsing " + number + "|" + sanitizedInput + "|")
         }
         if (number < 1) {
             throw new AssemblyParserException("Line numbers must be positive")
         }
-//        if (sanitizedInput.size > 0) {
-            lines += Line(number, sanitizedInput, List.empty, None, None, None)
-//        }
+        if (sanitizedInput.length > 0) {
+            val ccp = new StatementCombinatorParser()
+            val parserOutput = ccp.parseProgram(number, sanitizedInput)
+            parserOutput match {
+                case ccp.Success(r, _) => {
+                    // TODO analyse
+                    val rLine = r.asInstanceOf[Line] // unsure why r is not right type
+                    if (debugParser) {
+                        logger.debug("returning" + rLine)
+                    }
+                    lines += rLine
+                    rLine
+                }
+                case x => throw new AssemblyParserException(x.toString)
+            }
+
+        } else {
+            val line = Line(number, sanitizedInput, List.empty, None, None, None)
+            lines += line
+            line
+        }
     }
 
     private def nullToEmpty(input: String): String = {
@@ -54,5 +74,63 @@ class AssemblyParser(val debugParser: Boolean) {
 
     def createModel: AssemblyModel = {
         new AssemblyModel
+    }
+
+    private class StatementCombinatorParser extends JavaTokenParsers {
+        var lineNumber: Int = 0
+        var text: String = ""
+
+        def line: Parser[Line] = opt(statement) ~ opt(comment) ^^ {
+            case optStatement ~ optComment =>
+                if (debugParser) logger.debug("in line")
+                Line(lineNumber, text, List.empty, None, optStatement, None)
+
+        }
+
+        def statement: Parser[Statement] = (
+          constantAssignment
+        )
+
+        def constantAssignment: Parser[ConstantAssignment] = (
+            ident ~ equ ~ expression
+            ) ^^ {
+            case ident ~ equ ~ expression =>
+                if (debugParser) logger.debug("in constantAssignment, ident: " + ident + " expr:" + expression)
+                ConstantAssignment(ident.asInstanceOf[String], expression)
+        }
+
+        def expression: Parser[Expression] = (
+          integer ^^ ( n => Number(n))
+          /* | other parsers ^^ ( x => ... ) */
+        )
+
+        def integer: Parser[Int] = (hexIntegerOx | hexIntegerH | decimalInteger) // order matters: 07F1FH could be 07 decimal
+
+        def decimalInteger: Parser[Int] = """-?\d+(?!\.)""".r ^^ ( x => {
+            if (debugParser) logger.debug("in decimalInteger(" + x + ")")
+            Integer.parseInt(x)
+        })
+
+        def hexIntegerOx: Parser[Int] = """0x-?\p{XDigit}+(?!\.)""".r ^^ ( x => {
+            if (debugParser) logger.debug("in hexIntegerOx(" + x + ")")
+            Integer.parseInt(x.substring(2), 16)
+        })
+
+        def hexIntegerH: Parser[Int] = """-?\p{XDigit}+[hH](?!\.)""".r ^^ ( x => {
+            if (debugParser) logger.debug("in hexIntegerH(" + x + ")")
+            Integer.parseInt(x.substring(0, x.length - 1), 16)
+        })
+
+        def equ: Parser[String] =
+            """(equ|EQU)""".r
+
+        def comment: Parser[String] =
+            """;.*""".r
+
+        def parseProgram(lineNumber: Int, input: String) = {
+            this.lineNumber = lineNumber
+            this.text = input
+            parseAll(line, input)
+        }
     }
 }

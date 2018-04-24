@@ -15,7 +15,7 @@
  */
 
 package org.devzendo.tma
-import org.devzendo.tma.ast.Line
+import org.devzendo.tma.ast.{ConstantAssignment, Number, Line}
 import org.hamcrest.{MatcherAssert, Matchers}
 import org.junit.rules.ExpectedException
 import org.junit.{Rule, Test}
@@ -81,4 +81,24 @@ class TestAssemblyParser extends AssertionsForJUnit with MustMatchers with Mocki
         lines.head must equal(Line(1, "; comment", List.empty, None, None, None))
     }
 
+    @Test
+    def incrementingLineNumbers(): Unit = {
+        parseLine("  ; comment  ")
+        parseLine("\t\t;;;another comment  ")
+        val lines = parser.getLines()
+        lines must have size 2
+        lines.head must equal(Line(1, "; comment", List.empty, None, None, None))
+        lines.tail.head must equal(Line(2, ";;;another comment", List.empty, None, None, None))
+    }
+
+    @Test
+    def equ(): Unit = {
+        parseLine("MASKK\t\tEQU\t07F1FH\t\t\t;lexicon bit mask")
+        val lines = parser.getLines()
+        lines must have size 1
+        lines.head must equal(Line(1, "MASKK\t\tEQU\t07F1FH\t\t\t;lexicon bit mask", List.empty, None,
+            Some(ConstantAssignment("MASKK", Number(0x07f1f))), None))
+    }
+
+    // TODO decimals, hex 0x, hex H, hex h, and negatives
 }
