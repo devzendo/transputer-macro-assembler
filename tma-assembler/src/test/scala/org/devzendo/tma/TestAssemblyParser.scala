@@ -34,6 +34,7 @@ class TestAssemblyParser extends AssertionsForJUnit with MustMatchers with Mocki
     val logger = org.log4s.getLogger
 
     val parser = new AssemblyParser(true)
+    var lineNumber = 1
 
     @Rule
     def thrown: ExpectedException = _thrown
@@ -53,18 +54,31 @@ class TestAssemblyParser extends AssertionsForJUnit with MustMatchers with Mocki
 
     @Test
     def nullLine(): Unit = {
-        parser.parse((null, 1))
+        parseLine(null)
         val lines = parser.getLines()
         lines must have size 1
-        lines.head must equal(Line(1, "", List.empty))
+        lines.head must equal(Line(1, "", List.empty, None, None, None))
     }
 
     @Test
     def emptyLine(): Unit = {
-        parser.parse(("", 1))
+        parseLine("")
         val lines = parser.getLines()
         lines must have size 1
-        lines.head must equal(Line(1, "", List.empty))
+        lines.head must equal(Line(1, "", List.empty, None, None, None))
+    }
+
+    private def parseLine(line: String) = {
+        parser.parse((line, lineNumber))
+        lineNumber = lineNumber + 1
+    }
+
+    @Test
+    def justAComment(): Unit = {
+        parseLine("  ; comment  ")
+        val lines = parser.getLines()
+        lines must have size 1
+        lines.head must equal(Line(1, "; comment", List.empty, None, None, None))
     }
 
 }

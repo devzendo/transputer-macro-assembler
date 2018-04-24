@@ -43,7 +43,7 @@ class AssemblyParser(val debugParser: Boolean) {
             throw new AssemblyParserException("Line numbers must be positive")
         }
 //        if (sanitizedInput.size > 0) {
-            lines += Line(number, sanitizedInput, List.empty)
+            lines += Line(number, sanitizedInput, List.empty, None, None, None)
 //        }
     }
 
