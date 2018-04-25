@@ -40,6 +40,18 @@ class TestAssemblyParser extends AssertionsForJUnit with MustMatchers with Mocki
     def thrown: ExpectedException = _thrown
     var _thrown: ExpectedException = ExpectedException.none
 
+    private def parseLine(line: String) = {
+        parser.parse((line, lineNumber))
+        lineNumber = lineNumber + 1
+    }
+
+    private def parseSingleLine(line: String): Line = {
+        parseLine(line)
+        val lines = parser.getLines()
+        lines must have size 1
+        lines.head
+    }
+
     @Test
     def initial(): Unit = {
         parser.getLines() must be(empty)
@@ -54,31 +66,17 @@ class TestAssemblyParser extends AssertionsForJUnit with MustMatchers with Mocki
 
     @Test
     def nullLine(): Unit = {
-        parseLine(null)
-        val lines = parser.getLines()
-        lines must have size 1
-        lines.head must equal(Line(1, "", List.empty, None, None, None))
+        parseSingleLine(null) must equal(Line(1, "", List.empty, None, None, None))
     }
 
     @Test
     def emptyLine(): Unit = {
-        parseLine("")
-        val lines = parser.getLines()
-        lines must have size 1
-        lines.head must equal(Line(1, "", List.empty, None, None, None))
-    }
-
-    private def parseLine(line: String) = {
-        parser.parse((line, lineNumber))
-        lineNumber = lineNumber + 1
+        parseSingleLine("") must equal(Line(1, "", List.empty, None, None, None))
     }
 
     @Test
     def justAComment(): Unit = {
-        parseLine("  ; comment  ")
-        val lines = parser.getLines()
-        lines must have size 1
-        lines.head must equal(Line(1, "; comment", List.empty, None, None, None))
+        parseSingleLine("  ; comment  ") must equal(Line(1, "; comment", List.empty, None, None, None))
     }
 
     @Test
@@ -92,11 +90,16 @@ class TestAssemblyParser extends AssertionsForJUnit with MustMatchers with Mocki
     }
 
     @Test
-    def equ(): Unit = {
-        parseLine("MASKK\t\tEQU\t07F1FH\t\t\t;lexicon bit mask")
-        val lines = parser.getLines()
-        lines must have size 1
-        lines.head must equal(Line(1, "MASKK\t\tEQU\t07F1FH\t\t\t;lexicon bit mask", List.empty, None,
+    def equHexConstantEndingInH(): Unit = {
+        parseSingleLine("MASKK\t\tEQU\t07F1FH\t\t\t;lexicon bit mask") must
+          equal(Line(1, "MASKK\t\tEQU\t07F1FH\t\t\t;lexicon bit mask", List.empty, None,
+            Some(ConstantAssignment("MASKK", Number(0x07f1f))), None))
+    }
+
+    @Test
+    def equHexConstantStartingIn0x(): Unit = {
+        parseSingleLine("MASKK\t\tEQU\t0x07F1F\t\t\t;lexicon bit mask") must
+          equal(Line(1, "MASKK\t\tEQU\t0x07F1F\t\t\t;lexicon bit mask", List.empty, None,
             Some(ConstantAssignment("MASKK", Number(0x07f1f))), None))
     }
 

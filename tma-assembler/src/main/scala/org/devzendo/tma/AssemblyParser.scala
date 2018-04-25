@@ -91,6 +91,7 @@ class AssemblyParser(val debugParser: Boolean) {
           constantAssignment
         )
 
+        // Not sure why I can't use ~> and <~ here to avoid the equ?
         def constantAssignment: Parser[ConstantAssignment] = (
             ident ~ equ ~ expression
             ) ^^ {
