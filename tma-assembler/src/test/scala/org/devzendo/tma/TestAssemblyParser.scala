@@ -161,5 +161,12 @@ class TestAssemblyParser extends AssertionsForJUnit with MustMatchers with Mocki
               Some(ConstantAssignment("UPP", expectedExpression)), None))
     }
 
+    @Test
+    def variableInitialisedToConstant(): Unit = {
+        parseSingleLine("_LINK\t= 0\t\t\t\t\t;force a null link") must
+          equal(Line(1, "_LINK\t= 0\t\t\t\t\t;force a null link", List.empty, None,
+              Some(VariableAssignment("_LINK", Number(0))), None))
+    }
+
 
 }

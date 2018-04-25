@@ -88,7 +88,7 @@ class AssemblyParser(val debugParser: Boolean) {
         }
 
         def statement: Parser[Statement] = (
-          constantAssignment
+          constantAssignment | variableAssignment
         )
 
         // Not sure why I can't use ~> and <~ here to avoid the equ?
@@ -98,6 +98,15 @@ class AssemblyParser(val debugParser: Boolean) {
             case ident ~ equ ~ expression =>
                 if (debugParser) logger.debug("in constantAssignment, ident: " + ident + " expr:" + expression)
                 ConstantAssignment(ident.asInstanceOf[String], expression)
+                // TODO prevent reassignment to the same constant
+        }
+
+        def variableAssignment: Parser[VariableAssignment] = (
+          ident ~ "=" ~ expression
+          ) ^^ {
+            case ident ~ "=" ~ expression =>
+                if (debugParser) logger.debug("in variableAssignment, ident: " + ident + " expr:" + expression)
+                VariableAssignment(ident.asInstanceOf[String], expression)
         }
 
         def expression: Parser[Expression] = (
