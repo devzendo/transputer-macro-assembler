@@ -15,7 +15,7 @@
  */
 
 package org.devzendo.tma
-import org.devzendo.tma.ast.{ConstantAssignment, Number, Line}
+import org.devzendo.tma.ast._
 import org.hamcrest.{MatcherAssert, Matchers}
 import org.junit.rules.ExpectedException
 import org.junit.{Rule, Test}
@@ -151,4 +151,15 @@ class TestAssemblyParser extends AssertionsForJUnit with MustMatchers with Mocki
           equal(Line(1, "MASKK\t\tequ\t-20H\t\t\t;lexicon bit mask", List.empty, None,
               Some(ConstantAssignment("MASKK", Number(-32))), None))
     }
+
+    @Test
+    def equExpression(): Unit = {
+        val expectedExpression = Binary(Sub(), ConstantArg("EM"), Binary(Mult(), Number(256), ConstantArg("CELLL")))
+
+        parseSingleLine("UPP\t\tEQU\tEM-256*CELLL\t\t;start of user area (UP0)") must
+          equal(Line(1, "UPP\t\tEQU\tEM-256*CELLL\t\t;start of user area (UP0)", List.empty, None,
+              Some(ConstantAssignment("UPP", expectedExpression)), None))
+    }
+
+
 }

@@ -101,8 +101,36 @@ class AssemblyParser(val debugParser: Boolean) {
         }
 
         def expression: Parser[Expression] = (
+          term ~ rep("+" ~ term | "-" ~ term)
+        )  ^^ {
+            case term ~ rep => formBinary(term, rep)
+        }
+
+        def formBinary(factor: Expression, rep: List[~[String, Expression]]): Expression = {
+            if (rep.isEmpty) {
+                factor
+            } else {
+                val headOp = rep.head._1 match {
+                    case "*" => Mult()
+                    case "/" => Div()
+                    case "+" => Add()
+                    case "-" => Sub()
+                }
+                val headExpr = rep.head._2
+                Binary(headOp, factor, formBinary(headExpr, rep.tail))
+            }
+        }
+
+        def term: Parser[Expression] = (
+          factor ~ rep("*" ~ factor | "/" ~ factor)
+        ) ^^ {
+            case factor ~ rep => formBinary(factor, rep)
+        }
+
+        def factor: Parser[Expression] = (
           integer ^^ ( n => Number(n))
-          /* | other parsers ^^ ( x => ... ) */
+          | ident ^^ ( c => ConstantArg(c)) // TODO or is it a variable, or label? or macro?
+          | "(" ~> expression <~ ")"
         )
 
         def integer: Parser[Int] = (hexIntegerOx | hexIntegerH | decimalInteger) // order matters: 07F1FH could be 07 decimal
