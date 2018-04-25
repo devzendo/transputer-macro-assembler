@@ -112,7 +112,7 @@ class AssemblyParser(val debugParser: Boolean) {
             Integer.parseInt(x)
         })
 
-        def hexIntegerOx: Parser[Int] = """0x-?\p{XDigit}+(?!\.)""".r ^^ ( x => {
+        def hexIntegerOx: Parser[Int] = """0[xX]-?\p{XDigit}+(?!\.)""".r ^^ ( x => {
             if (debugParser) logger.debug("in hexIntegerOx(" + x + ")")
             Integer.parseInt(x.substring(2), 16)
         })

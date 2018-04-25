@@ -103,5 +103,52 @@ class TestAssemblyParser extends AssertionsForJUnit with MustMatchers with Mocki
             Some(ConstantAssignment("MASKK", Number(0x07f1f))), None))
     }
 
-    // TODO decimals, hex 0x, hex H, hex h, and negatives
+    @Test
+    def equHexConstantStartingIn0X(): Unit = {
+        parseSingleLine("MASKK\t\tEQU\t0X07F1F\t\t\t;lexicon bit mask") must
+          equal(Line(1, "MASKK\t\tEQU\t0X07F1F\t\t\t;lexicon bit mask", List.empty, None,
+              Some(ConstantAssignment("MASKK", Number(0x07f1f))), None))
+    }
+
+    @Test
+    def equHexConstantEndingInh(): Unit = {
+        parseSingleLine("MASKK\t\tEQU\t07F1Fh\t\t\t;lexicon bit mask") must
+          equal(Line(1, "MASKK\t\tEQU\t07F1Fh\t\t\t;lexicon bit mask", List.empty, None,
+              Some(ConstantAssignment("MASKK", Number(0x07f1f))), None))
+    }
+
+    @Test
+    def equWithLowerCase(): Unit = {
+        parseSingleLine("MASKK\t\tequ\t07F1FH\t\t\t;lexicon bit mask") must
+          equal(Line(1, "MASKK\t\tequ\t07F1FH\t\t\t;lexicon bit mask", List.empty, None,
+              Some(ConstantAssignment("MASKK", Number(0x07f1f))), None))
+    }
+
+    @Test
+    def equDecimalConstant(): Unit = {
+        parseSingleLine("MASKK\t\tequ\t32543\t\t\t;lexicon bit mask") must
+          equal(Line(1, "MASKK\t\tequ\t32543\t\t\t;lexicon bit mask", List.empty, None,
+              Some(ConstantAssignment("MASKK", Number(32543))), None))
+    }
+
+    @Test
+    def equNegativeDecimalConstant(): Unit = {
+        parseSingleLine("MASKK\t\tequ\t-20\t\t\t;lexicon bit mask") must
+          equal(Line(1, "MASKK\t\tequ\t-20\t\t\t;lexicon bit mask", List.empty, None,
+              Some(ConstantAssignment("MASKK", Number(-20))), None))
+    }
+
+    @Test
+    def equNegativeHexConstant0x(): Unit = {
+        parseSingleLine("MASKK\t\tequ\t0x-20\t\t\t;lexicon bit mask") must
+          equal(Line(1, "MASKK\t\tequ\t0x-20\t\t\t;lexicon bit mask", List.empty, None,
+              Some(ConstantAssignment("MASKK", Number(-32))), None))
+    }
+
+    @Test
+    def equNegativeHexConstantH(): Unit = {
+        parseSingleLine("MASKK\t\tequ\t-20H\t\t\t;lexicon bit mask") must
+          equal(Line(1, "MASKK\t\tequ\t-20H\t\t\t;lexicon bit mask", List.empty, None,
+              Some(ConstantAssignment("MASKK", Number(-32))), None))
+    }
 }
