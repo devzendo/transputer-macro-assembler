@@ -16,16 +16,8 @@
 
 package org.devzendo.tma
 import org.devzendo.tma.ast._
-import org.hamcrest.{MatcherAssert, Matchers}
 import org.junit.rules.ExpectedException
 import org.junit.{Rule, Test}
-
-import collection.JavaConverters._
-import org.mockito.ArgumentMatchers.any
-import org.mockito.{ArgumentMatchers, InOrder, Mock, Mockito}
-import org.mockito.Mockito.{never, times, verify, when}
-import org.mockito.invocation.InvocationOnMock
-import org.mockito.stubbing.Answer
 import org.scalatest.MustMatchers
 import org.scalatest.junit.AssertionsForJUnit
 import org.scalatest.mock.MockitoSugar
@@ -50,6 +42,12 @@ class TestAssemblyParser extends AssertionsForJUnit with MustMatchers with Mocki
         val lines = parser.getLines()
         lines must have size 1
         lines.head
+    }
+
+    private def singleLineParsesToStatement(line: String, expectedStatement: Statement) = {
+        parseSingleLine(line) must
+          equal(Line(1, line.trim(), List.empty, None,
+              Some(expectedStatement), None))
     }
 
     @Test
@@ -91,82 +89,76 @@ class TestAssemblyParser extends AssertionsForJUnit with MustMatchers with Mocki
 
     @Test
     def equHexConstantEndingInH(): Unit = {
-        parseSingleLine("MASKK\t\tEQU\t07F1FH\t\t\t;lexicon bit mask") must
-          equal(Line(1, "MASKK\t\tEQU\t07F1FH\t\t\t;lexicon bit mask", List.empty, None,
-            Some(ConstantAssignment("MASKK", Number(0x07f1f))), None))
+        singleLineParsesToStatement("MASKK\t\tEQU\t07F1FH\t\t\t;lexicon bit mask",
+            ConstantAssignment("MASKK", Number(0x07f1f)))
     }
 
     @Test
     def equHexConstantStartingIn0x(): Unit = {
-        parseSingleLine("MASKK\t\tEQU\t0x07F1F\t\t\t;lexicon bit mask") must
-          equal(Line(1, "MASKK\t\tEQU\t0x07F1F\t\t\t;lexicon bit mask", List.empty, None,
-            Some(ConstantAssignment("MASKK", Number(0x07f1f))), None))
+        singleLineParsesToStatement("MASKK\t\tEQU\t0x07F1F\t\t\t;lexicon bit mask",
+            ConstantAssignment("MASKK", Number(0x07f1f)))
     }
 
     @Test
     def equHexConstantStartingIn0X(): Unit = {
-        parseSingleLine("MASKK\t\tEQU\t0X07F1F\t\t\t;lexicon bit mask") must
-          equal(Line(1, "MASKK\t\tEQU\t0X07F1F\t\t\t;lexicon bit mask", List.empty, None,
-              Some(ConstantAssignment("MASKK", Number(0x07f1f))), None))
+        singleLineParsesToStatement("MASKK\t\tEQU\t0X07F1F\t\t\t;lexicon bit mask",
+            ConstantAssignment("MASKK", Number(0x07f1f)))
     }
 
     @Test
     def equHexConstantEndingInh(): Unit = {
-        parseSingleLine("MASKK\t\tEQU\t07F1Fh\t\t\t;lexicon bit mask") must
-          equal(Line(1, "MASKK\t\tEQU\t07F1Fh\t\t\t;lexicon bit mask", List.empty, None,
-              Some(ConstantAssignment("MASKK", Number(0x07f1f))), None))
+        singleLineParsesToStatement("MASKK\t\tEQU\t07F1Fh\t\t\t;lexicon bit mask",
+            ConstantAssignment("MASKK", Number(0x07f1f)))
     }
 
     @Test
     def equWithLowerCase(): Unit = {
-        parseSingleLine("MASKK\t\tequ\t07F1FH\t\t\t;lexicon bit mask") must
-          equal(Line(1, "MASKK\t\tequ\t07F1FH\t\t\t;lexicon bit mask", List.empty, None,
-              Some(ConstantAssignment("MASKK", Number(0x07f1f))), None))
+        singleLineParsesToStatement("MASKK\t\tequ\t07F1FH\t\t\t;lexicon bit mask",
+            ConstantAssignment("MASKK", Number(0x07f1f)))
     }
 
     @Test
     def equDecimalConstant(): Unit = {
-        parseSingleLine("MASKK\t\tequ\t32543\t\t\t;lexicon bit mask") must
-          equal(Line(1, "MASKK\t\tequ\t32543\t\t\t;lexicon bit mask", List.empty, None,
-              Some(ConstantAssignment("MASKK", Number(32543))), None))
+        singleLineParsesToStatement("MASKK\t\tequ\t32543\t\t\t;lexicon bit mask",
+            ConstantAssignment("MASKK", Number(32543)))
     }
 
     @Test
     def equNegativeDecimalConstant(): Unit = {
-        parseSingleLine("MASKK\t\tequ\t-20\t\t\t;lexicon bit mask") must
-          equal(Line(1, "MASKK\t\tequ\t-20\t\t\t;lexicon bit mask", List.empty, None,
-              Some(ConstantAssignment("MASKK", Number(-20))), None))
+        singleLineParsesToStatement("MASKK\t\tequ\t-20\t\t\t;lexicon bit mask",
+            ConstantAssignment("MASKK", Number(-20)))
     }
 
     @Test
     def equNegativeHexConstant0x(): Unit = {
-        parseSingleLine("MASKK\t\tequ\t0x-20\t\t\t;lexicon bit mask") must
-          equal(Line(1, "MASKK\t\tequ\t0x-20\t\t\t;lexicon bit mask", List.empty, None,
-              Some(ConstantAssignment("MASKK", Number(-32))), None))
+        singleLineParsesToStatement("MASKK\t\tequ\t0x-20\t\t\t;lexicon bit mask",
+            ConstantAssignment("MASKK", Number(-32)))
     }
 
     @Test
     def equNegativeHexConstantH(): Unit = {
-        parseSingleLine("MASKK\t\tequ\t-20H\t\t\t;lexicon bit mask") must
-          equal(Line(1, "MASKK\t\tequ\t-20H\t\t\t;lexicon bit mask", List.empty, None,
-              Some(ConstantAssignment("MASKK", Number(-32))), None))
+        singleLineParsesToStatement("MASKK\t\tequ\t-20H\t\t\t;lexicon bit mask",
+            ConstantAssignment("MASKK", Number(-32)))
     }
 
     @Test
     def equExpression(): Unit = {
-        val expectedExpression = Binary(Sub(), ConstantArg("EM"), Binary(Mult(), Number(256), ConstantArg("CELLL")))
-
-        parseSingleLine("UPP\t\tEQU\tEM-256*CELLL\t\t;start of user area (UP0)") must
-          equal(Line(1, "UPP\t\tEQU\tEM-256*CELLL\t\t;start of user area (UP0)", List.empty, None,
-              Some(ConstantAssignment("UPP", expectedExpression)), None))
+        singleLineParsesToStatement("UPP\t\tEQU\tEM-256*CELLL\t\t;start of user area (UP0)",
+            ConstantAssignment("UPP",
+                Binary(Sub(), SymbolArg("EM"),
+                    Binary(Mult(), Number(256), SymbolArg("CELLL")))))
     }
 
     @Test
-    def variableInitialisedToConstant(): Unit = {
-        parseSingleLine("_LINK\t= 0\t\t\t\t\t;force a null link") must
-          equal(Line(1, "_LINK\t= 0\t\t\t\t\t;force a null link", List.empty, None,
-              Some(VariableAssignment("_LINK", Number(0))), None))
+    def variableInitialisedToNumber(): Unit = {
+        singleLineParsesToStatement("_LINK\t= 0\t\t\t\t\t;force a null link",
+            VariableAssignment("_LINK", Number(0)))
     }
 
+    @Test
+    def variableInitialisedToDollarSymbolic(): Unit = {
+        singleLineParsesToStatement("\t_CODE\t= $\t\t\t\t;;save code pointer",
+            VariableAssignment("_CODE", SymbolArg("$")))
+    }
 
 }

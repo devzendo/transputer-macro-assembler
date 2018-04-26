@@ -21,8 +21,7 @@ import org.devzendo.tma.ast.AST._
 object AST {
     type Opcode = Int
     type Label = String
-    type VariableName = String
-    type ConstantName = String
+    type SymbolName = String
     type MacroName = String
     type Address = Int
 }
@@ -44,10 +43,9 @@ case class Not() extends Operator("~")
 
 sealed abstract class Expression() {
 }
-case class VariableArg(varName: VariableName) extends Expression
-case class ConstantArg(constName: ConstantName) extends Expression
+case class SymbolArg(symbolName: SymbolName) extends Expression
 case class Number(number: Int) extends Expression
-case class Unary(operator: Operator, arg: Expression) extends Expression
+case class Unary(operator: Operator, expr: Expression) extends Expression
 case class Binary(operator: Operator, left: Expression, right: Expression) extends Expression
 
 
@@ -58,8 +56,8 @@ case class Page(rows: Int, columns: Int) extends Statement
 case class Processor(processor: String) extends Statement
 case class Align(num: Int) extends Statement
 case class Org(address: Address) extends Statement
-case class ConstantAssignment(name: ConstantName, expr: Expression) extends Statement
-case class VariableAssignment(name: VariableName, expr: Expression) extends Statement
+case class ConstantAssignment(symbolName: SymbolName, expr: Expression) extends Statement
+case class VariableAssignment(symbolName: SymbolName, expr: Expression) extends Statement
 case class MacroStart(name: MacroName, argNames: List[String]) extends Statement
 case class MacroEnd() extends Statement
 case class MacroInvocation(name: MacroName, args: List[Expression]) extends Statement

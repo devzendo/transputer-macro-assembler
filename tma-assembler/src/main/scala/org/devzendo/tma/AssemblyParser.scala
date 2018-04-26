@@ -138,7 +138,7 @@ class AssemblyParser(val debugParser: Boolean) {
 
         def factor: Parser[Expression] = (
           integer ^^ ( n => Number(n))
-          | ident ^^ ( c => ConstantArg(c)) // TODO or is it a variable, or label? or macro?
+          | ident ^^ ( c => SymbolArg(c)) // TODO or is it a variable, or label? or macro?
           | "(" ~> expression <~ ")"
         )
 
