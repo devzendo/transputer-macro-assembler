@@ -161,4 +161,48 @@ class TestAssemblyParser extends AssertionsForJUnit with MustMatchers with Mocki
             VariableAssignment("_CODE", SymbolArg("$")))
     }
 
+    @Test
+    def variableInitialisedToExpression(): Unit = {
+        val lenPlus3 = Binary(Add(), SymbolArg("_LEN"), Number(3))
+        val lenPlus3TimesCelll = Binary(Mult(), lenPlus3, SymbolArg("CELLL"))
+        val nameMinusAllThat = Binary(Sub(), SymbolArg("_NAME"), lenPlus3TimesCelll)
+        singleLineParsesToStatement("\t_NAME\t= _NAME-((_LEN+3)*CELLL)\t;;new header on cell boundary",
+            VariableAssignment("_NAME", nameMinusAllThat))
+    }
+
+    @Test
+    def variableInitialisedToNegatedSymbolic(): Unit = {
+        singleLineParsesToStatement("_CODE = -$",
+            VariableAssignment("_CODE", Unary(Negate(), SymbolArg("$"))))
+    }
+
+    @Test
+    def variableInitialisedToNotNumber(): Unit = {
+        singleLineParsesToStatement("_MASK = ~10",
+            VariableAssignment("_MASK", Unary(Not(), Number(10))))
+    }
+
+    @Test
+    def variableInitialisedToNotNegatedNumber(): Unit = {
+        singleLineParsesToStatement("_MASK = ~-10",
+            VariableAssignment("_MASK", Unary(Not(), Number(-10))))
+    }
+
+    @Test
+    def variableInitialisedToExpressionWithNotNegatedNumber(): Unit = {
+        val div = Binary(Div(), Unary(Not(), Number(-10)), Number(17))
+        val mult = Binary(Mult(), SymbolArg("_FROB"), div)
+        val add = Binary(Add(), mult, SymbolArg("FOOBAR"))
+        singleLineParsesToStatement("_MASK = _FROB * (~-10 / 17) + FOOBAR",
+            VariableAssignment("_MASK", add))
+    }
+/*
+Unary(~,Binary(/,Number(-10),Number(17))))
+ did not equal
+Binary(/,Unary(~,Number(-10)),Number(17)))
+
+ */
+    // TODO
+    // shift left/right
+    // logical ops
 }

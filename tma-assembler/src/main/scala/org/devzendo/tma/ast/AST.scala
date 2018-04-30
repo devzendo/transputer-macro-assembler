@@ -31,6 +31,7 @@ sealed abstract class Operator(op: String) {
 }
 case class Add() extends Operator("+")
 case class Sub() extends Operator("-")
+case class Negate() extends Operator("-")
 case class Mult() extends Operator("*")
 case class Div() extends Operator("/")
 case class ShiftLeft() extends Operator("<<")

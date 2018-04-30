@@ -110,8 +110,12 @@ class AssemblyParser(val debugParser: Boolean) {
         }
 
         def expression: Parser[Expression] = (
+          binaryExpression
+        )
+
+        def binaryExpression: Parser[Expression] = (
           term ~ rep("+" ~ term | "-" ~ term)
-        )  ^^ {
+          )  ^^ {
             case term ~ rep => formBinary(term, rep)
         }
 
@@ -137,6 +141,26 @@ class AssemblyParser(val debugParser: Boolean) {
         }
 
         def factor: Parser[Expression] = (
+          opt("[!~-]".r) ~ factorBase
+          )  ^^ {
+            case optUnary ~ term =>
+                optUnary match {
+                    // A negative number can just be that, no need to unary negate it..
+                    case Some("-") =>
+                        term match {
+                            case Number(n) =>
+                                Number(-1 * n)
+                            case _ =>
+                                Unary(Negate(), term)
+                        }
+                    case Some("~") | Some("!") => Unary(Not(), term)
+                    // regex ensures this can't happen
+                    case Some(x) => throw new AssemblyParserException("Unexpected 'unary' operator: '" + x + "'")
+                    case None => term
+                }
+        }
+
+        def factorBase: Parser[Expression] = (
           integer ^^ ( n => Number(n))
           | ident ^^ ( c => SymbolArg(c)) // TODO or is it a variable, or label? or macro?
           | "(" ~> expression <~ ")"
