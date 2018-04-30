@@ -196,12 +196,21 @@ class TestAssemblyParser extends AssertionsForJUnit with MustMatchers with Mocki
         singleLineParsesToStatement("_MASK = _FROB * (~-10 / 17) + FOOBAR",
             VariableAssignment("_MASK", add))
     }
-/*
-Unary(~,Binary(/,Number(-10),Number(17))))
- did not equal
-Binary(/,Unary(~,Number(-10)),Number(17)))
 
- */
+    @Test
+    def shiftRightExpression(): Unit = {
+        singleLineParsesToStatement("UPP\t\tEQU\tEM SHR 5",
+            ConstantAssignment("UPP",
+                Binary(ShiftRight(), SymbolArg("EM"), Number(5))))
+    }
+
+    @Test
+    def shiftLeftExpression(): Unit = {
+        singleLineParsesToStatement("UPP\t\tEQU\tEM SHL 2",
+            ConstantAssignment("UPP",
+                Binary(ShiftLeft(), SymbolArg("EM"), Number(2))))
+    }
+
     // TODO
     // shift left/right
     // logical ops

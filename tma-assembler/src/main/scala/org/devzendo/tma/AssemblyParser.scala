@@ -123,11 +123,13 @@ class AssemblyParser(val debugParser: Boolean) {
             if (rep.isEmpty) {
                 factor
             } else {
-                val headOp = rep.head._1 match {
+                val headOp = rep.head._1.toUpperCase match {
                     case "*" => Mult()
                     case "/" => Div()
                     case "+" => Add()
                     case "-" => Sub()
+                    case "SHR" => ShiftRight()
+                    case "SHL" => ShiftLeft()
                 }
                 val headExpr = rep.head._2
                 Binary(headOp, factor, formBinary(headExpr, rep.tail))
@@ -135,7 +137,7 @@ class AssemblyParser(val debugParser: Boolean) {
         }
 
         def term: Parser[Expression] = (
-          factor ~ rep("*" ~ factor | "/" ~ factor)
+          factor ~ rep("*" ~ factor | "/" ~ factor | shr ~ factor | shl ~ factor)
         ) ^^ {
             case factor ~ rep => formBinary(factor, rep)
         }
@@ -185,6 +187,12 @@ class AssemblyParser(val debugParser: Boolean) {
 
         def equ: Parser[String] =
             """(equ|EQU)""".r
+
+        def shr: Parser[String] =
+            """(shr|SHR)""".r
+
+        def shl: Parser[String] =
+            """(shl|SHL)""".r
 
         def comment: Parser[String] =
             """;.*""".r
