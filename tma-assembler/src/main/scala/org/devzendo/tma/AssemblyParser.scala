@@ -105,7 +105,7 @@ class AssemblyParser(val debugParser: Boolean) {
     }
 
     private class MacroBodyCombinatorParser extends LineParser {
-        def line: Parser[Line] = macroEnd | macroBody
+        def line: Parser[Line] = macroEnd | macroStart | macroBody
 
         def macroEnd: Parser[Line] =
             """(endm|ENDM)""".r ^^ {
@@ -118,6 +118,15 @@ class AssemblyParser(val debugParser: Boolean) {
                     macroLines.clear()
                     Line(lineNumber, text, List.empty, None, Some(MacroEnd()), None)
             }
+
+        def macroStart: Parser[Line] = (
+            ident ~ macroWord ~ repsep(ident, ",")
+            ) ^^ {
+                _ => throw new AssemblyParserException("Macro definitions cannot be nested")
+        }
+
+        def macroWord: Parser[String] =
+            """(macro|MACRO)""".r ^^ ( _ => "MACRO" )
 
         def macroBody: Parser[Line] =
         """.*""".r ^^ {

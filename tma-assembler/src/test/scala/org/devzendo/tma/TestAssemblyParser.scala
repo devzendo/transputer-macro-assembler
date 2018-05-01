@@ -370,6 +370,14 @@ class TestAssemblyParser extends AssertionsForJUnit with MustMatchers with Mocki
         parser.getMacroLines must be(empty)
     }
 
+    @Test
+    def nestedMacroDefinitions(): Unit = {
+        thrown.expect(classOf[AssemblyParserException])
+        thrown.expectMessage("Macro definitions cannot be nested")
+        parser.parse(("$CODE\tMACRO\tLEX,NAME,LABEL", 1))
+        parser.parse(("$COLON\tMACRO\tLEX,NAME,LABEL", 2))
+    }
+
     // TODO
-    // nested macro definitions illegal
+    // macro instantiation
 }
