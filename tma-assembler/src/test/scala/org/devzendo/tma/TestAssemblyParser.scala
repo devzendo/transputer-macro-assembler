@@ -15,6 +15,7 @@
  */
 
 package org.devzendo.tma
+import org.devzendo.tma.ast.AST.{MacroArgName, MacroName}
 import org.devzendo.tma.ast._
 import org.junit.rules.ExpectedException
 import org.junit.{Rule, Test}
@@ -281,6 +282,22 @@ class TestAssemblyParser extends AssertionsForJUnit with MustMatchers with Mocki
                 Binary(Or(), SymbolArg("EM"), Number(7))))
     }
 
+    @Test
+    def macroStartWithArgs(): Unit = {
+        parser.inMacroBody must be(false)
+        singleLineParsesToStatement("$CODE\tMACRO\tLEX,NAME,LABEL",
+            MacroStart(new MacroName("$CODE"), List(new MacroArgName("LEX"), new MacroArgName("NAME"), new MacroArgName("LABEL"))))
+        parser.inMacroBody must be(true)
+    }
+
+    @Test
+    def macroStartWithNoArgs(): Unit = {
+        parser.inMacroBody must be(false)
+        singleLineParsesToStatement("$CODE\tMACRO\t",
+            MacroStart(new MacroName("$CODE"), List.empty))
+        parser.inMacroBody must be(true)
+    }
+
     // TODO
-    // logical ops
+    // macro with no args
 }

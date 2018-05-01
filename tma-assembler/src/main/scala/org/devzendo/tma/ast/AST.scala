@@ -23,6 +23,7 @@ object AST {
     type Label = String
     type SymbolName = String
     type MacroName = String
+    type MacroArgName = String
     type Address = Int
 }
 
@@ -59,7 +60,7 @@ case class Align(num: Int) extends Statement
 case class Org(address: Address) extends Statement
 case class ConstantAssignment(symbolName: SymbolName, expr: Expression) extends Statement
 case class VariableAssignment(symbolName: SymbolName, expr: Expression) extends Statement
-case class MacroStart(name: MacroName, argNames: List[String]) extends Statement
+case class MacroStart(name: MacroName, argNames: List[MacroArgName]) extends Statement
 case class MacroEnd() extends Statement
 case class MacroInvocation(name: MacroName, args: List[Expression]) extends Statement
 case class DB(expr: Expression *) extends Statement

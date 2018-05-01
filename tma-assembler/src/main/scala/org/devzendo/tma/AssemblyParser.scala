@@ -16,6 +16,7 @@
 
 package org.devzendo.tma
 
+import org.devzendo.tma.ast.AST.{MacroArgName, MacroName}
 import org.devzendo.tma.ast._
 
 import scala.collection.mutable
@@ -26,6 +27,8 @@ class AssemblyParser(val debugParser: Boolean) {
     val logger = org.log4s.getLogger
 
     val lines = mutable.ArrayBuffer[Line]()
+
+    var inMacroBody = false
 
     def getLines() = {
         lines.toList
@@ -88,7 +91,7 @@ class AssemblyParser(val debugParser: Boolean) {
         }
 
         def statement: Parser[Statement] = (
-          constantAssignment | variableAssignment
+          constantAssignment | variableAssignment | macroStart
         )
 
         // Not sure why I can't use ~> and <~ here to avoid the equ?
@@ -107,6 +110,15 @@ class AssemblyParser(val debugParser: Boolean) {
             case ident ~ "=" ~ expression =>
                 if (debugParser) logger.debug("in variableAssignment, ident: " + ident + " expr:" + expression)
                 VariableAssignment(ident.asInstanceOf[String], expression)
+        }
+
+        def macroStart: Parser[MacroStart] = (
+          ident ~ macroWord ~ repsep(ident, ",")
+          ) ^^ {
+            case ident ~ macroWord ~ args =>
+                if (debugParser) logger.debug("in macroStart, ident: " + ident + " args:" + args)
+                inMacroBody = true
+                MacroStart(new MacroName(ident), args.map(new MacroArgName(_)))
         }
 
         def expression: Parser[Expression] = (
@@ -203,6 +215,9 @@ class AssemblyParser(val debugParser: Boolean) {
 
         def or: Parser[String] =
             """(\|\||or|OR)""".r ^^ ( _ => "OR" )
+
+        def macroWord: Parser[String] =
+            """(macro|MACRO)""".r ^^ ( _ => "MACRO" )
 
         def comment: Parser[String] =
             """;.*""".r
