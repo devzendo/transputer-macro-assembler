@@ -19,12 +19,13 @@ import org.devzendo.tma.ast.AST.{MacroArgName, MacroName}
 import org.devzendo.tma.ast._
 import org.junit.rules.ExpectedException
 import org.junit.{Rule, Test}
+import org.log4s.Logger
 import org.scalatest.MustMatchers
 import org.scalatest.junit.AssertionsForJUnit
 import org.scalatest.mock.MockitoSugar
 
 class TestAssemblyParser extends AssertionsForJUnit with MustMatchers with MockitoSugar {
-    val logger = org.log4s.getLogger
+    val logger: Logger = org.log4s.getLogger
 
     val parser = new AssemblyParser(true)
     var lineNumber = 1
@@ -41,17 +42,17 @@ class TestAssemblyParser extends AssertionsForJUnit with MustMatchers with Mocki
 
     private def parseLines(lines: List[String]): List[Line] = {
         lines.foreach(parseLine)
-        parser.getLines()
+        parser.getLines
     }
 
     private def parseSingleLine(line: String): Line = {
         parseLine(line)
-        val lines = parser.getLines()
+        val lines = parser.getLines
         lines must have size 1
         lines.head
     }
 
-    private def singleLineParsesToStatement(line: String, expectedStatement: Statement) = {
+    private def singleLineParsesToStatement(line: String, expectedStatement: Statement): Unit = {
         parseSingleLine(line) must
           equal(Line(1, line.trim(), List.empty, None,
               Some(expectedStatement), None))
@@ -59,7 +60,7 @@ class TestAssemblyParser extends AssertionsForJUnit with MustMatchers with Mocki
 
     @Test
     def initial(): Unit = {
-        parser.getLines() must be(empty)
+        parser.getLines must be(empty)
     }
 
     @Test
@@ -88,7 +89,7 @@ class TestAssemblyParser extends AssertionsForJUnit with MustMatchers with Mocki
     def incrementingLineNumbers(): Unit = {
         parseLine("  ; comment  ")
         parseLine("\t\t;;;another comment  ")
-        val lines = parser.getLines()
+        val lines = parser.getLines
         lines must have size 2
         lines.head must equal(Line(1, "; comment", List.empty, None, None, None))
         lines.tail.head must equal(Line(2, ";;;another comment", List.empty, None, None, None))
