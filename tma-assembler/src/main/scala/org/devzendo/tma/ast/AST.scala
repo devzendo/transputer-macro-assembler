@@ -61,6 +61,7 @@ case class Org(address: Address) extends Statement
 case class ConstantAssignment(symbolName: SymbolName, expr: Expression) extends Statement
 case class VariableAssignment(symbolName: SymbolName, expr: Expression) extends Statement
 case class MacroStart(name: MacroName, argNames: List[MacroArgName]) extends Statement
+case class MacroBody(line: String) extends Statement
 case class MacroEnd() extends Statement
 case class MacroInvocation(name: MacroName, args: List[Expression]) extends Statement
 case class DB(expr: Expression *) extends Statement
@@ -75,3 +76,5 @@ case class Memory(address: Int, data: List[Byte])
 
 case class Line(number: Int, text: String, expansionLines: List[Line], label: Option[Label], stmt: Option[Statement], memory: Option[Memory]) {
 }
+
+case class MacroDefinition(name: MacroName, argNames: List[MacroArgName], textLines: List[String])

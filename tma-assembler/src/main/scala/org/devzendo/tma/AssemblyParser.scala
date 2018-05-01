@@ -26,13 +26,26 @@ class AssemblyParser(val debugParser: Boolean) {
 
     val logger = org.log4s.getLogger
 
+    var lineNumber: Int = 0
+
     val lines = mutable.ArrayBuffer[Line]()
-
-    var inMacroBody = false
-
     def getLines() = {
         lines.toList
     }
+
+    // State for built macros
+    var macros = mutable.Map[MacroName, MacroDefinition]()
+    def getMacro(macroName: MacroName): Option[MacroDefinition] = macros.get(macroName)
+
+    // State for macro definition buildup
+    private var inMacroBody = false
+    def isInMacroBody: Boolean = inMacroBody
+    private var macroName = new MacroName("")
+    private var macroArgs = mutable.ArrayBuffer[MacroArgName]()
+    def getMacroArgs: List[MacroArgName] = macroArgs.toList
+    private var macroLines = mutable.ArrayBuffer[String]()
+    def getMacroLines: List[String] = macroLines.toList
+
 
     @throws(classOf[AssemblyParserException])
     def parse(lineAndNumber: (String, Int)): Line = {
@@ -48,10 +61,10 @@ class AssemblyParser(val debugParser: Boolean) {
             throw new AssemblyParserException("Line numbers must be positive")
         }
         if (sanitizedInput.length > 0) {
-            val ccp = new StatementCombinatorParser()
-            val parserOutput = ccp.parseProgram(number, sanitizedInput)
+            val parser = if (inMacroBody) new MacroBodyCombinatorParser() else new StatementCombinatorParser()
+            val parserOutput = parser.parseProgram(number, sanitizedInput)
             parserOutput match {
-                case ccp.Success(r, _) => {
+                case parser.Success(r, _) => {
                     // TODO analyse
                     val rLine = r.asInstanceOf[Line] // unsure why r is not right type
                     if (debugParser) {
@@ -79,15 +92,47 @@ class AssemblyParser(val debugParser: Boolean) {
         new AssemblyModel
     }
 
-    private class StatementCombinatorParser extends JavaTokenParsers {
-        var lineNumber: Int = 0
+    private trait LineParser extends JavaTokenParsers {
         var text: String = ""
 
+        def line: Parser[Line]
+
+        def parseProgram(currentLineNumber: Int, input: String) = {
+            lineNumber = currentLineNumber
+            this.text = input
+            parseAll(line, input)
+        }
+    }
+
+    private class MacroBodyCombinatorParser extends LineParser {
+        def line: Parser[Line] = (macroEnd | macroBody)
+
+        def macroEnd: Parser[Line] =
+            """(endm|ENDM)""".r ^^ {
+                _ =>
+                    if (debugParser) logger.debug("in endm")
+                    inMacroBody = false
+                    val definition = MacroDefinition(macroName, macroArgs.toList, macroLines.toList)
+                    macros(macroName) = definition
+                    macroArgs.clear()
+                    macroLines.clear()
+                    Line(lineNumber, text, List.empty, None, Some(MacroEnd()), None)
+            }
+
+        def macroBody: Parser[Line] =
+        """.*""".r ^^ {
+            x: String =>
+                if (debugParser) logger.debug("in macroBody")
+                macroLines += x
+                Line(lineNumber, text, List.empty, None, Some(MacroBody(x)), None)
+        }
+    }
+
+    private class StatementCombinatorParser extends LineParser {
         def line: Parser[Line] = opt(statement) ~ opt(comment) ^^ {
             case optStatement ~ optComment =>
                 if (debugParser) logger.debug("in line")
                 Line(lineNumber, text, List.empty, None, optStatement, None)
-
         }
 
         def statement: Parser[Statement] = (
@@ -118,7 +163,10 @@ class AssemblyParser(val debugParser: Boolean) {
             case ident ~ macroWord ~ args =>
                 if (debugParser) logger.debug("in macroStart, ident: " + ident + " args:" + args)
                 inMacroBody = true
-                MacroStart(new MacroName(ident), args.map(new MacroArgName(_)))
+                macroLines.clear()
+                macroArgs.++=:(args.map(new MacroArgName(_)))
+                macroName = new MacroName(ident)
+                MacroStart(macroName, args.map(new MacroArgName(_)))
         }
 
         def expression: Parser[Expression] = (
@@ -221,11 +269,5 @@ class AssemblyParser(val debugParser: Boolean) {
 
         def comment: Parser[String] =
             """;.*""".r
-
-        def parseProgram(lineNumber: Int, input: String) = {
-            this.lineNumber = lineNumber
-            this.text = input
-            parseAll(line, input)
-        }
     }
 }

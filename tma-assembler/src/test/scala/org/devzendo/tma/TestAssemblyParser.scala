@@ -34,8 +34,14 @@ class TestAssemblyParser extends AssertionsForJUnit with MustMatchers with Mocki
     var _thrown: ExpectedException = ExpectedException.none
 
     private def parseLine(line: String) = {
-        parser.parse((line, lineNumber))
+        val out = parser.parse((line, lineNumber))
         lineNumber = lineNumber + 1
+        out
+    }
+
+    private def parseLines(lines: List[String]): List[Line] = {
+        lines.foreach(parseLine)
+        parser.getLines()
     }
 
     private def parseSingleLine(line: String): Line = {
@@ -282,22 +288,87 @@ class TestAssemblyParser extends AssertionsForJUnit with MustMatchers with Mocki
                 Binary(Or(), SymbolArg("EM"), Number(7))))
     }
 
+    private val expectedMacroArgNames = List(new MacroArgName("LEX"), new MacroArgName("NAME"), new MacroArgName("LABEL"))
+
     @Test
     def macroStartWithArgs(): Unit = {
-        parser.inMacroBody must be(false)
+        parser.isInMacroBody must be(false)
+        parser.getMacroArgs must be(empty)
+        parser.getMacroLines must be(empty)
+
         singleLineParsesToStatement("$CODE\tMACRO\tLEX,NAME,LABEL",
-            MacroStart(new MacroName("$CODE"), List(new MacroArgName("LEX"), new MacroArgName("NAME"), new MacroArgName("LABEL"))))
-        parser.inMacroBody must be(true)
+            MacroStart(new MacroName("$CODE"), expectedMacroArgNames))
+
+        parser.isInMacroBody must be(true)
+        parser.getMacroArgs must be(expectedMacroArgNames)
+        parser.getMacroLines must be(empty)
     }
 
     @Test
     def macroStartWithNoArgs(): Unit = {
-        parser.inMacroBody must be(false)
+        parser.isInMacroBody must be(false)
+        parser.getMacroArgs must be(empty)
+        parser.getMacroLines must be(empty)
+
         singleLineParsesToStatement("$CODE\tMACRO\t",
             MacroStart(new MacroName("$CODE"), List.empty))
-        parser.inMacroBody must be(true)
+
+        parser.isInMacroBody must be(true)
+        parser.getMacroArgs must be(empty)
+        parser.getMacroLines must be(empty)
+    }
+
+    @Test
+    def macroStartBodyAndEnd(): Unit = {
+        val codeMacroName = "$CODE"
+        parser.isInMacroBody must be(false)
+        parser.getMacroArgs must be(empty)
+        parser.getMacroLines must be(empty)
+        val textLines = List(
+            "$CODE\tMACRO\tLEX,NAME,LABEL",
+            "\t_CODE\t= $\t\t\t\t;;save code pointer",
+            "\t_LEN\t= (LEX AND 01FH)/CELLL\t\t;;string cell count, round down",
+            "\t_NAME\t= _NAME-((_LEN+3)*CELLL)\t;;new header on cell boundary"
+        )
+
+        val lines = parseLines(textLines)
+        lines must have size 4
+
+        val expectedStartStatement = MacroStart(new MacroName("$CODE"), expectedMacroArgNames)
+        lines(0) must equal(Line(1, textLines(0).trim(), List.empty, None,
+              Some(expectedStartStatement), None))
+
+        lines(1) must equal(Line(2, textLines(1).trim(), List.empty, None,
+            Some(MacroBody(textLines(1).trim())), None))
+
+        lines(2) must equal(Line(3, textLines(2).trim(), List.empty, None,
+            Some(MacroBody(textLines(2).trim())), None))
+
+        lines(3) must equal(Line(4, textLines(3).trim(), List.empty, None,
+            Some(MacroBody(textLines(3).trim())), None))
+
+        parser.isInMacroBody must be(true)
+        parser.getMacroArgs must be(expectedMacroArgNames)
+        val expectedMacroLines = List(
+            textLines(1).trim(), textLines(2).trim(), textLines(3).trim()
+        )
+        parser.getMacroLines must be(expectedMacroLines)
+        parser.getMacro(codeMacroName) must be(None) // not Some until ENDM
+
+        // Now end the macro....
+        val endmText = "\tENDM"
+        val endm = parseLine(endmText)
+        endm must equal(Line(5, endmText.trim(), List.empty, None,
+            Some(MacroEnd()), None))
+
+        parser.getMacro(codeMacroName) must be(Some(MacroDefinition(new MacroName(codeMacroName), expectedMacroArgNames, expectedMacroLines)))
+
+        // Macro buildup state cleared down at ENDM
+        parser.isInMacroBody must be(false)
+        parser.getMacroArgs must be(empty)
+        parser.getMacroLines must be(empty)
     }
 
     // TODO
-    // macro with no args
+    // nested macro definitions illegal
 }
