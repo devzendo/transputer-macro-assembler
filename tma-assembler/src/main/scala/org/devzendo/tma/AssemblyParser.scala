@@ -18,32 +18,33 @@ package org.devzendo.tma
 
 import org.devzendo.tma.ast.AST.{MacroArgName, MacroName}
 import org.devzendo.tma.ast._
+import org.log4s.Logger
 
 import scala.collection.mutable
 import scala.util.parsing.combinator._
 
 class AssemblyParser(val debugParser: Boolean) {
 
-    val logger = org.log4s.getLogger
+    val logger: Logger = org.log4s.getLogger
 
     var lineNumber: Int = 0
 
-    val lines = mutable.ArrayBuffer[Line]()
-    def getLines() = {
+    private val lines = mutable.ArrayBuffer[Line]()
+    def getLines: List[Line] = {
         lines.toList
     }
 
     // State for built macros
-    var macros = mutable.Map[MacroName, MacroDefinition]()
+    private val macros = mutable.Map[MacroName, MacroDefinition]()
     def getMacro(macroName: MacroName): Option[MacroDefinition] = macros.get(macroName)
 
     // State for macro definition buildup
     private var inMacroBody = false
     def isInMacroBody: Boolean = inMacroBody
     private var macroName = new MacroName("")
-    private var macroArgs = mutable.ArrayBuffer[MacroArgName]()
+    private val macroArgs = mutable.ArrayBuffer[MacroArgName]()
     def getMacroArgs: List[MacroArgName] = macroArgs.toList
-    private var macroLines = mutable.ArrayBuffer[String]()
+    private val macroLines = mutable.ArrayBuffer[String]()
     def getMacroLines: List[String] = macroLines.toList
 
 
@@ -64,7 +65,7 @@ class AssemblyParser(val debugParser: Boolean) {
             val parser = if (inMacroBody) new MacroBodyCombinatorParser() else new StatementCombinatorParser()
             val parserOutput = parser.parseProgram(number, sanitizedInput)
             parserOutput match {
-                case parser.Success(r, _) => {
+                case parser.Success(r, _) =>
                     // TODO analyse
                     val rLine = r.asInstanceOf[Line] // unsure why r is not right type
                     if (debugParser) {
@@ -72,7 +73,6 @@ class AssemblyParser(val debugParser: Boolean) {
                     }
                     lines += rLine
                     rLine
-                }
                 case x => throw new AssemblyParserException(x.toString)
             }
 
@@ -97,7 +97,7 @@ class AssemblyParser(val debugParser: Boolean) {
 
         def line: Parser[Line]
 
-        def parseProgram(currentLineNumber: Int, input: String) = {
+        def parseProgram(currentLineNumber: Int, input: String): ParseResult[Line] = {
             lineNumber = currentLineNumber
             this.text = input
             parseAll(line, input)
@@ -105,7 +105,7 @@ class AssemblyParser(val debugParser: Boolean) {
     }
 
     private class MacroBodyCombinatorParser extends LineParser {
-        def line: Parser[Line] = (macroEnd | macroBody)
+        def line: Parser[Line] = macroEnd | macroBody
 
         def macroEnd: Parser[Line] =
             """(endm|ENDM)""".r ^^ {
@@ -129,21 +129,19 @@ class AssemblyParser(val debugParser: Boolean) {
     }
 
     private class StatementCombinatorParser extends LineParser {
-        def line: Parser[Line] = opt(statement) ~ opt(comment) ^^ {
-            case optStatement ~ optComment =>
+        def line: Parser[Line] = opt(statement) <~ opt(comment) ^^ {
+            optStatement =>
                 if (debugParser) logger.debug("in line")
                 Line(lineNumber, text, List.empty, None, optStatement, None)
         }
 
-        def statement: Parser[Statement] = (
-          constantAssignment | variableAssignment | macroStart
-        )
+        def statement: Parser[Statement] = constantAssignment | variableAssignment | macroStart
 
         // Not sure why I can't use ~> and <~ here to avoid the equ?
         def constantAssignment: Parser[ConstantAssignment] = (
             ident ~ equ ~ expression
             ) ^^ {
-            case ident ~ equ ~ expression =>
+            case ident ~ _ ~ expression =>
                 if (debugParser) logger.debug("in constantAssignment, ident: " + ident + " expr:" + expression)
                 ConstantAssignment(ident.asInstanceOf[String], expression)
                 // TODO prevent reassignment to the same constant
@@ -160,7 +158,7 @@ class AssemblyParser(val debugParser: Boolean) {
         def macroStart: Parser[MacroStart] = (
           ident ~ macroWord ~ repsep(ident, ",")
           ) ^^ {
-            case ident ~ macroWord ~ args =>
+            case ident ~ _ ~ args =>
                 if (debugParser) logger.debug("in macroStart, ident: " + ident + " args:" + args)
                 inMacroBody = true
                 macroLines.clear()
@@ -170,12 +168,8 @@ class AssemblyParser(val debugParser: Boolean) {
         }
 
         def expression: Parser[Expression] = (
-          binaryExpression
-        )
-
-        def binaryExpression: Parser[Expression] = (
           term ~ rep("+" ~ term | "-" ~ term)
-          )  ^^ {
+          ) ^^ {
             case term ~ rep => formBinary(term, rep)
         }
 
@@ -232,7 +226,7 @@ class AssemblyParser(val debugParser: Boolean) {
           | "(" ~> expression <~ ")"
         )
 
-        def integer: Parser[Int] = (hexIntegerOx | hexIntegerH | decimalInteger) // order matters: 07F1FH could be 07 decimal
+        def integer: Parser[Int] = hexIntegerOx | hexIntegerH | decimalInteger // order matters: 07F1FH could be 07 decimal
 
         def decimalInteger: Parser[Int] = """-?\d+(?!\.)""".r ^^ ( x => {
             if (debugParser) logger.debug("in decimalInteger(" + x + ")")
