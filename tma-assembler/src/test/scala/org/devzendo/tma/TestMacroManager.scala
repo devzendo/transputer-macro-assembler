@@ -16,25 +16,30 @@
 
 package org.devzendo.tma
 
-import org.devzendo.tma.ast.AST.MacroName
-import org.devzendo.tma.ast.MacroDefinition
+import org.junit.Test
+import org.scalatest.MustMatchers
+import org.scalatest.junit.AssertionsForJUnit
 
-import scala.collection.mutable
+class TestMacroManager extends AssertionsForJUnit with MustMatchers {
 
-class MacroManager {
+    val macroManager = new MacroManager()
 
+    @Test
+    def initialState(): Unit = {
+        macroManager.isInMacroBody must be(false)
+    }
 
-    private val macros = mutable.Map[MacroName, MacroDefinition]()
+    @Test
+    def startMacroChangesIsInMacroBody(): Unit = {
+        macroManager.startMacro()
+        macroManager.isInMacroBody must be(true)
+    }
 
-    private var inMacroBody = false
+    @Test
+    def endMacroChangesIsInMacroBody(): Unit = {
+        macroManager.startMacro()
+        macroManager.endMacro()
+        macroManager.isInMacroBody must be(false)
+    }
 
-    def isInMacroBody: Boolean = inMacroBody
-
-    def getMacro(macroName: MacroName): Option[MacroDefinition] = macros.get(macroName)
-
-    def storeMacro(macroName: MacroName, definition: MacroDefinition) = macros(macroName) = definition
-
-    def startMacro() = { inMacroBody = true }
-
-    def endMacro() = { inMacroBody = false }
 }

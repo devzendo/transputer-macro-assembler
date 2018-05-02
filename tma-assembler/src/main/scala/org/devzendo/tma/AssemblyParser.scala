@@ -36,8 +36,7 @@ class AssemblyParser(val debugParser: Boolean, val macroManager: MacroManager) {
     def getMacro(macroName: MacroName): Option[MacroDefinition] = macroManager.getMacro(macroName)
 
     // State for macro definition buildup
-    private var inMacroBody = false
-    def isInMacroBody: Boolean = inMacroBody
+    def isInMacroBody: Boolean = macroManager.isInMacroBody
     private var macroName = new MacroName("")
     private val macroArgs = mutable.ArrayBuffer[MacroArgName]()
     def getMacroArgs: List[MacroArgName] = macroArgs.toList
@@ -59,7 +58,7 @@ class AssemblyParser(val debugParser: Boolean, val macroManager: MacroManager) {
             throw new AssemblyParserException(lineNumber, "Line numbers must be positive")
         }
         if (sanitizedInput.length > 0) {
-            val parser = if (inMacroBody) new MacroBodyCombinatorParser(lineNumber) else new StatementCombinatorParser(lineNumber)
+            val parser = if (isInMacroBody) new MacroBodyCombinatorParser(lineNumber) else new StatementCombinatorParser(lineNumber)
             val parserOutput = parser.parseProgram(sanitizedInput)
             parserOutput match {
                 case parser.Success(r, _) =>
@@ -107,7 +106,7 @@ class AssemblyParser(val debugParser: Boolean, val macroManager: MacroManager) {
             """(endm|ENDM)""".r ^^ {
                 _ =>
                     if (debugParser) logger.debug("in endm")
-                    inMacroBody = false
+                    macroManager.endMacro()
                     val definition = MacroDefinition(macroName, macroArgs.toList, macroLines.toList)
                     macroManager.storeMacro(macroName, definition)
                     macroArgs.clear()
@@ -165,7 +164,7 @@ class AssemblyParser(val debugParser: Boolean, val macroManager: MacroManager) {
           ) ^^ {
             case ident ~ _ ~ args =>
                 if (debugParser) logger.debug("in macroStart, ident: " + ident + " args:" + args)
-                inMacroBody = true
+                macroManager.startMacro()
                 macroLines.clear()
                 macroArgs.++=:(args.map(new MacroArgName(_)))
                 macroName = new MacroName(ident)
