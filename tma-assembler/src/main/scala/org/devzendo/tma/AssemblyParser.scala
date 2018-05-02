@@ -153,10 +153,14 @@ class AssemblyParser(val debugParser: Boolean, val macroManager: MacroManager) {
           ) ^^ {
             case ident ~ _ ~ args =>
                 if (debugParser) logger.debug("in macroStart, ident: " + ident + " args:" + args)
-                val macroName = new MacroName(ident)
-                val macroArgs = args.map(new MacroArgName(_))
-                macroManager.startMacro(macroName, macroArgs)
-                MacroStart(macroName, macroArgs)
+                try {
+                    val macroName = new MacroName(ident)
+                    val macroArgs = args.map(new MacroArgName(_))
+                    macroManager.startMacro(macroName, macroArgs)
+                    MacroStart(macroName, macroArgs)
+                } catch {
+                    case i: IllegalStateException => throw new AssemblyParserException(lineNumber, i.getMessage)
+                }
         }
 
         def expression: Parser[Expression] = (

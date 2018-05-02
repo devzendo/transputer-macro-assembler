@@ -347,6 +347,15 @@ class TestAssemblyParser extends AssertionsForJUnit with MustMatchers with Mocki
         parser.parse(("$COLON\tMACRO\tLEX,NAME,LABEL", 2))
     }
 
+    @Test
+    def macroCannotBeRedefined(): Unit = {
+        thrown.expect(classOf[AssemblyParserException])
+        thrown.expectMessage("3: Macro '$CODE' already defined")
+        parser.parse(("$CODE\tMACRO\tLEX,NAME,LABEL", 1))
+        parser.parse(("\tendm", 2))
+        parser.parse(("$CODE\tMACRO\tLEX,NAME,LABEL", 3))
+    }
+
     // TODO
 //    @Test
 //    def macroInstantiation(): Unit = {
