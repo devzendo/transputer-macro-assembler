@@ -304,6 +304,97 @@ class TestAssemblyParser extends AssertionsForJUnit with MustMatchers with Mocki
         singleLineParsesToStatement("ORG\tXYZ", Org(SymbolArg("XYZ")))
     }
 
+    @Test
+    def dbZero(): Unit = {
+        thrown.expect(classOf[AssemblyParserException])
+        thrown.expectMessage("1: DB directive without data")
+        parser.parse(("DB\t", 1))
+    }
+
+    @Test
+    def dbSingle(): Unit = {
+        singleLineParsesToStatement("DB\t0x00", DB(List(Number(0))))
+    }
+
+    @Test
+    def dbMultiple(): Unit = {
+        singleLineParsesToStatement("DB\t1,2,3,4", DB(List(Number(1), Number(2), Number(3), Number(4))))
+    }
+
+    @Test
+    def dbSingleOverflow(): Unit = {
+        // This is allowed by the parser - it could be some expression we don't know the final value of, so
+        // don't disallow it here, deal with it in code generation.
+        singleLineParsesToStatement("DB\t0x100", DB(List(Number(256))))
+    }
+    // TODO handle overflowing DB data in code generation
+
+    @Test
+    def dwZero(): Unit = {
+        thrown.expect(classOf[AssemblyParserException])
+        thrown.expectMessage("1: DW directive without data")
+        parser.parse(("DW\t", 1))
+    }
+
+    @Test
+    def dwSingle(): Unit = {
+        singleLineParsesToStatement("DW\t0x0000", DW(List(Number(0))))
+    }
+
+    @Test
+    def dwMultiple(): Unit = {
+        singleLineParsesToStatement("DW\t1,2,3,4", DW(List(Number(1), Number(2), Number(3), Number(4))))
+    }
+
+    @Test
+    def dwSingleOverflow(): Unit = {
+        // This is allowed by the parser - it could be some expression we don't know the final value of, so
+        // don't disallow it here, deal with it in code generation.
+        singleLineParsesToStatement("DW\t0x10000", DW(List(Number(0x10000))))
+    }
+    // TODO handle overflowing DW data in code generation
+
+    @Test
+    def ddZero(): Unit = {
+        thrown.expect(classOf[AssemblyParserException])
+        thrown.expectMessage("1: DD directive without data")
+        parser.parse(("DD\t", 1))
+    }
+
+    @Test
+    def ddSingle(): Unit = {
+        singleLineParsesToStatement("DD\t0x0", DD(List(Number(0))))
+    }
+
+    @Test
+    def ddSingleMaxUnsignedHex0x(): Unit = {
+        singleLineParsesToStatement("DD\t0xffffffff", DD(List(Number(0xffffffff))))
+    }
+
+    @Test
+    def ddSingleMaxUnsignedHexH(): Unit = {
+        singleLineParsesToStatement("DD\tffffffffH", DD(List(Number(0xffffffff))))
+    }
+
+    @Test
+    def ddSingleMaxUnsignedDecimal(): Unit = {
+        singleLineParsesToStatement("DD\t4294967295", DD(List(Number(0xffffffff))))
+    }
+
+    @Test
+    def ddMultiple(): Unit = {
+        singleLineParsesToStatement("DD\t1,2,3,4", DD(List(Number(1), Number(2), Number(3), Number(4))))
+    }
+
+    // ddSingleOverflow cannot be expressed since we use Ints, and 0x100000000 doesn't fit in one.
+
+    @Test
+    def whatTheActual(): Unit = {
+        thrown.expect(classOf[AssemblyParserException])
+        thrown.expectMessage("1: Unknown statement 'blarf!'")
+        parser.parse(("blarf!", 1))
+    }
+
     private val expectedMacroArgNames = List(new MacroArgName("LEX"), new MacroArgName("NAME"), new MacroArgName("LABEL"))
 
     @Test

@@ -58,7 +58,10 @@ class AssemblyParser(val debugParser: Boolean, val macroManager: MacroManager) {
                     }
                     lines += rLine
                     rLine
-                case x => throw new AssemblyParserException(lineNumber, x.toString)
+
+                case x =>
+                    logger.error(s"$lineNumber: ${x.toString}") // mostly a useless, hard to understand error...
+                    throw new AssemblyParserException(lineNumber, "Unknown statement '" + sanitizedInput + "'")
             }
 
         } else {
@@ -124,7 +127,7 @@ class AssemblyParser(val debugParser: Boolean, val macroManager: MacroManager) {
                 Line(lineNumber, text, None, optStatement)
         }
 
-        def statement: Parser[Statement] = constantAssignment | variableAssignment | macroStart | origin
+        def statement: Parser[Statement] = constantAssignment | variableAssignment | macroStart | origin | data
 
         // Not sure why I can't use ~> and <~ here to avoid the equ?
         def constantAssignment: Parser[ConstantAssignment] = (
@@ -162,7 +165,44 @@ class AssemblyParser(val debugParser: Boolean, val macroManager: MacroManager) {
         def origin: Parser[Org] = (
           org ~> expression
         ) ^^ {
-            expr => Org(expr)
+            expr =>
+                if (debugParser) logger.debug("in org, addr:" + expr)
+                Org(expr)
+        }
+
+        def data: Parser[Statement] = db | dw | dd
+
+        def db: Parser[DB] = (
+          """(db|DB)""".r  ~> repsep(expression, ",")
+          ) ^^ {
+            exprs =>
+                if (debugParser) logger.debug("in db, exprs:" + exprs)
+                if (exprs.isEmpty) {
+                    throw new AssemblyParserException(lineNumber, "DB directive without data")
+                }
+                DB(exprs)
+        }
+
+        def dw: Parser[DW] = (
+          """(dw|DW)""".r  ~> repsep(expression, ",")
+          ) ^^ {
+            exprs =>
+                if (debugParser) logger.debug("in dw, exprs:" + exprs)
+                if (exprs.isEmpty) {
+                    throw new AssemblyParserException(lineNumber, "DW directive without data")
+                }
+                DW(exprs)
+        }
+
+        def dd: Parser[DD] = (
+          """(dd|DD)""".r  ~> repsep(expression, ",")
+          ) ^^ {
+            exprs =>
+                if (debugParser) logger.debug("in dd, exprs:" + exprs)
+                if (exprs.isEmpty) {
+                    throw new AssemblyParserException(lineNumber, "DD directive without data")
+                }
+                DD(exprs)
         }
 
         def expression: Parser[Expression] = (
@@ -226,19 +266,20 @@ class AssemblyParser(val debugParser: Boolean, val macroManager: MacroManager) {
 
         def integer: Parser[Int] = hexIntegerOx | hexIntegerH | decimalInteger // order matters: 07F1FH could be 07 decimal
 
+        // The parseLong conversion here ensures I can represent the maximum unsigned 32-bit values.
         def decimalInteger: Parser[Int] = """-?\d+(?!\.)""".r ^^ ( x => {
             if (debugParser) logger.debug("in decimalInteger(" + x + ")")
-            Integer.parseInt(x)
+            (java.lang.Long.parseLong(x) & 0xffffffff).asInstanceOf[Int]
         })
 
         def hexIntegerOx: Parser[Int] = """0[xX]-?\p{XDigit}+(?!\.)""".r ^^ ( x => {
             if (debugParser) logger.debug("in hexIntegerOx(" + x + ")")
-            Integer.parseInt(x.substring(2), 16)
+            (java.lang.Long.parseLong(x.substring(2), 16) & 0xffffffff).asInstanceOf[Int]
         })
 
         def hexIntegerH: Parser[Int] = """-?\p{XDigit}+[hH](?!\.)""".r ^^ ( x => {
             if (debugParser) logger.debug("in hexIntegerH(" + x + ")")
-            Integer.parseInt(x.substring(0, x.length - 1), 16)
+            (java.lang.Long.parseLong(x.substring(0, x.length - 1), 16) & 0xffffffff).asInstanceOf[Int]
         })
 
         def equ: Parser[String] =

@@ -63,9 +63,9 @@ case class MacroStart(name: MacroName, argNames: List[MacroArgName]) extends Sta
 case class MacroBody(line: String) extends Statement
 case class MacroEnd() extends Statement
 case class MacroInvocation(name: MacroName, args: List[Expression]) extends Statement
-case class DB(expr: Expression *) extends Statement
-case class DW(expr: Expression *) extends Statement
-case class DD(expr: Expression *) extends Statement
+case class DB(expr: List[Expression]) extends Statement
+case class DW(expr: List[Expression]) extends Statement
+case class DD(expr: List[Expression]) extends Statement
 case class DirectInstruction(opcode: Opcode, num: Int) extends Statement
 case class IndirectInstruction(opcode: Opcode) extends Statement
 
