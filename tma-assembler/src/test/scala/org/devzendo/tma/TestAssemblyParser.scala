@@ -43,12 +43,12 @@ class TestAssemblyParser extends AssertionsForJUnit with MustMatchers with Mocki
 
     private def parseLines(lines: List[String]): List[Line] = {
         lines.foreach(parseLine)
-        parser.getLines
+        parser.getCollectedLines
     }
 
     private def parseSingleLine(line: String): Line = {
         parseLine(line)
-        val lines = parser.getLines
+        val lines = parser.getCollectedLines
         lines must have size 1
         lines.head
     }
@@ -61,7 +61,7 @@ class TestAssemblyParser extends AssertionsForJUnit with MustMatchers with Mocki
 
     @Test
     def initial(): Unit = {
-        parser.getLines must be(empty)
+        parser.getCollectedLines must be(empty)
     }
 
     @Test
@@ -90,7 +90,7 @@ class TestAssemblyParser extends AssertionsForJUnit with MustMatchers with Mocki
     def incrementingLineNumbers(): Unit = {
         parseLine("  ; comment  ")
         parseLine("\t\t;;;another comment  ")
-        val lines = parser.getLines
+        val lines = parser.getCollectedLines
         lines must have size 2
         lines.head must equal(Line(1, "; comment", List.empty, None, None, None))
         lines.tail.head must equal(Line(2, ";;;another comment", List.empty, None, None, None))

@@ -30,7 +30,7 @@ class AssemblyParser(val debugParser: Boolean, val macroManager: MacroManager) {
     var lineNumber: Int = 0
 
     private val lines = mutable.ArrayBuffer[Line]()
-    def getLines: List[Line] = {
+    def getCollectedLines: List[Line] = {
         lines.toList
     }
 
