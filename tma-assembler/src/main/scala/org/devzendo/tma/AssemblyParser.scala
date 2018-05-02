@@ -27,8 +27,6 @@ class AssemblyParser(val debugParser: Boolean, val macroManager: MacroManager) {
 
     val logger: Logger = org.log4s.getLogger
 
-    var lineNumber: Int = 0
-
     private val lines = mutable.ArrayBuffer[Line]()
     def getCollectedLines: List[Line] = {
         lines.toList
@@ -51,19 +49,19 @@ class AssemblyParser(val debugParser: Boolean, val macroManager: MacroManager) {
     @throws(classOf[AssemblyParserException])
     def parse(lineAndNumber: (String, Int)): Line = {
         val line = lineAndNumber._1
-        val number = lineAndNumber._2
+        val lineNumber = lineAndNumber._2
 
         def sanitizedInput = nullToEmpty(line).trim()
 
         if (debugParser) {
-            logger.debug("parsing " + number + "|" + sanitizedInput + "|")
+            logger.debug("parsing " + lineNumber + "|" + sanitizedInput + "|")
         }
-        if (number < 1) {
-            throw new AssemblyParserException("Line numbers must be positive")
+        if (lineNumber < 1) {
+            throw new AssemblyParserException(lineNumber, "Line numbers must be positive")
         }
         if (sanitizedInput.length > 0) {
-            val parser = if (inMacroBody) new MacroBodyCombinatorParser() else new StatementCombinatorParser()
-            val parserOutput = parser.parseProgram(number, sanitizedInput)
+            val parser = if (inMacroBody) new MacroBodyCombinatorParser(lineNumber) else new StatementCombinatorParser(lineNumber)
+            val parserOutput = parser.parseProgram(sanitizedInput)
             parserOutput match {
                 case parser.Success(r, _) =>
                     // TODO analyse
@@ -73,11 +71,11 @@ class AssemblyParser(val debugParser: Boolean, val macroManager: MacroManager) {
                     }
                     lines += rLine
                     rLine
-                case x => throw new AssemblyParserException(x.toString)
+                case x => throw new AssemblyParserException(lineNumber, x.toString)
             }
 
         } else {
-            val line = Line(number, sanitizedInput, List.empty, None, None, None)
+            val line = Line(lineNumber, sanitizedInput, List.empty, None, None, None)
             lines += line
             line
         }
@@ -97,14 +95,13 @@ class AssemblyParser(val debugParser: Boolean, val macroManager: MacroManager) {
 
         def line: Parser[Line]
 
-        def parseProgram(currentLineNumber: Int, input: String): ParseResult[Line] = {
-            lineNumber = currentLineNumber
+        def parseProgram(input: String): ParseResult[Line] = {
             this.text = input
             parseAll(line, input)
         }
     }
 
-    private class MacroBodyCombinatorParser extends LineParser {
+    private class MacroBodyCombinatorParser(lineNumber: Int) extends LineParser {
         def line: Parser[Line] = macroEnd | macroStart | macroBody
 
         def macroEnd: Parser[Line] =
@@ -122,7 +119,7 @@ class AssemblyParser(val debugParser: Boolean, val macroManager: MacroManager) {
         def macroStart: Parser[Line] = (
             ident ~ macroWord ~ repsep(ident, ",")
             ) ^^ {
-                _ => throw new AssemblyParserException("Macro definitions cannot be nested")
+                _ => throw new AssemblyParserException(lineNumber, "Macro definitions cannot be nested")
         }
 
         def macroWord: Parser[String] =
@@ -137,7 +134,7 @@ class AssemblyParser(val debugParser: Boolean, val macroManager: MacroManager) {
         }
     }
 
-    private class StatementCombinatorParser extends LineParser {
+    private class StatementCombinatorParser(lineNumber: Int) extends LineParser {
         def line: Parser[Line] = opt(statement) <~ opt(comment) ^^ {
             optStatement =>
                 if (debugParser) logger.debug("in line")
@@ -224,7 +221,7 @@ class AssemblyParser(val debugParser: Boolean, val macroManager: MacroManager) {
                         }
                     case Some("~") | Some("!") => Unary(Not(), term)
                     // regex ensures this can't happen
-                    case Some(x) => throw new AssemblyParserException("Unexpected 'unary' operator: '" + x + "'")
+                    case Some(x) => throw new AssemblyParserException(lineNumber, "Unexpected 'unary' operator: '" + x + "'")
                     case None => term
                 }
         }

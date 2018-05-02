@@ -67,7 +67,7 @@ class TestAssemblyParser extends AssertionsForJUnit with MustMatchers with Mocki
     @Test
     def positiveLineNumber(): Unit = {
         thrown.expect(classOf[AssemblyParserException])
-        thrown.expectMessage("Line numbers must be positive")
+        thrown.expectMessage("0: Line numbers must be positive")
         parser.parse((null, 0))
     }
 
@@ -374,7 +374,7 @@ class TestAssemblyParser extends AssertionsForJUnit with MustMatchers with Mocki
     @Test
     def nestedMacroDefinitions(): Unit = {
         thrown.expect(classOf[AssemblyParserException])
-        thrown.expectMessage("Macro definitions cannot be nested")
+        thrown.expectMessage("2: Macro definitions cannot be nested")
         parser.parse(("$CODE\tMACRO\tLEX,NAME,LABEL", 1))
         parser.parse(("$COLON\tMACRO\tLEX,NAME,LABEL", 2))
     }

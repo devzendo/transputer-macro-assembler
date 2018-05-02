@@ -16,5 +16,5 @@
 
 package org.devzendo.tma
 
-class AssemblyParserException(warning: String) extends Exception(warning) {
+class AssemblyParserException(lineNumber: Int, warning: String) extends Exception(s"$lineNumber: $warning") {
 }
