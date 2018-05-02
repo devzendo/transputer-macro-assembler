@@ -16,30 +16,104 @@
 
 package org.devzendo.tma
 
-import org.junit.Test
+import org.devzendo.tma.ast.AST.{MacroArgName, MacroName}
+import org.devzendo.tma.ast.MacroDefinition
+import org.junit.{Rule, Test}
+import org.junit.rules.ExpectedException
 import org.scalatest.MustMatchers
 import org.scalatest.junit.AssertionsForJUnit
 
 class TestMacroManager extends AssertionsForJUnit with MustMatchers {
+    @Rule
+    def thrown: ExpectedException = _thrown
+    var _thrown: ExpectedException = ExpectedException.none
 
     val macroManager = new MacroManager()
+    val macroName = new MacroName("name")
+    val macroArgNames = List(new MacroArgName("FOO"), new MacroArgName("BAR"))
 
     @Test
     def initialState(): Unit = {
         macroManager.isInMacroBody must be(false)
     }
 
+
     @Test
     def startMacroChangesIsInMacroBody(): Unit = {
-        macroManager.startMacro()
+        macroManager.startMacro(macroName, List.empty)
         macroManager.isInMacroBody must be(true)
     }
 
     @Test
     def endMacroChangesIsInMacroBody(): Unit = {
-        macroManager.startMacro()
+        macroManager.startMacro(macroName, List.empty)
         macroManager.endMacro()
         macroManager.isInMacroBody must be(false)
     }
 
+    @Test
+    def endMacroWhenNotInMacroBodyThrows(): Unit = {
+        thrown.expect(classOf[IllegalStateException])
+        thrown.expectMessage("End macro with no start macro")
+        macroManager.endMacro()
+    }
+
+    @Test
+    def endMacroStores(): Unit = {
+        macroManager.getMacro(macroName) must be(None)
+        macroManager.isInMacroBody must be(false)
+
+        macroManager.startMacro(macroName, macroArgNames)
+        macroManager.isInMacroBody must be(true)
+        macroManager.getMacro(macroName) must be(None)
+
+        macroManager.endMacro()
+        macroManager.isInMacroBody must be(false)
+
+        macroManager.getMacro(macroName) must be(Some(MacroDefinition(macroName, macroArgNames, List.empty)))
+    }
+
+    @Test
+    def addMacroLineWhenNotInMacroBodyThrows(): Unit = {
+        thrown.expect(classOf[IllegalStateException])
+        thrown.expectMessage("Macro line received with no start macro")
+        macroManager.addMacroLine("blah")
+    }
+
+    @Test
+    def macrosCanHaveLines(): Unit = {
+        macroManager.startMacro(macroName, macroArgNames)
+        macroManager.addMacroLine("LINE ONE")
+        macroManager.addMacroLine("LINE TWO")
+        macroManager.endMacro()
+        macroManager.getMacro(macroName) must be(Some(MacroDefinition(macroName, macroArgNames,
+            List("LINE ONE", "LINE TWO"))))
+    }
+
+    @Test
+    def subsequentMacrosHaveTheirOwnLines(): Unit = {
+        macroManager.startMacro(macroName, macroArgNames)
+        macroManager.addMacroLine("LINE ONE")
+        macroManager.addMacroLine("LINE TWO")
+        macroManager.endMacro()
+
+        val secondMacroName = new MacroName("SECOND")
+        macroManager.startMacro(secondMacroName, macroArgNames)
+        macroManager.addMacroLine("COMPLETELY")
+        macroManager.addMacroLine("DIFFERENT")
+        macroManager.endMacro()
+        macroManager.getMacro(secondMacroName) must be(Some(MacroDefinition(secondMacroName, macroArgNames,
+            List("COMPLETELY", "DIFFERENT"))))
+    }
+
+    @Test
+    def macrosCannotBeRedefined(): Unit = {
+        thrown.expect(classOf[IllegalStateException])
+        thrown.expectMessage("Macro '" + macroName + "' already defined")
+
+        macroManager.startMacro(macroName, macroArgNames)
+        macroManager.endMacro()
+
+        macroManager.startMacro(macroName, macroArgNames)
+    }
 }

@@ -293,38 +293,20 @@ class TestAssemblyParser extends AssertionsForJUnit with MustMatchers with Mocki
 
     @Test
     def macroStartWithArgs(): Unit = {
-        parser.isInMacroBody must be(false)
-        parser.getMacroArgs must be(empty)
-        parser.getMacroLines must be(empty)
-
         singleLineParsesToStatement("$CODE\tMACRO\tLEX,NAME,LABEL",
             MacroStart(new MacroName("$CODE"), expectedMacroArgNames))
-
-        parser.isInMacroBody must be(true)
-        parser.getMacroArgs must be(expectedMacroArgNames)
-        parser.getMacroLines must be(empty)
     }
 
     @Test
     def macroStartWithNoArgs(): Unit = {
-        parser.isInMacroBody must be(false)
-        parser.getMacroArgs must be(empty)
-        parser.getMacroLines must be(empty)
-
         singleLineParsesToStatement("$CODE\tMACRO\t",
             MacroStart(new MacroName("$CODE"), List.empty))
-
-        parser.isInMacroBody must be(true)
-        parser.getMacroArgs must be(empty)
-        parser.getMacroLines must be(empty)
     }
 
     @Test
     def macroStartBodyAndEnd(): Unit = {
         val codeMacroName = "$CODE"
-        parser.isInMacroBody must be(false)
-        parser.getMacroArgs must be(empty)
-        parser.getMacroLines must be(empty)
+
         val textLines = List(
             "$CODE\tMACRO\tLEX,NAME,LABEL",
             "\t_CODE\t= $\t\t\t\t;;save code pointer",
@@ -344,12 +326,9 @@ class TestAssemblyParser extends AssertionsForJUnit with MustMatchers with Mocki
 
         lines(3) must equal(Line(4, textLines(3).trim(), None, Some(MacroBody(textLines(3).trim()))))
 
-        parser.isInMacroBody must be(true)
-        parser.getMacroArgs must be(expectedMacroArgNames)
         val expectedMacroLines = List(
             textLines(1).trim(), textLines(2).trim(), textLines(3).trim()
         )
-        parser.getMacroLines must be(expectedMacroLines)
         parser.getMacro(codeMacroName) must be(None) // not Some until ENDM
 
         // Now end the macro....
@@ -358,11 +337,6 @@ class TestAssemblyParser extends AssertionsForJUnit with MustMatchers with Mocki
         endm must equal(Line(5, endmText.trim(), None, Some(MacroEnd())))
 
         parser.getMacro(codeMacroName) must be(Some(MacroDefinition(new MacroName(codeMacroName), expectedMacroArgNames, expectedMacroLines)))
-
-        // Macro buildup state cleared down at ENDM
-        parser.isInMacroBody must be(false)
-        parser.getMacroArgs must be(empty)
-        parser.getMacroLines must be(empty)
     }
 
     @Test

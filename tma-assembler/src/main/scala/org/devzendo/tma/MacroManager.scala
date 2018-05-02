@@ -16,13 +16,12 @@
 
 package org.devzendo.tma
 
-import org.devzendo.tma.ast.AST.MacroName
+import org.devzendo.tma.ast.AST.{MacroArgName, MacroName}
 import org.devzendo.tma.ast.MacroDefinition
 
 import scala.collection.mutable
 
 class MacroManager {
-
 
     private val macros = mutable.Map[MacroName, MacroDefinition]()
 
@@ -30,11 +29,38 @@ class MacroManager {
 
     def isInMacroBody: Boolean = inMacroBody
 
+
     def getMacro(macroName: MacroName): Option[MacroDefinition] = macros.get(macroName)
 
     def storeMacro(macroName: MacroName, definition: MacroDefinition) = macros(macroName) = definition
 
-    def startMacro() = { inMacroBody = true }
 
-    def endMacro() = { inMacroBody = false }
+
+    private var macroName: MacroName = _
+    private var macroArgNames: List[MacroArgName] = List.empty
+    def startMacro(macroName: MacroName, macroArgNames: List[MacroArgName]) = {
+        if (macros.contains(macroName)) {
+            throw new IllegalStateException("Macro '" + macroName + "' already defined")
+        }
+        inMacroBody = true
+        this.macroName = macroName
+        this.macroArgNames = macroArgNames
+        macroLines.clear()
+    }
+
+    private val macroLines = mutable.ArrayBuffer[String]()
+    def addMacroLine(line: String) = {
+        if (!isInMacroBody) {
+            throw new IllegalStateException("Macro line received with no start macro")
+        }
+        macroLines += line
+    }
+
+    def endMacro() = {
+        if (!isInMacroBody) {
+            throw new IllegalStateException("End macro with no start macro")
+        }
+        inMacroBody = false
+        macros(macroName) = new MacroDefinition(macroName, macroArgNames, macroLines.toList)
+    }
 }
