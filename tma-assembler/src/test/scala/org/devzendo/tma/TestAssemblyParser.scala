@@ -379,5 +379,28 @@ class TestAssemblyParser extends AssertionsForJUnit with MustMatchers with Mocki
     }
 
     // TODO
-    // macro instantiation
+//    @Test
+//    def macroInstantiation(): Unit = {
+//        val textLines = List(
+//            "$CODE\tMACRO\tLEX,NAME,LABEL",
+//            "\t_CODE\t= $\t\t\t\t;;save code pointer",
+//            "\t_LEN\t= (LEX AND 01FH)/CELLL\t\t;;string cell count, round down",
+//            "\t_NAME\t= _NAME-((_LEN+3)*CELLL)\t;;new header on cell boundary",
+//            "\tENDM",
+//            "\t\t$CODE\t3,'URD',urdcode"
+//        )
+//
+//        val lines = parseLines(textLines)
+//        val stmts = lines.map { _.stmt.get }
+//        stmts must be(List(
+//            MacroStart(new MacroName("$CODE"), List(new MacroArgName("LEX"), new MacroArgName("NAME"), new MacroArgName("LABEL"))),
+//            MacroBody("_CODE\t= $\t\t\t\t;;save code pointer"),
+//            MacroBody("_LEN\t= (LEX AND 01FH)/CELLL\t\t;;string cell count, round down"),
+//            MacroBody("_NAME\t= _NAME-((_LEN+3)*CELLL)\t;;new header on cell boundary"),
+//            MacroEnd()
+//        ))
+//
+//    }
+
+    // nested macro instantiation (e.g. $COLON uses $CODE)
 }
