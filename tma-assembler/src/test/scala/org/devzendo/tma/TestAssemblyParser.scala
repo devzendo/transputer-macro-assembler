@@ -55,8 +55,7 @@ class TestAssemblyParser extends AssertionsForJUnit with MustMatchers with Mocki
 
     private def singleLineParsesToStatement(line: String, expectedStatement: Statement): Unit = {
         parseSingleLine(line) must
-          equal(Line(1, line.trim(), None,
-              Some(expectedStatement), None))
+          equal(Line(1, line.trim(), None, Some(expectedStatement)))
     }
 
     @Test
@@ -73,17 +72,17 @@ class TestAssemblyParser extends AssertionsForJUnit with MustMatchers with Mocki
 
     @Test
     def nullLine(): Unit = {
-        parseSingleLine(null) must equal(Line(1, "", None, None, None))
+        parseSingleLine(null) must equal(Line(1, "", None, None))
     }
 
     @Test
     def emptyLine(): Unit = {
-        parseSingleLine("") must equal(Line(1, "", None, None, None))
+        parseSingleLine("") must equal(Line(1, "", None, None))
     }
 
     @Test
     def justAComment(): Unit = {
-        parseSingleLine("  ; comment  ") must equal(Line(1, "; comment", None, None, None))
+        parseSingleLine("  ; comment  ") must equal(Line(1, "; comment", None, None))
     }
 
     @Test
@@ -92,8 +91,8 @@ class TestAssemblyParser extends AssertionsForJUnit with MustMatchers with Mocki
         parseLine("\t\t;;;another comment  ")
         val lines = parser.getCollectedLines
         lines must have size 2
-        lines.head must equal(Line(1, "; comment", None, None, None))
-        lines.tail.head must equal(Line(2, ";;;another comment", None, None, None))
+        lines.head must equal(Line(1, "; comment", None, None))
+        lines.tail.head must equal(Line(2, ";;;another comment", None, None))
     }
 
     @Test
@@ -337,17 +336,13 @@ class TestAssemblyParser extends AssertionsForJUnit with MustMatchers with Mocki
         lines must have size 4
 
         val expectedStartStatement = MacroStart(new MacroName("$CODE"), expectedMacroArgNames)
-        lines(0) must equal(Line(1, textLines(0).trim(), None,
-              Some(expectedStartStatement), None))
+        lines(0) must equal(Line(1, textLines(0).trim(), None, Some(expectedStartStatement)))
 
-        lines(1) must equal(Line(2, textLines(1).trim(), None,
-            Some(MacroBody(textLines(1).trim())), None))
+        lines(1) must equal(Line(2, textLines(1).trim(), None, Some(MacroBody(textLines(1).trim()))))
 
-        lines(2) must equal(Line(3, textLines(2).trim(), None,
-            Some(MacroBody(textLines(2).trim())), None))
+        lines(2) must equal(Line(3, textLines(2).trim(), None, Some(MacroBody(textLines(2).trim()))))
 
-        lines(3) must equal(Line(4, textLines(3).trim(), None,
-            Some(MacroBody(textLines(3).trim())), None))
+        lines(3) must equal(Line(4, textLines(3).trim(), None, Some(MacroBody(textLines(3).trim()))))
 
         parser.isInMacroBody must be(true)
         parser.getMacroArgs must be(expectedMacroArgNames)
@@ -360,8 +355,7 @@ class TestAssemblyParser extends AssertionsForJUnit with MustMatchers with Mocki
         // Now end the macro....
         val endmText = "\tENDM"
         val endm = parseLine(endmText)
-        endm must equal(Line(5, endmText.trim(), None,
-            Some(MacroEnd()), None))
+        endm must equal(Line(5, endmText.trim(), None, Some(MacroEnd())))
 
         parser.getMacro(codeMacroName) must be(Some(MacroDefinition(new MacroName(codeMacroName), expectedMacroArgNames, expectedMacroLines)))
 

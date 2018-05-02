@@ -75,7 +75,7 @@ class AssemblyParser(val debugParser: Boolean, val macroManager: MacroManager) {
             }
 
         } else {
-            val line = Line(lineNumber, sanitizedInput, None, None, None)
+            val line = Line(lineNumber, sanitizedInput, None, None)
             lines += line
             line
         }
@@ -113,7 +113,7 @@ class AssemblyParser(val debugParser: Boolean, val macroManager: MacroManager) {
                     macros(macroName) = definition
                     macroArgs.clear()
                     macroLines.clear()
-                    Line(lineNumber, text, None, Some(MacroEnd()), None)
+                    Line(lineNumber, text, None, Some(MacroEnd()))
             }
 
         def macroStart: Parser[Line] = (
@@ -130,7 +130,7 @@ class AssemblyParser(val debugParser: Boolean, val macroManager: MacroManager) {
             x: String =>
                 if (debugParser) logger.debug("in macroBody")
                 macroLines += x
-                Line(lineNumber, text, None, Some(MacroBody(x)), None)
+                Line(lineNumber, text, None, Some(MacroBody(x)))
         }
     }
 
@@ -138,7 +138,7 @@ class AssemblyParser(val debugParser: Boolean, val macroManager: MacroManager) {
         def line: Parser[Line] = opt(statement) <~ opt(comment) ^^ {
             optStatement =>
                 if (debugParser) logger.debug("in line")
-                Line(lineNumber, text, None, optStatement, None)
+                Line(lineNumber, text, None, optStatement)
         }
 
         def statement: Parser[Statement] = constantAssignment | variableAssignment | macroStart
