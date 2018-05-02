@@ -124,7 +124,7 @@ class AssemblyParser(val debugParser: Boolean, val macroManager: MacroManager) {
                 Line(lineNumber, text, None, optStatement)
         }
 
-        def statement: Parser[Statement] = constantAssignment | variableAssignment | macroStart
+        def statement: Parser[Statement] = constantAssignment | variableAssignment | macroStart | origin
 
         // Not sure why I can't use ~> and <~ here to avoid the equ?
         def constantAssignment: Parser[ConstantAssignment] = (
@@ -157,6 +157,12 @@ class AssemblyParser(val debugParser: Boolean, val macroManager: MacroManager) {
                 } catch {
                     case i: IllegalStateException => throw new AssemblyParserException(lineNumber, i.getMessage)
                 }
+        }
+
+        def origin: Parser[Org] = (
+          org ~> expression
+        ) ^^ {
+            expr => Org(expr)
         }
 
         def expression: Parser[Expression] = (
@@ -249,6 +255,9 @@ class AssemblyParser(val debugParser: Boolean, val macroManager: MacroManager) {
 
         def or: Parser[String] =
             """(\|\||or|OR)""".r ^^ ( _ => "OR" )
+
+        def org: Parser[String] =
+            """(org|ORG)""".r ^^ ( _ => "ORG" )
 
         def macroWord: Parser[String] =
             """(macro|MACRO)""".r ^^ ( _ => "MACRO" )

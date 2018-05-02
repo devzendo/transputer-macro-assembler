@@ -24,7 +24,6 @@ object AST {
     type SymbolName = String
     type MacroName = String
     type MacroArgName = String
-    type Address = Int
 }
 
 sealed abstract class Operator(op: String) {
@@ -57,7 +56,7 @@ case class Title(title: String) extends Statement
 case class Page(rows: Int, columns: Int) extends Statement
 case class Processor(processor: String) extends Statement
 case class Align(num: Int) extends Statement
-case class Org(address: Address) extends Statement
+case class Org(expr: Expression) extends Statement
 case class ConstantAssignment(symbolName: SymbolName, expr: Expression) extends Statement
 case class VariableAssignment(symbolName: SymbolName, expr: Expression) extends Statement
 case class MacroStart(name: MacroName, argNames: List[MacroArgName]) extends Statement

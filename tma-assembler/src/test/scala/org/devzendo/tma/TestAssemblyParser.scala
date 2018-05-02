@@ -289,6 +289,21 @@ class TestAssemblyParser extends AssertionsForJUnit with MustMatchers with Mocki
                 Binary(Or(), SymbolArg("EM"), Number(7))))
     }
 
+    @Test
+    def orgDirectiveNumber(): Unit = {
+        singleLineParsesToStatement("ORG\t0x4000000", Org(Number(0x4000000)))
+    }
+
+    @Test
+    def orgDirectiveExpression(): Unit = {
+        singleLineParsesToStatement("ORG\tXYZ + 40", Org(Binary(Add(), SymbolArg("XYZ"), Number(40))))
+    }
+
+    @Test
+    def orgDirectiveSymbol(): Unit = {
+        singleLineParsesToStatement("ORG\tXYZ", Org(SymbolArg("XYZ")))
+    }
+
     private val expectedMacroArgNames = List(new MacroArgName("LEX"), new MacroArgName("NAME"), new MacroArgName("LABEL"))
 
     @Test
