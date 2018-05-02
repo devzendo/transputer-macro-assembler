@@ -74,7 +74,7 @@ case class IndirectInstruction(opcode: Opcode) extends Statement
 case class Memory(address: Int, data: List[Byte])
 
 
-case class Line(number: Int, text: String, expansionLines: List[Line], label: Option[Label], stmt: Option[Statement], memory: Option[Memory]) {
+case class Line(number: Int, text: String, label: Option[Label], stmt: Option[Statement], memory: Option[Memory]) {
 }
 
 case class MacroDefinition(name: MacroName, argNames: List[MacroArgName], textLines: List[String])
