@@ -329,14 +329,14 @@ class TestAssemblyParser extends AssertionsForJUnit with MustMatchers with Mocki
         val expectedMacroLines = List(
             textLines(1).trim(), textLines(2).trim(), textLines(3).trim()
         )
-        parser.getMacro(codeMacroName) must be(None) // not Some until ENDM
+        macroManager.getMacro(codeMacroName) must be(None) // not Some until ENDM
 
         // Now end the macro....
         val endmText = "\tENDM"
         val endm = parseLine(endmText)
         endm must equal(Line(5, endmText.trim(), None, Some(MacroEnd())))
 
-        parser.getMacro(codeMacroName) must be(Some(MacroDefinition(new MacroName(codeMacroName), expectedMacroArgNames, expectedMacroLines)))
+        macroManager.getMacro(codeMacroName) must be(Some(MacroDefinition(new MacroName(codeMacroName), expectedMacroArgNames, expectedMacroLines)))
     }
 
     @Test

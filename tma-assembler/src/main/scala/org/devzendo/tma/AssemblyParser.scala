@@ -32,10 +32,6 @@ class AssemblyParser(val debugParser: Boolean, val macroManager: MacroManager) {
         lines.toList
     }
 
-    // State for built macros
-    def getMacro(macroName: MacroName): Option[MacroDefinition] = macroManager.getMacro(macroName)
-
-
 
     @throws(classOf[AssemblyParserException])
     def parse(lineAndNumber: (String, Int)): Line = {
