@@ -115,6 +115,7 @@ class AssemblerMain(val argList: List[String]) {
             binaryFile.foreach(new BinaryWriter(_).encode(model))
             listingFile.foreach(new ListingWriter(_).encode(model))
         } catch {
+            // TODO catch this around each input line's parsing, and if any errors, don't go on to next stage.
             case ape: AssemblyParserException =>
                 logger.error(ape.getMessage)
         }
