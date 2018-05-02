@@ -127,7 +127,8 @@ class AssemblyParser(val debugParser: Boolean, val macroManager: MacroManager) {
                 Line(lineNumber, text, None, optStatement)
         }
 
-        def statement: Parser[Statement] = constantAssignment | variableAssignment | macroStart | origin | data
+        def statement: Parser[Statement] = constantAssignment | variableAssignment | macroStart | origin | data |
+            title | page
 
         // Not sure why I can't use ~> and <~ here to avoid the equ?
         def constantAssignment: Parser[ConstantAssignment] = (
@@ -203,6 +204,22 @@ class AssemblyParser(val debugParser: Boolean, val macroManager: MacroManager) {
                     throw new AssemblyParserException(lineNumber, "DD directive without data")
                 }
                 DD(exprs)
+        }
+
+        def title: Parser[Title] = (
+          """(title|TITLE)""".r  ~> """.*""".r
+        ) ^^ {
+            text =>
+                if (debugParser) logger.debug("in title, text:" + text)
+                Title(text)
+        }
+
+        def page: Parser[Page] = (
+          """(page|PAGE)""".r  ~> wholeNumber ~ "," ~ wholeNumber
+          ) ^^ {
+            case rows ~ _ ~ columns =>
+                if (debugParser) logger.debug("in page, rows:" + rows + ", columns:" + columns)
+                Page(rows.toInt, columns.toInt)
         }
 
         def expression: Parser[Expression] = (

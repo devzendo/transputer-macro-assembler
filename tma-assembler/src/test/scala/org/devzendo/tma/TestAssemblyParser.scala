@@ -395,6 +395,16 @@ class TestAssemblyParser extends AssertionsForJUnit with MustMatchers with Mocki
         parser.parse(("blarf!", 1))
     }
 
+    @Test
+    def title(): Unit = {
+        singleLineParsesToStatement("TITLE InMos Transputer 32-bit eForth", Title("InMos Transputer 32-bit eForth"))
+    }
+
+    @Test
+    def page(): Unit = {
+        singleLineParsesToStatement("PAGE 60,132\t;60 lines per page, 132 characters per line ( was 62,132 )", Page(60, 132))
+    }
+
     private val expectedMacroArgNames = List(new MacroArgName("LEX"), new MacroArgName("NAME"), new MacroArgName("LABEL"))
 
     @Test
