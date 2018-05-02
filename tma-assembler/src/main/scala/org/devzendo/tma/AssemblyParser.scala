@@ -33,8 +33,7 @@ class AssemblyParser(val debugParser: Boolean, val macroManager: MacroManager) {
     }
 
     // State for built macros
-    private val macros = mutable.Map[MacroName, MacroDefinition]()
-    def getMacro(macroName: MacroName): Option[MacroDefinition] = macros.get(macroName)
+    def getMacro(macroName: MacroName): Option[MacroDefinition] = macroManager.getMacro(macroName)
 
     // State for macro definition buildup
     private var inMacroBody = false
@@ -110,7 +109,7 @@ class AssemblyParser(val debugParser: Boolean, val macroManager: MacroManager) {
                     if (debugParser) logger.debug("in endm")
                     inMacroBody = false
                     val definition = MacroDefinition(macroName, macroArgs.toList, macroLines.toList)
-                    macros(macroName) = definition
+                    macroManager.storeMacro(macroName, definition)
                     macroArgs.clear()
                     macroLines.clear()
                     Line(lineNumber, text, None, Some(MacroEnd()))

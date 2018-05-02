@@ -16,6 +16,16 @@
 
 package org.devzendo.tma
 
+import org.devzendo.tma.ast.AST.MacroName
+import org.devzendo.tma.ast.MacroDefinition
+
+import scala.collection.mutable
+
 class MacroManager {
+    private val macros = mutable.Map[MacroName, MacroDefinition]()
+
+    def getMacro(macroName: MacroName): Option[MacroDefinition] = macros.get(macroName)
+
+    def storeMacro(macroName: MacroName, definition: MacroDefinition) = macros(macroName) = definition
 
 }
