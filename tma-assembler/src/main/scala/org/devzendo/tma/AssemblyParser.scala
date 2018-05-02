@@ -23,7 +23,7 @@ import org.log4s.Logger
 import scala.collection.mutable
 import scala.util.parsing.combinator._
 
-class AssemblyParser(val debugParser: Boolean) {
+class AssemblyParser(val debugParser: Boolean, val macroManager: MacroManager) {
 
     val logger: Logger = org.log4s.getLogger
 

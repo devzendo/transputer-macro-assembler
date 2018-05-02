@@ -102,7 +102,8 @@ class AssemblerMain(val argList: List[String]) {
     }
 
     def start(): Unit = {
-        val parser = new AssemblyParser(debugParser)
+        val macroManager = new MacroManager()
+        val parser = new AssemblyParser(debugParser, macroManager)
         val asm = asmFile.get
         logger.debug("Reading lines from " + asm.getName)
         try {
