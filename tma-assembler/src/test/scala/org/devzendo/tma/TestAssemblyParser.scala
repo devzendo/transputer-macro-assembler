@@ -15,7 +15,7 @@
  */
 
 package org.devzendo.tma
-import org.devzendo.tma.ast.AST.{MacroArgName, MacroName}
+import org.devzendo.tma.ast.AST.{MacroArgName, MacroName, SymbolName}
 import org.devzendo.tma.ast._
 import org.junit.rules.ExpectedException
 import org.junit.{Rule, Test}
@@ -317,6 +317,11 @@ class TestAssemblyParser extends AssertionsForJUnit with MustMatchers with Mocki
     }
 
     @Test
+    def dbExpression(): Unit = {
+        singleLineParsesToStatement("DB\tXYZ + 4", DB(List(Binary(Add(), SymbolArg(new SymbolName("XYZ")), Number(4)))))
+    }
+
+    @Test
     def dbMultiple(): Unit = {
         singleLineParsesToStatement("DB\t1,2,3,4", DB(List(Number(1), Number(2), Number(3), Number(4))))
     }
@@ -405,6 +410,22 @@ class TestAssemblyParser extends AssertionsForJUnit with MustMatchers with Mocki
         singleLineParsesToStatement("PAGE 60,132\t;60 lines per page, 132 characters per line ( was 62,132 )", Page(60, 132))
     }
 
+    @Test
+    def align(): Unit = {
+        singleLineParsesToStatement("ALIGN 4 ; cell boundary", Align(4))
+    }
+
+    @Test
+    def main(): Unit = {
+        singleLineParsesToStatement("MAIN\tSEGMENT USE32", Ignored())
+    }
+
+    @Test
+    def assume(): Unit = {
+        singleLineParsesToStatement("ASSUME\tCS:MAIN", Ignored())
+    }
+
+
     private val expectedMacroArgNames = List(new MacroArgName("LEX"), new MacroArgName("NAME"), new MacroArgName("LABEL"))
 
     @Test
@@ -473,6 +494,18 @@ class TestAssemblyParser extends AssertionsForJUnit with MustMatchers with Mocki
     }
 
     // TODO
+    // remaining directives:
+    //   align
+    //   assume
+    // return type should be List[Line]
+    // is this word a macro?
+    // macro invocation, splitting of non-space things, possibly into brackets, into macro params
+    // macro expansion via the macro manager
+    // handling conversion of exceptions that the macro manager might throw when expanding
+    // calling back into the parser to convert expanded strings into Lines, flatmap these into the macro expansion
+    //   output, retaining the initial macro invocation's single line number
+    // documentation of syntax
+
 //    @Test
 //    def macroInstantiation(): Unit = {
 //        val textLines = List(
@@ -497,4 +530,6 @@ class TestAssemblyParser extends AssertionsForJUnit with MustMatchers with Mocki
 //    }
 
     // nested macro instantiation (e.g. $COLON uses $CODE)
+
+
 }
