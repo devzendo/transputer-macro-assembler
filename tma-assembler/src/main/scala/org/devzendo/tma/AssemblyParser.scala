@@ -35,7 +35,7 @@ class AssemblyParser(val debugParser: Boolean, val macroManager: MacroManager) {
 
 
     @throws(classOf[AssemblyParserException])
-    def parse(lineAndNumber: (String, Int)): Line = {
+    def parse(lineAndNumber: (String, Int)): List[Line] = {
         val line = lineAndNumber._1
         val lineNumber = lineAndNumber._2
 
@@ -53,12 +53,12 @@ class AssemblyParser(val debugParser: Boolean, val macroManager: MacroManager) {
             parserOutput match {
                 case parser.Success(r, _) =>
                     // TODO analyse
-                    val rLine = r.asInstanceOf[Line] // unsure why r is not right type
+                    val rLines = r.asInstanceOf[List[Line]] // unsure why r is not right type
                     if (debugParser) {
-                        logger.debug("returning" + rLine)
+                        logger.debug("returning" + rLines)
                     }
-                    lines += rLine
-                    rLine
+                    lines ++= rLines
+                    rLines
 
                 case x =>
                     logger.error(s"$lineNumber: ${x.toString}") // mostly a useless, hard to understand error...
@@ -68,7 +68,7 @@ class AssemblyParser(val debugParser: Boolean, val macroManager: MacroManager) {
         } else {
             val line = Line(lineNumber, sanitizedInput, None, None)
             lines += line
-            line
+            List(line)
         }
     }
 
@@ -84,26 +84,26 @@ class AssemblyParser(val debugParser: Boolean, val macroManager: MacroManager) {
     private trait LineParser extends JavaTokenParsers {
         var text: String = ""
 
-        def line: Parser[Line]
+        def line: Parser[List[Line]]
 
-        def parseProgram(input: String): ParseResult[Line] = {
+        def parseProgram(input: String): ParseResult[List[Line]] = {
             this.text = input
             parseAll(line, input)
         }
     }
 
     private class MacroBodyCombinatorParser(lineNumber: Int) extends LineParser {
-        def line: Parser[Line] = macroEnd | macroStart | macroBody
+        def line: Parser[List[Line]] = macroEnd | macroStart | macroBody
 
-        def macroEnd: Parser[Line] =
+        def macroEnd: Parser[List[Line]] =
             """(endm|ENDM)""".r ^^ {
                 _ =>
                     if (debugParser) logger.debug("in endm")
                     macroManager.endMacro()
-                    Line(lineNumber, text, None, Some(MacroEnd()))
+                    List(Line(lineNumber, text, None, Some(MacroEnd())))
             }
 
-        def macroStart: Parser[Line] = (
+        def macroStart: Parser[List[Line]] = (
             ident ~ macroWord ~ repsep(ident, ",")
             ) ^^ {
                 _ => throw new AssemblyParserException(lineNumber, "Macro definitions cannot be nested")
@@ -112,22 +112,22 @@ class AssemblyParser(val debugParser: Boolean, val macroManager: MacroManager) {
         def macroWord: Parser[String] =
             """(macro|MACRO)""".r ^^ ( _ => "MACRO" )
 
-        def macroBody: Parser[Line] =
+        def macroBody: Parser[List[Line]] =
         """.*""".r ^^ {
             x: String =>
                 if (debugParser) logger.debug("in macroBody")
                 macroManager.addMacroLine(x)
-                Line(lineNumber, text, None, Some(MacroBody(x)))
+                List(Line(lineNumber, text, None, Some(MacroBody(x))))
         }
     }
 
     private class StatementCombinatorParser(lineNumber: Int) extends LineParser {
-        def line: Parser[Line] = (
+        def line: Parser[List[Line]] = (
             opt(label) ~ opt(statement) <~ opt(comment)
           ) ^^ {
             case optLabel ~ optStatement =>
                 if (debugParser) logger.debug("in line")
-                Line(lineNumber, text, optLabel, optStatement)
+                List(Line(lineNumber, text, optLabel, optStatement))
         }
 
         def label: Parser[Label] = (

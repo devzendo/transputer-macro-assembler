@@ -477,8 +477,8 @@ class TestAssemblyParser extends AssertionsForJUnit with MustMatchers with Mocki
 
         // Now end the macro....
         val endmText = "\tENDM"
-        val endm = parseLine(endmText)
-        endm must equal(Line(5, endmText.trim(), None, Some(MacroEnd())))
+        val endmLines = parseLine(endmText)
+        endmLines must equal(List(Line(5, endmText.trim(), None, Some(MacroEnd()))))
 
         macroManager.getMacro(codeMacroName) must be(Some(MacroDefinition(new MacroName(codeMacroName), expectedMacroArgNames, expectedMacroLines)))
     }
@@ -501,10 +501,6 @@ class TestAssemblyParser extends AssertionsForJUnit with MustMatchers with Mocki
     }
 
     // TODO
-    // remaining directives:
-    //   align
-    //   assume
-    // return type should be List[Line]
     // is this word a macro?
     // macro invocation, splitting of non-space things, possibly into brackets, into macro params
     // macro expansion via the macro manager
