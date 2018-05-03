@@ -16,11 +16,12 @@
 
 package org.devzendo.tma
 
-import org.devzendo.tma.ast.AST.{MacroArgName, MacroName}
+import org.devzendo.tma.ast.AST.{Label, MacroArgName, MacroName}
 import org.devzendo.tma.ast._
 import org.log4s.Logger
 
 import scala.collection.mutable
+import scala.util.matching.Regex
 import scala.util.parsing.combinator._
 
 class AssemblyParser(val debugParser: Boolean, val macroManager: MacroManager) {
@@ -121,10 +122,20 @@ class AssemblyParser(val debugParser: Boolean, val macroManager: MacroManager) {
     }
 
     private class StatementCombinatorParser(lineNumber: Int) extends LineParser {
-        def line: Parser[Line] = opt(statement) <~ opt(comment) ^^ {
-            optStatement =>
+        def line: Parser[Line] = (
+            opt(label) ~ opt(statement) <~ opt(comment)
+          ) ^^ {
+            case optLabel ~ optStatement =>
                 if (debugParser) logger.debug("in line")
-                Line(lineNumber, text, None, optStatement)
+                Line(lineNumber, text, optLabel, optStatement)
+        }
+
+        def label: Parser[Label] = (
+          ident <~ ":"
+        ) ^^ {
+            label =>
+                if (debugParser) logger.debug("in label, ident: " + label)
+                new Label(label)
         }
 
         def statement: Parser[Statement] = constantAssignment | variableAssignment | macroStart | origin | data |
@@ -225,13 +236,13 @@ class AssemblyParser(val debugParser: Boolean, val macroManager: MacroManager) {
         def align: Parser[Align] = (
           """(align|ALIGN)""".r  ~> wholeNumber
           ) ^^ {
-            case alignment =>
+            alignment =>
                 if (debugParser) logger.debug("in align, alignment:" + alignment)
                 Align(alignment.toInt)
         }
 
         def ignored: Parser[Ignored] = ( ignoredKeyword ~ """.*""".r ) ^^ { _ => Ignored() }
-        def ignoredKeyword = """(main|MAIN|assume|ASSUME)""".r
+        def ignoredKeyword: Regex = """(main|MAIN|assume|ASSUME)""".r
 
         def expression: Parser[Expression] = (
           term ~ rep("+" ~ term | "-" ~ term)

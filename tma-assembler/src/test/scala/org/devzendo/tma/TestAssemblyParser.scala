@@ -15,7 +15,7 @@
  */
 
 package org.devzendo.tma
-import org.devzendo.tma.ast.AST.{MacroArgName, MacroName, SymbolName}
+import org.devzendo.tma.ast.AST.{Label, MacroArgName, MacroName, SymbolName}
 import org.devzendo.tma.ast._
 import org.junit.rules.ExpectedException
 import org.junit.{Rule, Test}
@@ -425,6 +425,13 @@ class TestAssemblyParser extends AssertionsForJUnit with MustMatchers with Mocki
         singleLineParsesToStatement("ASSUME\tCS:MAIN", Ignored())
     }
 
+    @Test
+    def label(): Unit = {
+        val line = "FOO:\tDD\t0x0"
+        parseSingleLine(line) must
+          equal(Line(1, line.trim(), Some(new Label("FOO")), Some(DD(List(Number(0))))))
+    }
+
 
     private val expectedMacroArgNames = List(new MacroArgName("LEX"), new MacroArgName("NAME"), new MacroArgName("LABEL"))
 
@@ -502,6 +509,7 @@ class TestAssemblyParser extends AssertionsForJUnit with MustMatchers with Mocki
     // macro invocation, splitting of non-space things, possibly into brackets, into macro params
     // macro expansion via the macro manager
     // handling conversion of exceptions that the macro manager might throw when expanding
+    // label on macro invocation must appear on first line of expansion only
     // calling back into the parser to convert expanded strings into Lines, flatmap these into the macro expansion
     //   output, retaining the initial macro invocation's single line number
     // documentation of syntax
