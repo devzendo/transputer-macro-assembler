@@ -1,12 +1,46 @@
-Transputer Macro Assembler
-==========================
-This is a simple macro assembler for Transputer assembly language, that can
-build binary files. The future intention is to also build ELF object files.
+Elementary Macro Assembler with Transputer Support
+==================================================
+This is a simple byte-building macro assembler, that can build binary files,
+irrespective of actual CPU instructions. You can build your set of 'opcodes'
+via macros and ALIGN/DB/DD/DW directives.
+
+It also understands variants of the Transputer assembly language when the CPU
+directive selects a Transputer variant. Initially targetting the T800.
+
+The future intention is to also build ELF object files.
 
 The assembler is to be used in the building of the
 [transputer-eforth](https://bitbucket.org/devzendo/transputer-eforth) eForth
 port, and also as the assembler used by the [Parachute
 Project](https://devzendo.github.io/parachute) and its future languages.
+
+Status
+------
+In development; unfinished; not yet at its first release (as of April/May 2018).
+
+Currently working on the parser, and macro expansion. No code generation yet.
+
+Remaining work:
+
+* got argument and parameter wrong, d'oh
+* is this word a macro?
+* macro invocation, splitting of non-space things, possibly into brackets, into macro params
+* macro invocation with params split on space
+* macro expansion via the macro manager
+* nested macro invocation (e.g. $COLON uses $CODE)
+* handling conversion of exceptions that the macro manager might throw when expanding
+* label on macro invocation must appear on first line of expansion only
+* calling back into the parser to convert expanded strings into Lines, flatmap these into the macro expansion
+  output, retaining the initial macro invocation's single line number
+* better case insensitivity of keywords https://stackoverflow.com/questions/38070885/how-to-handle-case-insensitive-keywords-with-scala-parser-combinators
+* macros shouldn't be able to replace keywords
+* directives: if1/endif, dup (n) after db/dw/dd, end.* (ignore)
+* honour the Cpu directive, to switch in Transputer family native instructions, rather than db-generating macros
+* Transputer pfix/nfix generation from direct opcodes
+* documentation of syntax
+* code generation
+  * prevent reassignment to the same constant
+  * handle overflowing DB/DD/DW data in code generation
 
 Rationale
 ---------

@@ -16,7 +16,7 @@
 
 package org.devzendo.tma
 
-import org.devzendo.tma.ast.AST.{Label, MacroArgName, MacroName}
+import org.devzendo.tma.ast.AST.{Label, MacroArgName, MacroName, MacroParameter}
 import org.devzendo.tma.ast._
 import org.log4s.Logger
 
@@ -52,7 +52,6 @@ class AssemblyParser(val debugParser: Boolean, val macroManager: MacroManager) {
             val parserOutput = parser.parseProgram(sanitizedInput)
             parserOutput match {
                 case parser.Success(r, _) =>
-                    // TODO analyse
                     val rLines = r.asInstanceOf[List[Line]] // unsure why r is not right type
                     if (debugParser) {
                         logger.debug("returning" + rLines)
@@ -138,7 +137,7 @@ class AssemblyParser(val debugParser: Boolean, val macroManager: MacroManager) {
                 new Label(label)
         }
 
-        def statement: Parser[Statement] = constantAssignment | variableAssignment | macroStart | origin | data |
+        def statement: Parser[Statement] = constantAssignment | variableAssignment | macroStart | macroInvocation | origin | data |
             title | page | align | ignored
 
         // Not sure why I can't use ~> and <~ here to avoid the equ?
@@ -148,7 +147,6 @@ class AssemblyParser(val debugParser: Boolean, val macroManager: MacroManager) {
             case ident ~ _ ~ expression =>
                 if (debugParser) logger.debug("in constantAssignment, ident: " + ident + " expr:" + expression)
                 ConstantAssignment(ident.asInstanceOf[String], expression)
-                // TODO prevent reassignment to the same constant
         }
 
         def variableAssignment: Parser[VariableAssignment] = (
@@ -172,6 +170,27 @@ class AssemblyParser(val debugParser: Boolean, val macroManager: MacroManager) {
                 } catch {
                     case i: IllegalStateException => throw new AssemblyParserException(lineNumber, i.getMessage)
                 }
+        }
+
+        def macroInvocation: Parser[MacroInvocation] = (
+          existingMacro ~ repsep(macroParameter, """[\s,]""".r)
+        ) ^^ {
+            case macroName ~ parameters =>
+                if (debugParser) logger.debug("in macroInvocation, macro name: " + macroName + " args:" + parameters)
+                MacroInvocation(macroName, parameters)
+        }
+
+        def existingMacro: Parser[MacroName] = ident ^? {
+            case possibleMacro
+                if macroManager.exists(possibleMacro) =>
+                if (debugParser) logger.debug("in existingMacro, ident: " + possibleMacro)
+                possibleMacro
+        }
+
+        def macroParameter: Parser[MacroParameter] = """[^\s,]+""".r ^^ { // TODO what about ( expressions ) ?
+            param =>
+                if (debugParser) logger.debug("in macroParameter, param is [" + param + "]")
+                new MacroParameter(param)
         }
 
         def origin: Parser[Org] = (
@@ -299,7 +318,7 @@ class AssemblyParser(val debugParser: Boolean, val macroManager: MacroManager) {
 
         def factorBase: Parser[Expression] = (
           integer ^^ ( n => Number(n))
-          | ident ^^ ( c => SymbolArg(c)) // TODO or is it a variable, or label? or macro?
+          | ident ^^ ( c => SymbolArg(c))
           | "(" ~> expression <~ ")"
         )
 

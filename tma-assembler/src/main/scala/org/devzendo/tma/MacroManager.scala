@@ -23,6 +23,7 @@ import scala.collection.mutable
 
 class MacroManager {
 
+
     private val macros = mutable.Map[MacroName, MacroDefinition]()
 
     private var inMacroBody = false
@@ -31,6 +32,8 @@ class MacroManager {
 
 
     def getMacro(macroName: MacroName): Option[MacroDefinition] = macros.get(macroName)
+
+    def exists(macroName: MacroName) = macros.contains(macroName)
 
     def storeMacro(macroName: MacroName, definition: MacroDefinition) = macros(macroName) = definition
 

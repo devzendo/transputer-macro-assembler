@@ -15,7 +15,7 @@
  */
 
 package org.devzendo.tma
-import org.devzendo.tma.ast.AST.{Label, MacroArgName, MacroName, SymbolName}
+import org.devzendo.tma.ast.AST._
 import org.devzendo.tma.ast._
 import org.junit.rules.ExpectedException
 import org.junit.{Rule, Test}
@@ -332,7 +332,6 @@ class TestAssemblyParser extends AssertionsForJUnit with MustMatchers with Mocki
         // don't disallow it here, deal with it in code generation.
         singleLineParsesToStatement("DB\t0x100", DB(List(Number(256))))
     }
-    // TODO handle overflowing DB data in code generation
 
     @Test
     def dwZero(): Unit = {
@@ -357,7 +356,6 @@ class TestAssemblyParser extends AssertionsForJUnit with MustMatchers with Mocki
         // don't disallow it here, deal with it in code generation.
         singleLineParsesToStatement("DW\t0x10000", DW(List(Number(0x10000))))
     }
-    // TODO handle overflowing DW data in code generation
 
     @Test
     def ddZero(): Unit = {
@@ -500,40 +498,20 @@ class TestAssemblyParser extends AssertionsForJUnit with MustMatchers with Mocki
         parser.parse(("$CODE\tMACRO\tLEX,NAME,LABEL", 3))
     }
 
-    // TODO
-    // is this word a macro?
-    // macro invocation, splitting of non-space things, possibly into brackets, into macro params
-    // macro expansion via the macro manager
-    // handling conversion of exceptions that the macro manager might throw when expanding
-    // label on macro invocation must appear on first line of expansion only
-    // calling back into the parser to convert expanded strings into Lines, flatmap these into the macro expansion
-    //   output, retaining the initial macro invocation's single line number
-    // documentation of syntax
+    @Test
+    def macroInvocation(): Unit = {
+        val textLines = List(
+            "$CODE\tMACRO\tLEX,NAME,LABEL",
+            "\tENDM",
+            "\t\t$CODE\t3,'URD',urdcode"
+        )
 
-//    @Test
-//    def macroInstantiation(): Unit = {
-//        val textLines = List(
-//            "$CODE\tMACRO\tLEX,NAME,LABEL",
-//            "\t_CODE\t= $\t\t\t\t;;save code pointer",
-//            "\t_LEN\t= (LEX AND 01FH)/CELLL\t\t;;string cell count, round down",
-//            "\t_NAME\t= _NAME-((_LEN+3)*CELLL)\t;;new header on cell boundary",
-//            "\tENDM",
-//            "\t\t$CODE\t3,'URD',urdcode"
-//        )
-//
-//        val lines = parseLines(textLines)
-//        val stmts = lines.map { _.stmt.get }
-//        stmts must be(List(
-//            MacroStart(new MacroName("$CODE"), List(new MacroArgName("LEX"), new MacroArgName("NAME"), new MacroArgName("LABEL"))),
-//            MacroBody("_CODE\t= $\t\t\t\t;;save code pointer"),
-//            MacroBody("_LEN\t= (LEX AND 01FH)/CELLL\t\t;;string cell count, round down"),
-//            MacroBody("_NAME\t= _NAME-((_LEN+3)*CELLL)\t;;new header on cell boundary"),
-//            MacroEnd()
-//        ))
-//
-//    }
-
-    // nested macro instantiation (e.g. $COLON uses $CODE)
-
-
+        val lines = parseLines(textLines)
+        val stmts = lines.map { _.stmt.get }
+        stmts must be(List(
+            MacroStart(new MacroName("$CODE"), List(new MacroArgName("LEX"), new MacroArgName("NAME"), new MacroArgName("LABEL"))),
+            MacroEnd(),
+            MacroInvocation(new MacroName("$CODE"), List(new MacroParameter("3"), new MacroParameter("'URD'"), new MacroParameter("urdcode")))
+        ))
+    }
 }

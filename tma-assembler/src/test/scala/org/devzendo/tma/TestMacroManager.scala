@@ -74,6 +74,15 @@ class TestMacroManager extends AssertionsForJUnit with MustMatchers {
     }
 
     @Test
+    def emptyMacrosAreAllowedButPointless(): Unit = {
+        macroManager.startMacro(macroName, macroArgNames)
+        macroManager.endMacro()
+
+        val expectedEmptyMacroLines = List.empty
+        macroManager.getMacro(macroName) must be(Some(MacroDefinition(macroName, macroArgNames, expectedEmptyMacroLines)))
+    }
+
+    @Test
     def addMacroLineWhenNotInMacroBodyThrows(): Unit = {
         thrown.expect(classOf[IllegalStateException])
         thrown.expectMessage("Macro line received with no start macro")
@@ -116,4 +125,15 @@ class TestMacroManager extends AssertionsForJUnit with MustMatchers {
 
         macroManager.startMacro(macroName, macroArgNames)
     }
+
+    @Test
+    def macrosCanBeTestedForExistence(): Unit = {
+        macroManager.exists(macroName) must be(false)
+
+        macroManager.startMacro(macroName, macroArgNames)
+        macroManager.endMacro()
+
+        macroManager.exists(macroName) must be(true)
+    }
+
 }

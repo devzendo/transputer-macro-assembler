@@ -23,7 +23,8 @@ object AST {
     type Label = String
     type SymbolName = String
     type MacroName = String
-    type MacroArgName = String
+    type MacroArgName = String // SHOULD BE PARAMETER
+    type MacroParameter = String // SHOULD BE ARGUMENT
 }
 
 sealed abstract class Operator(op: String) {
@@ -59,10 +60,10 @@ case class Align(num: Int) extends Statement
 case class Org(expr: Expression) extends Statement
 case class ConstantAssignment(symbolName: SymbolName, expr: Expression) extends Statement
 case class VariableAssignment(symbolName: SymbolName, expr: Expression) extends Statement
-case class MacroStart(name: MacroName, argNames: List[MacroArgName]) extends Statement
+case class MacroStart(name: MacroName, argNames: List[MacroArgName]) extends Statement // should be parameter names
 case class MacroBody(line: String) extends Statement
 case class MacroEnd() extends Statement
-case class MacroInvocation(name: MacroName, args: List[Expression]) extends Statement
+case class MacroInvocation(name: MacroName, args: List[MacroParameter]) extends Statement // should be arguments
 case class DB(expr: List[Expression]) extends Statement
 case class DW(expr: List[Expression]) extends Statement
 case class DD(expr: List[Expression]) extends Statement
