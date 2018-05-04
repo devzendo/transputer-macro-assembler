@@ -16,7 +16,7 @@
 
 package org.devzendo.tma
 
-import org.devzendo.tma.ast.AST.{Label, MacroArgName, MacroName, MacroParameter}
+import org.devzendo.tma.ast.AST.{Label, MacroArgName, MacroName, MacroArgument}
 import org.devzendo.tma.ast._
 import org.log4s.Logger
 
@@ -173,7 +173,7 @@ class AssemblyParser(val debugParser: Boolean, val macroManager: MacroManager) {
         }
 
         def macroInvocation: Parser[MacroInvocation] = (
-          existingMacro ~ repsep(macroParameter, """[\s,]""".r)
+          existingMacro ~ repsep(macroArgument, """[\s,]""".r)
         ) ^^ {
             case macroName ~ parameters =>
                 if (debugParser) logger.debug("in macroInvocation, macro name: " + macroName + " args:" + parameters)
@@ -187,10 +187,10 @@ class AssemblyParser(val debugParser: Boolean, val macroManager: MacroManager) {
                 possibleMacro
         }
 
-        def macroParameter: Parser[MacroParameter] = """[^\s,]+""".r ^^ { // TODO what about ( expressions ) ?
-            param =>
-                if (debugParser) logger.debug("in macroParameter, param is [" + param + "]")
-                new MacroParameter(param)
+        def macroArgument: Parser[MacroArgument] = """[^\s,]+""".r ^^ { // TODO what about ( expressions ) ?
+            argument =>
+                if (debugParser) logger.debug("in macroArgument, argument is [" + argument + "]")
+                new MacroArgument(argument)
         }
 
         def origin: Parser[Org] = (

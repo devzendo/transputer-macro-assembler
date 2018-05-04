@@ -511,7 +511,7 @@ class TestAssemblyParser extends AssertionsForJUnit with MustMatchers with Mocki
         stmts must be(List(
             MacroStart(new MacroName("$CODE"), List(new MacroArgName("LEX"), new MacroArgName("NAME"), new MacroArgName("LABEL"))),
             MacroEnd(),
-            MacroInvocation(new MacroName("$CODE"), List(new MacroParameter("3"), new MacroParameter("'URD'"), new MacroParameter("urdcode")))
+            MacroInvocation(new MacroName("$CODE"), List(new MacroArgument("3"), new MacroArgument("'URD'"), new MacroArgument("urdcode")))
         ))
     }
 }

@@ -22,8 +22,6 @@ Currently working on the parser, and macro expansion. No code generation yet.
 
 Remaining work:
 
-* got argument and parameter wrong, d'oh
-* is this word a macro?
 * macro invocation, splitting of non-space things, possibly into brackets, into macro params
 * macro invocation with params split on space
 * macro expansion via the macro manager
