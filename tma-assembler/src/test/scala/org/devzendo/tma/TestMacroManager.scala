@@ -16,7 +16,7 @@
 
 package org.devzendo.tma
 
-import org.devzendo.tma.ast.AST.{MacroParameterName, MacroName}
+import org.devzendo.tma.ast.AST.{MacroArgument, MacroName, MacroParameterName}
 import org.devzendo.tma.ast.MacroDefinition
 import org.junit.{Rule, Test}
 import org.junit.rules.ExpectedException
@@ -136,4 +136,78 @@ class TestMacroManager extends AssertionsForJUnit with MustMatchers {
         macroManager.exists(macroName) must be(true)
     }
 
+    @Test
+    def macroDoesNotExist(): Unit = { // won't happen in the parser, since each macro word is checked for presence
+        thrown.expect(classOf[IllegalStateException])
+        thrown.expectMessage("Macro '" + macroName + "' does not exist")
+
+        macroManager.expandMacro(macroName, List.empty)
+    }
+
+    private def setupSampleNonNestedMacro = {
+        macroManager.startMacro(macroName, macroParameterNames)
+        macroManager.addMacroLine("FOO: should have been replaced (BAR) (FOO) (foo) **bar**")
+        macroManager.addMacroLine("Nothing is replaced on this line")
+        macroManager.addMacroLine("Hungry, one should eat FOOD!")
+        macroManager.endMacro()
+    }
+
+    @Test
+    def macroCalledWithMoreArgumentsThanParameters(): Unit = {
+        thrown.expect(classOf[IllegalStateException])
+        thrown.expectMessage("Macro '" + macroName + "' has 2 parameters, but is called with 3")
+
+        setupSampleNonNestedMacro
+        macroManager.expandMacro(macroName, List(new MacroArgument("1"), new MacroArgument("replacement"), new MacroArgument("dodgy")))
+    }
+
+    @Test
+    def macroInvocationReplacesParametersWithArgumentsHonouringCaseOfParameters(): Unit = {
+        setupSampleNonNestedMacro
+
+        val lines = macroManager.expandMacro(macroName, List(new MacroArgument("1"), new MacroArgument("replacement")))
+        lines must be(List(
+            "1: should have been replaced (replacement) (1) (foo) **bar**",
+            "Nothing is replaced on this line",
+            "Hungry, one should eat 1D!"
+        ))
+    }
+
+    @Test
+    def macroInvocationWithSameParametersAsArgumentsEffectivelyDoesNothing(): Unit = {
+        setupSampleNonNestedMacro
+
+        val lines = macroManager.expandMacro(macroName, List(new MacroArgument("FOO"), new MacroArgument("BAR")))
+        lines must be(List(
+            "FOO: should have been replaced (BAR) (FOO) (foo) **bar**",
+            "Nothing is replaced on this line",
+            "Hungry, one should eat FOOD!"
+        ))
+    }
+
+    @Test
+    def macroInvocationWithFewerArgumentsThanParametersFillInWithEmptySpace(): Unit = {
+        setupSampleNonNestedMacro
+
+        val lines = macroManager.expandMacro(macroName, List(new MacroArgument("1")))
+        lines must be(List(
+            "1: should have been replaced () (1) (foo) **bar**",
+            "Nothing is replaced on this line",
+            "Hungry, one should eat 1D!"
+        ))
+    }
+
+    @Test
+    def macroInvocationWithNoArgumentsFillsInAllParametersWithEmptySpace(): Unit = {
+        setupSampleNonNestedMacro
+
+        val lines = macroManager.expandMacro(macroName, List.empty)
+        lines must be(List(
+            ": should have been replaced () () (foo) **bar**",
+            "Nothing is replaced on this line",
+            "Hungry, one should eat D!"
+        ))
+    }
+
+    // with duplicated parameter names - error
 }
