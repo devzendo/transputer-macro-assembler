@@ -22,7 +22,7 @@ Currently working on the parser, and macro expansion. No code generation yet.
 
 Remaining work:
 
-* macro expansion via the macro manager
+* macro expansion via the macro manager - wire expandMacro in
 * nested macro invocation (e.g. $COLON uses $CODE)
 * handling conversion of exceptions that the macro manager might throw when expanding
 * label on macro invocation must appear on first line of expansion only

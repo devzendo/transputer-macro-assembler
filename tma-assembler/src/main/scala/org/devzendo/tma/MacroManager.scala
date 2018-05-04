@@ -46,6 +46,11 @@ class MacroManager(val debugParser: Boolean) {
         if (macros.contains(macroName)) {
             throw new IllegalStateException("Macro '" + macroName + "' already defined")
         }
+        val numUniqueParameterNames = macroParameterNames.toSet.size
+        val numParameterNames = macroParameterNames.size
+        if (numParameterNames != 0 && numParameterNames != numUniqueParameterNames) {
+            throw new IllegalStateException("Macro '" + macroName + "' has duplicated parameter names")
+        }
         inMacroBody = true
         this.macroName = macroName
         this.macroParameterNames = macroParameterNames

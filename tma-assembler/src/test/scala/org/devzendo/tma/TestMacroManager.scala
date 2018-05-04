@@ -209,5 +209,11 @@ class TestMacroManager extends AssertionsForJUnit with MustMatchers {
         ))
     }
 
-    // with duplicated parameter names - error
+    @Test
+    def macrosCannotHaveDuplicatedParameterName(): Unit = {
+        thrown.expect(classOf[IllegalStateException])
+        thrown.expectMessage("Macro '" + macroName + "' has duplicated parameter names")
+
+        macroManager.startMacro(macroName, List(new MacroParameterName("SAME"), new MacroParameterName("SAME")))
+    }
 }
