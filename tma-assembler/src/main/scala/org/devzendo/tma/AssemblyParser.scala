@@ -173,12 +173,14 @@ class AssemblyParser(val debugParser: Boolean, val macroManager: MacroManager) {
         }
 
         def macroInvocation: Parser[MacroInvocation] = (
-          existingMacro ~ repsep(macroArgument, """[\s,]""".r)
+          existingMacro ~ repsep(macroArgument, macroArgumentSeparator)
         ) ^^ {
-            case macroName ~ parameters =>
-                if (debugParser) logger.debug("in macroInvocation, macro name: " + macroName + " args:" + parameters)
-                MacroInvocation(macroName, parameters)
+            case macroName ~ arguments =>
+                if (debugParser) logger.debug("in macroInvocation, macro name: " + macroName + " arguments:" + arguments)
+                MacroInvocation(macroName, arguments)
         }
+
+        def macroArgumentSeparator = "," | rep(whiteSpace)
 
         def existingMacro: Parser[MacroName] = ident ^? {
             case possibleMacro
@@ -187,7 +189,7 @@ class AssemblyParser(val debugParser: Boolean, val macroManager: MacroManager) {
                 possibleMacro
         }
 
-        def macroArgument: Parser[MacroArgument] = """[^\s,]+""".r ^^ { // TODO what about ( expressions ) ?
+        def macroArgument: Parser[MacroArgument] = """[^\s,]+""".r ^^ {
             argument =>
                 if (debugParser) logger.debug("in macroArgument, argument is [" + argument + "]")
                 new MacroArgument(argument)

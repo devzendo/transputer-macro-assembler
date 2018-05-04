@@ -22,8 +22,6 @@ Currently working on the parser, and macro expansion. No code generation yet.
 
 Remaining work:
 
-* macro invocation, splitting of non-space things, possibly into brackets, into macro params
-* macro invocation with params split on space
 * macro expansion via the macro manager
 * nested macro invocation (e.g. $COLON uses $CODE)
 * handling conversion of exceptions that the macro manager might throw when expanding

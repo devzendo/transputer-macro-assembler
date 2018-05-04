@@ -499,15 +499,32 @@ class TestAssemblyParser extends AssertionsForJUnit with MustMatchers with Mocki
     }
 
     @Test
-    def macroInvocation(): Unit = {
+    def macroInvocationWithArgumentsSeparatedByCommas(): Unit = {
         val textLines = List(
             "$CODE\tMACRO\tLEX,NAME,LABEL",
             "\tENDM",
             "\t\t$CODE\t3,'URD',urdcode"
         )
 
+        checkCorrectMacroInvocation(textLines)
+    }
+
+    @Test
+    def macroInvocationWithArgumentsSeparatedBySpaces(): Unit = {
+        val textLines = List(
+            "$CODE\tMACRO\tLEX,NAME,LABEL",
+            "\tENDM",
+            "\t\t$CODE\t3\t  \t\t \t\t'URD'\turdcode"
+        )
+
+        checkCorrectMacroInvocation(textLines)
+    }
+
+    private def checkCorrectMacroInvocation(textLines: List[Label]) = {
         val lines = parseLines(textLines)
-        val stmts = lines.map { _.stmt.get }
+        val stmts = lines.map {
+            _.stmt.get
+        }
         stmts must be(List(
             MacroStart(new MacroName("$CODE"), List(new MacroParameterName("LEX"), new MacroParameterName("NAME"), new MacroParameterName("LABEL"))),
             MacroEnd(),
