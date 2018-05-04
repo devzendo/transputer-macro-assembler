@@ -27,7 +27,7 @@ import org.scalatest.mock.MockitoSugar
 class TestAssemblyParser extends AssertionsForJUnit with MustMatchers with MockitoSugar {
     val logger: Logger = org.log4s.getLogger
 
-    val macroManager = new MacroManager()
+    val macroManager = new MacroManager(true)
     val parser = new AssemblyParser(true, macroManager)
     var lineNumber = 1
 

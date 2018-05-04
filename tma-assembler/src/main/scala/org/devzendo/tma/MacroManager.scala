@@ -23,7 +23,7 @@ import org.log4s.Logger
 
 import scala.collection.mutable
 
-class MacroManager {
+class MacroManager(val debugParser: Boolean) {
     val logger: Logger = org.log4s.getLogger
 
     private val macros = mutable.Map[MacroName, MacroDefinition]()
@@ -70,7 +70,7 @@ class MacroManager {
 
 
     def expandMacro(macroName: MacroName, arguments: List[MacroArgument]): List[String] = {
-        logger.debug("expandMacro(" + macroName + ", " + arguments + ")")
+        if (debugParser) logger.debug("expandMacro(" + macroName + ", " + arguments + ")")
         val defn = macros.getOrElse(macroName, {
             throw new IllegalStateException("Macro '" + macroName + "' does not exist")
         })
@@ -88,11 +88,10 @@ class MacroManager {
             }
         }
         val paramAndIndex = defn.parameterNames.zipWithIndex
-        for (elem <- paramAndIndex) { logger.debug("param #" + elem._2 + "=" + elem._1) }
         val paramToArgMap = paramAndIndex.foldLeft(Map[MacroParameterName, MacroArgument]()) {
             (m, pi) => m + (pi._1 -> getArg(pi._2))
         }
-        for (elem <- paramAndIndex) { logger.debug("  arg #" + elem._2 + "=" + paramToArgMap(elem._1)) }
+        if (debugParser) for (elem <- paramAndIndex) { logger.debug("  arg #" + elem._2 + " " + elem._1 + "=" + paramToArgMap(elem._1)) }
 
         // Yuk, mutability!
         def expandLine(instr: String): String = {
@@ -101,7 +100,7 @@ class MacroManager {
             str
         }
         val expansion = defn.textLines map { expandLine }
-        for (lineAndNumber <- expansion.zipWithIndex) { logger.debug("line: #" + lineAndNumber._2 + "=|" + lineAndNumber._1 + "|")}
+        if (debugParser) for (lineAndNumber <- expansion.zipWithIndex) { logger.debug("line: #" + lineAndNumber._2 + "=|" + lineAndNumber._1 + "|")}
         expansion
     }
 }

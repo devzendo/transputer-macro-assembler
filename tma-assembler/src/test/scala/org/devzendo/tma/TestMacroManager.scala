@@ -28,7 +28,7 @@ class TestMacroManager extends AssertionsForJUnit with MustMatchers {
     def thrown: ExpectedException = _thrown
     var _thrown: ExpectedException = ExpectedException.none
 
-    val macroManager = new MacroManager()
+    val macroManager = new MacroManager(true)
     val macroName = new MacroName("name")
     val macroParameterNames = List(new MacroParameterName("FOO"), new MacroParameterName("BAR"))
 
