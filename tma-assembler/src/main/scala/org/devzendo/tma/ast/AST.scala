@@ -23,7 +23,7 @@ object AST {
     type Label = String
     type SymbolName = String
     type MacroName = String
-    type MacroArgName = String // should be parameter
+    type MacroParameterName = String
     type MacroArgument = String
 }
 
@@ -60,7 +60,7 @@ case class Align(num: Int) extends Statement
 case class Org(expr: Expression) extends Statement
 case class ConstantAssignment(symbolName: SymbolName, expr: Expression) extends Statement
 case class VariableAssignment(symbolName: SymbolName, expr: Expression) extends Statement
-case class MacroStart(name: MacroName, argNames: List[MacroArgName]) extends Statement // Parameters are variables in macro definitions.
+case class MacroStart(name: MacroName, parameterNames: List[MacroParameterName]) extends Statement // Parameters are variables in macro definitions.
 case class MacroBody(line: String) extends Statement
 case class MacroEnd() extends Statement
 case class MacroInvocation(name: MacroName, args: List[MacroArgument]) extends Statement // Arguments are actual values of parameter variables passed to the macro.
@@ -78,4 +78,4 @@ case class Memory(address: Int, data: List[Byte])
 case class Line(number: Int, text: String, label: Option[Label], stmt: Option[Statement]) {
 }
 
-case class MacroDefinition(name: MacroName, argNames: List[MacroArgName], textLines: List[String])
+case class MacroDefinition(name: MacroName, parameterNames: List[MacroParameterName], textLines: List[String])

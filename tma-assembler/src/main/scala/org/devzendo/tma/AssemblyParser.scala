@@ -16,7 +16,7 @@
 
 package org.devzendo.tma
 
-import org.devzendo.tma.ast.AST.{Label, MacroArgName, MacroName, MacroArgument}
+import org.devzendo.tma.ast.AST.{Label, MacroParameterName, MacroName, MacroArgument}
 import org.devzendo.tma.ast._
 import org.log4s.Logger
 
@@ -160,13 +160,13 @@ class AssemblyParser(val debugParser: Boolean, val macroManager: MacroManager) {
         def macroStart: Parser[MacroStart] = (
           ident ~ macroWord ~ repsep(ident, ",")
           ) ^^ {
-            case ident ~ _ ~ args =>
-                if (debugParser) logger.debug("in macroStart, ident: " + ident + " args:" + args)
+            case ident ~ _ ~ parameters =>
+                if (debugParser) logger.debug("in macroStart, ident: " + ident + " parameters:" + parameters)
                 try {
                     val macroName = new MacroName(ident)
-                    val macroArgs = args.map(new MacroArgName(_))
-                    macroManager.startMacro(macroName, macroArgs)
-                    MacroStart(macroName, macroArgs)
+                    val macroParameterNames = parameters.map(new MacroParameterName(_))
+                    macroManager.startMacro(macroName, macroParameterNames)
+                    MacroStart(macroName, macroParameterNames)
                 } catch {
                     case i: IllegalStateException => throw new AssemblyParserException(lineNumber, i.getMessage)
                 }

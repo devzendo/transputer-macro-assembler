@@ -16,7 +16,7 @@
 
 package org.devzendo.tma
 
-import org.devzendo.tma.ast.AST.{MacroArgName, MacroName}
+import org.devzendo.tma.ast.AST.{MacroParameterName, MacroName}
 import org.devzendo.tma.ast.MacroDefinition
 
 import scala.collection.mutable
@@ -40,14 +40,14 @@ class MacroManager {
 
 
     private var macroName: MacroName = _
-    private var macroArgNames: List[MacroArgName] = List.empty
-    def startMacro(macroName: MacroName, macroArgNames: List[MacroArgName]) = {
+    private var macroParameterNames: List[MacroParameterName] = List.empty
+    def startMacro(macroName: MacroName, macroParameterNames: List[MacroParameterName]) = {
         if (macros.contains(macroName)) {
             throw new IllegalStateException("Macro '" + macroName + "' already defined")
         }
         inMacroBody = true
         this.macroName = macroName
-        this.macroArgNames = macroArgNames
+        this.macroParameterNames = macroParameterNames
         macroLines.clear()
     }
 
@@ -64,6 +64,6 @@ class MacroManager {
             throw new IllegalStateException("End macro with no start macro")
         }
         inMacroBody = false
-        macros(macroName) = new MacroDefinition(macroName, macroArgNames, macroLines.toList)
+        macros(macroName) = new MacroDefinition(macroName, macroParameterNames, macroLines.toList)
     }
 }

@@ -16,7 +16,7 @@
 
 package org.devzendo.tma
 
-import org.devzendo.tma.ast.AST.{MacroArgName, MacroName}
+import org.devzendo.tma.ast.AST.{MacroParameterName, MacroName}
 import org.devzendo.tma.ast.MacroDefinition
 import org.junit.{Rule, Test}
 import org.junit.rules.ExpectedException
@@ -30,7 +30,7 @@ class TestMacroManager extends AssertionsForJUnit with MustMatchers {
 
     val macroManager = new MacroManager()
     val macroName = new MacroName("name")
-    val macroArgNames = List(new MacroArgName("FOO"), new MacroArgName("BAR"))
+    val macroParameterNames = List(new MacroParameterName("FOO"), new MacroParameterName("BAR"))
 
     @Test
     def initialState(): Unit = {
@@ -63,23 +63,23 @@ class TestMacroManager extends AssertionsForJUnit with MustMatchers {
         macroManager.getMacro(macroName) must be(None)
         macroManager.isInMacroBody must be(false)
 
-        macroManager.startMacro(macroName, macroArgNames)
+        macroManager.startMacro(macroName, macroParameterNames)
         macroManager.isInMacroBody must be(true)
         macroManager.getMacro(macroName) must be(None)
 
         macroManager.endMacro()
         macroManager.isInMacroBody must be(false)
 
-        macroManager.getMacro(macroName) must be(Some(MacroDefinition(macroName, macroArgNames, List.empty)))
+        macroManager.getMacro(macroName) must be(Some(MacroDefinition(macroName, macroParameterNames, List.empty)))
     }
 
     @Test
     def emptyMacrosAreAllowedButPointless(): Unit = {
-        macroManager.startMacro(macroName, macroArgNames)
+        macroManager.startMacro(macroName, macroParameterNames)
         macroManager.endMacro()
 
         val expectedEmptyMacroLines = List.empty
-        macroManager.getMacro(macroName) must be(Some(MacroDefinition(macroName, macroArgNames, expectedEmptyMacroLines)))
+        macroManager.getMacro(macroName) must be(Some(MacroDefinition(macroName, macroParameterNames, expectedEmptyMacroLines)))
     }
 
     @Test
@@ -91,27 +91,27 @@ class TestMacroManager extends AssertionsForJUnit with MustMatchers {
 
     @Test
     def macrosCanHaveLines(): Unit = {
-        macroManager.startMacro(macroName, macroArgNames)
+        macroManager.startMacro(macroName, macroParameterNames)
         macroManager.addMacroLine("LINE ONE")
         macroManager.addMacroLine("LINE TWO")
         macroManager.endMacro()
-        macroManager.getMacro(macroName) must be(Some(MacroDefinition(macroName, macroArgNames,
+        macroManager.getMacro(macroName) must be(Some(MacroDefinition(macroName, macroParameterNames,
             List("LINE ONE", "LINE TWO"))))
     }
 
     @Test
     def subsequentMacrosHaveTheirOwnLines(): Unit = {
-        macroManager.startMacro(macroName, macroArgNames)
+        macroManager.startMacro(macroName, macroParameterNames)
         macroManager.addMacroLine("LINE ONE")
         macroManager.addMacroLine("LINE TWO")
         macroManager.endMacro()
 
         val secondMacroName = new MacroName("SECOND")
-        macroManager.startMacro(secondMacroName, macroArgNames)
+        macroManager.startMacro(secondMacroName, macroParameterNames)
         macroManager.addMacroLine("COMPLETELY")
         macroManager.addMacroLine("DIFFERENT")
         macroManager.endMacro()
-        macroManager.getMacro(secondMacroName) must be(Some(MacroDefinition(secondMacroName, macroArgNames,
+        macroManager.getMacro(secondMacroName) must be(Some(MacroDefinition(secondMacroName, macroParameterNames,
             List("COMPLETELY", "DIFFERENT"))))
     }
 
@@ -120,17 +120,17 @@ class TestMacroManager extends AssertionsForJUnit with MustMatchers {
         thrown.expect(classOf[IllegalStateException])
         thrown.expectMessage("Macro '" + macroName + "' already defined")
 
-        macroManager.startMacro(macroName, macroArgNames)
+        macroManager.startMacro(macroName, macroParameterNames)
         macroManager.endMacro()
 
-        macroManager.startMacro(macroName, macroArgNames)
+        macroManager.startMacro(macroName, macroParameterNames)
     }
 
     @Test
     def macrosCanBeTestedForExistence(): Unit = {
         macroManager.exists(macroName) must be(false)
 
-        macroManager.startMacro(macroName, macroArgNames)
+        macroManager.startMacro(macroName, macroParameterNames)
         macroManager.endMacro()
 
         macroManager.exists(macroName) must be(true)
