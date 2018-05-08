@@ -219,7 +219,7 @@ class AssemblyParser(val debugParser: Boolean, val macroManager: MacroManager) {
         def data: Parser[Statement] = db | dw | dd
 
         def db: Parser[DB] = (
-          """(db|DB)""".r  ~> repsep(expression, ",")
+          """(db|DB)""".r  ~> repsep(expression | characterExpression, ",")
           ) ^^ {
             exprs =>
                 if (debugParser) logger.debug("in db, exprs:" + exprs)
@@ -283,6 +283,23 @@ class AssemblyParser(val debugParser: Boolean, val macroManager: MacroManager) {
           ) ^^ {
             case term ~ rep => formBinary(term, rep)
         }
+
+        def singleQuotedString: Parser[Characters] =
+            "'" ~> """([^'\x00-\x1F\x7F\\]|\\[\\'"bfnrt]|\\u[a-fA-F0-9]{4})*""".r <~ "'"  ^^ {
+                contents => {
+                    if (debugParser) logger.debug("in singleQuotedString, contents is: |" + contents + "|")
+                    Characters(contents)
+                }
+            }
+        def doubleQuotedString: Parser[Characters] =
+            "\"" ~> """([^"\x00-\x1F\x7F\\]|\\[\\'"bfnrt]|\\u[a-fA-F0-9]{4})*""".r <~ "\"" ^^ {
+                contents => {
+                    if (debugParser) logger.debug("in doubleQuotedString, contents is: |" + contents + "|")
+                    Characters(contents)
+                }
+            }
+
+        def characterExpression: Parser[Expression] = singleQuotedString | doubleQuotedString
 
         def formBinary(factor: Expression, rep: List[~[String, Expression]]): Expression = {
             if (rep.isEmpty) {

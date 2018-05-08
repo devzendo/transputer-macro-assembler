@@ -47,6 +47,7 @@ sealed abstract class Expression() {
 }
 case class SymbolArg(symbolName: SymbolName) extends Expression
 case class Number(number: Int) extends Expression
+case class Characters(text: String) extends Expression
 case class Unary(operator: Operator, expr: Expression) extends Expression
 case class Binary(operator: Operator, left: Expression, right: Expression) extends Expression
 

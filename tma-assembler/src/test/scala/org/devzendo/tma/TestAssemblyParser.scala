@@ -327,6 +327,34 @@ class TestAssemblyParser extends AssertionsForJUnit with MustMatchers with Mocki
     }
 
     @Test
+    def dbSingleQuotedCharacters(): Unit = {
+        singleLineParsesToStatement("DB\t'Unga Bunga'", DB(List(Characters("Unga Bunga"))))
+    }
+
+    @Test
+    def dbSingleQuotedEmptyString(): Unit = {
+        singleLineParsesToStatement("DB\t''", DB(List(Characters(""))))
+    }
+
+    @Test
+    def dbDoubleQuotedCharacters(): Unit = {
+        singleLineParsesToStatement("DB\t\"Unga Bunga\"", DB(List(Characters("Unga Bunga"))))
+    }
+
+    @Test
+    def dbDoubleQuotedEmptyString(): Unit = {
+        singleLineParsesToStatement("DB\t\"\"", DB(List(Characters(""))))
+    }
+
+    @Test
+    def dbMixingExpressionAndStringDisallowed(): Unit = {
+        thrown.expect(classOf[AssemblyParserException])
+        thrown.expectMessage("1: Unknown statement 'DB\t'foo' + 3'") // Not the clearest message, but disallowing is clear.
+
+        parser.parse(("DB\t'foo' + 3", 1))
+    }
+
+    @Test
     def dbSingleOverflow(): Unit = {
         // This is allowed by the parser - it could be some expression we don't know the final value of, so
         // don't disallow it here, deal with it in code generation.
