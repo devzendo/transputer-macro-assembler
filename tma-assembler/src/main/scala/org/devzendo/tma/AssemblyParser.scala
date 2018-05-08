@@ -121,12 +121,23 @@ class AssemblyParser(val debugParser: Boolean, val macroManager: MacroManager) {
     }
 
     private class StatementCombinatorParser(lineNumber: Int) extends LineParser {
-        def line: Parser[List[Line]] = (
+        def line: Parser[List[Line]] =  macroInvocationLine | statementLine
+
+        def statementLine: Parser[List[Line]] = (
             opt(label) ~ opt(statement) <~ opt(comment)
           ) ^^ {
             case optLabel ~ optStatement =>
-                if (debugParser) logger.debug("in line")
+                if (debugParser) logger.debug("in statementLine")
                 List(Line(lineNumber, text, optLabel, optStatement))
+        }
+
+        def macroInvocationLine: Parser[List[Line]] = (
+          opt(label) ~ macroInvocation <~ opt(comment)
+          ) ^^ {
+            case optLabel ~ macroInvocation =>
+                if (debugParser) logger.debug("in macroInvocationLine")
+                List(Line(lineNumber, text, optLabel, Some(macroInvocation)))
+                // TODO add expanded/parsed lines
         }
 
         def label: Parser[Label] = (
@@ -137,7 +148,7 @@ class AssemblyParser(val debugParser: Boolean, val macroManager: MacroManager) {
                 new Label(label)
         }
 
-        def statement: Parser[Statement] = constantAssignment | variableAssignment | macroStart | macroInvocation | origin | data |
+        def statement: Parser[Statement] = constantAssignment | variableAssignment | macroStart | origin | data |
             title | page | align | ignored
 
         // Not sure why I can't use ~> and <~ here to avoid the equ?
@@ -182,11 +193,13 @@ class AssemblyParser(val debugParser: Boolean, val macroManager: MacroManager) {
 
         def macroArgumentSeparator = "," | rep(whiteSpace)
 
-        def existingMacro: Parser[MacroName] = ident ^? {
-            case possibleMacro
-                if macroManager.exists(possibleMacro) =>
-                if (debugParser) logger.debug("in existingMacro, ident: " + possibleMacro)
-                possibleMacro
+        // Special case to prevent re-detection of an existing macro (if the word following the existing macro name is MACRO)
+        def existingMacro: Parser[MacroName] = ident ~ opt(macroWord) ^? {
+            case possibleMacro ~ optMacroWord
+                if macroManager.exists(possibleMacro) && optMacroWord.isEmpty => {
+                    if (debugParser) logger.debug("in existingMacro, ident: " + possibleMacro)
+                    possibleMacro
+            }
         }
 
         def macroArgument: Parser[MacroArgument] = """[^\s,]+""".r ^^ {
