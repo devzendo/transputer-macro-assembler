@@ -17,9 +17,9 @@
 package org.devzendo.tma
 
 import org.devzendo.tma.ast.AST.{MacroArgument, MacroName, MacroParameterName}
-import org.devzendo.tma.ast.{MacroBody, MacroDefinition}
-import org.junit.{Rule, Test}
+import org.devzendo.tma.ast.MacroDefinition
 import org.junit.rules.ExpectedException
+import org.junit.{Rule, Test}
 import org.log4s.Logger
 import org.scalatest.MustMatchers
 import org.scalatest.junit.AssertionsForJUnit

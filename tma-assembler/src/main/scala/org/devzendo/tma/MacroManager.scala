@@ -116,8 +116,6 @@ class MacroManager(val debugParser: Boolean) {
         def expandLine(instr: String): String = {
             var str = instr
             definition.parameterNames.foreach( parameterName => str = paramNameToPattern(parameterName).matcher(str).replaceAll(paramToArgMap(parameterName)))
-
-            //  definition.parameterNames.foreach( parameterName => str = StringUtils.replace(str, parameterName, paramToArgMap(parameterName)))
             str
         }
         val expansion = definition.textLines map { expandLine }
