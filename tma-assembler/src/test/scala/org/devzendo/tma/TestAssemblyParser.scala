@@ -18,7 +18,7 @@ package org.devzendo.tma
 import org.devzendo.tma.ast.AST._
 import org.devzendo.tma.ast._
 import org.junit.rules.ExpectedException
-import org.junit.{Rule, Test}
+import org.junit.{Ignore, Rule, Test}
 import org.log4s.Logger
 import org.scalatest.MustMatchers
 import org.scalatest.junit.AssertionsForJUnit
@@ -557,6 +557,44 @@ class TestAssemblyParser extends AssertionsForJUnit with MustMatchers with Mocki
             MacroStart(new MacroName("$CODE"), List(new MacroParameterName("LEX"), new MacroParameterName("NAME"), new MacroParameterName("LABEL"))),
             MacroEnd(),
             MacroInvocation(new MacroName("$CODE"), List(new MacroArgument("3"), new MacroArgument("'URD'"), new MacroArgument("urdcode")))
+        ))
+    }
+
+    @Ignore // TODO fixme!
+    @Test
+    def fullMacroInvocation(): Unit = {
+        val macroLines = List(
+            "$CODE\tMACRO\tLEX,NAME,LABEL",
+            "\tALIGN\t4\t\t\t\t;;force to cell boundary",
+            "LABEL:\t\t\t\t\t\t;;assembly label",
+            "\t_CODE\t= $\t\t\t\t;;save code pointer",
+            "\t_LEN\t= (LEX AND 01FH)/CELLL\t\t;;string cell count, round down",
+            "\t_NAME\t= _NAME-((_LEN+3)*CELLL)\t;;new header on cell boundary",
+            "ORG\t_NAME\t\t\t\t\t;;set name pointer",
+            "\tDD\t _CODE,_LINK\t\t\t;;token pointer and link",
+            "\t_LINK\t= $\t\t\t\t;;link points to a name string",
+            "\tDB\tLEX,NAME\t\t\t;;name string",
+            "ORG\t_CODE\t\t\t\t\t;;restore code pointer",
+            "\tENDM"
+        )
+        parseLines(macroLines)
+        val lines = parseLine("\t\t$CODE\t3,'?RX',QRX")
+
+        lines.foreach( (f: Line) => logger.info(f.toString) )
+        lines must be (List(
+            Line(13, "$CODE\t3,'?RX',QRX", None, Some(MacroInvocation(new MacroName("$CODE"), List( new MacroArgument("3"), new MacroArgument("'?RX'"), new MacroArgument("QRX")))))
+            /*Line(1, "$CODE\tMACRO\tLEX,NAME,LABEL", None, Some(MacroStart(new MacroName("$CODE"), List(new MacroParameterName("LEX"), new MacroParameterName("NAME"), new MacroParameterName("LABEL"))))),
+            Line(2, "\tALIGN\t4\t\t\t\t;;force to cell boundary", None, Some(MacroBody("ALIGN\t4\t\t\t\t;;force to cell boundary"))),
+            Line(3, "LABEL:\t\t\t\t\t\t;;assembly label", None, Some(MacroBody("LABEL:\t\t\t\t\t\t;;assembly label"))),
+            Line(4, "\t_CODE\t= $\t\t\t\t;;save code pointer", None, Some(MacroBody("_CODE\t= $\t\t\t\t;;save code pointer"))),
+            Line(5, "\t_LEN\t= (LEX AND 01FH)/CELLL\t\t;;string cell count, round down", None, Some(MacroBody("_LEN\t= (LEX AND 01FH)/CELLL\t\t;;string cell count, round down"))),
+            Line(6, "\t_NAME\t= _NAME-((_LEN+3)*CELLL)\t;;new header on cell boundary", None, Some(MacroBody("_NAME\t= _NAME-((_LEN+3)*CELLL)\t;;new header on cell boundary"))),
+            Line(7, "ORG\t_NAME\t\t\t\t\t;;set name pointer", None, Some(MacroBody("ORG\t_NAME\t\t\t\t\t;;set name pointer"))),
+            Line(8, "\tDD\t _CODE,_LINK\t\t\t;;token pointer and link", None, Some(MacroBody("DD\t _CODE,_LINK\t\t\t;;token pointer and link"))),
+            Line(9, "\t_LINK\t= $\t\t\t\t;;link points to a name string", None, Some(MacroBody("_LINK\t= $\t\t\t\t;;link points to a name string"))),
+            Line(10, "\tDB\tLEX,NAME\t\t\t;;name string", None, Some(MacroBody("DB\tLEX,NAME\t\t\t;;name string"))),
+            Line(11, "ORG\t_CODE\t\t\t\t\t;;restore code pointer", None, Some(MacroBody("ORG\t_CODE\t\t\t\t\t;;restore code pointer"))),
+            Line(12, "\tENDM", None, Some(MacroEnd()))*/
         ))
     }
 }

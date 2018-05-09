@@ -17,13 +17,16 @@
 package org.devzendo.tma
 
 import org.devzendo.tma.ast.AST.{MacroArgument, MacroName, MacroParameterName}
-import org.devzendo.tma.ast.MacroDefinition
+import org.devzendo.tma.ast.{MacroBody, MacroDefinition}
 import org.junit.{Rule, Test}
 import org.junit.rules.ExpectedException
+import org.log4s.Logger
 import org.scalatest.MustMatchers
 import org.scalatest.junit.AssertionsForJUnit
 
 class TestMacroManager extends AssertionsForJUnit with MustMatchers {
+    val logger: Logger = org.log4s.getLogger
+
     @Rule
     def thrown: ExpectedException = _thrown
     var _thrown: ExpectedException = ExpectedException.none
@@ -145,10 +148,10 @@ class TestMacroManager extends AssertionsForJUnit with MustMatchers {
     }
 
     private def setupSampleNonNestedMacro = {
+        // Exhaustively testing each delimiter is done in the 'punctuation' tests; a few are illustrated here
         macroManager.startMacro(macroName, macroParameterNames)
-        macroManager.addMacroLine("FOO: should have been replaced (BAR) (FOO) (foo) **bar**")
-        macroManager.addMacroLine("Nothing is replaced on this line")
-        macroManager.addMacroLine("Hungry, one should eat FOOD!")
+        macroManager.addMacroLine("Replaced: FOO: (BAR) (FOO) FOO-BAR FOO,BAR <FOO> {FOO} @FOO")
+        macroManager.addMacroLine("Kept: foo (foo) *bar* _FOO _foo FOOD MYFOOD XFOO FOOFOO FOOBAR")
         macroManager.endMacro()
     }
 
@@ -167,9 +170,8 @@ class TestMacroManager extends AssertionsForJUnit with MustMatchers {
 
         val lines = macroManager.expandMacro(macroName, List(new MacroArgument("1"), new MacroArgument("replacement")))
         lines must be(List(
-            "1: should have been replaced (replacement) (1) (foo) **bar**",
-            "Nothing is replaced on this line",
-            "Hungry, one should eat 1D!"
+            "Replaced: 1: (replacement) (1) 1-replacement 1,replacement <1> {1} @1",
+            "Kept: foo (foo) *bar* _FOO _foo FOOD MYFOOD XFOO FOOFOO FOOBAR"
         ))
     }
 
@@ -179,9 +181,8 @@ class TestMacroManager extends AssertionsForJUnit with MustMatchers {
 
         val lines = macroManager.expandMacro(macroName, List(new MacroArgument("FOO"), new MacroArgument("BAR")))
         lines must be(List(
-            "FOO: should have been replaced (BAR) (FOO) (foo) **bar**",
-            "Nothing is replaced on this line",
-            "Hungry, one should eat FOOD!"
+            "Replaced: FOO: (BAR) (FOO) FOO-BAR FOO,BAR <FOO> {FOO} @FOO",
+            "Kept: foo (foo) *bar* _FOO _foo FOOD MYFOOD XFOO FOOFOO FOOBAR"
         ))
     }
 
@@ -191,9 +192,8 @@ class TestMacroManager extends AssertionsForJUnit with MustMatchers {
 
         val lines = macroManager.expandMacro(macroName, List(new MacroArgument("1")))
         lines must be(List(
-            "1: should have been replaced () (1) (foo) **bar**",
-            "Nothing is replaced on this line",
-            "Hungry, one should eat 1D!"
+            "Replaced: 1: () (1) 1- 1, <1> {1} @1",
+            "Kept: foo (foo) *bar* _FOO _foo FOOD MYFOOD XFOO FOOFOO FOOBAR"
         ))
     }
 
@@ -203,10 +203,134 @@ class TestMacroManager extends AssertionsForJUnit with MustMatchers {
 
         val lines = macroManager.expandMacro(macroName, List.empty)
         lines must be(List(
-            ": should have been replaced () () (foo) **bar**",
-            "Nothing is replaced on this line",
-            "Hungry, one should eat D!"
+            "Replaced: : () () - , <> {} @",
+            "Kept: foo (foo) *bar* _FOO _foo FOOD MYFOOD XFOO FOOFOO FOOBAR"
         ))
+    }
+
+    // A macro with a parameter called PARAM is expanded with an argument of YES. Does PARAM get replaced with YES for
+    // a given macro body, containing PARAM surrounded by various other characters (which may or may not be macro-
+    // delimiting characters), at start and end of line.
+    def checkParameterReplacementDelimiter(macroBody: String, expectedExpansion: String): Unit = {
+        // Since this may be called in a loop, it would redefine the macro in the instance-variable macroManager, so
+        // create a new MacroManager inside here..
+        val localMacroManager = new MacroManager(true)
+        localMacroManager.startMacro(macroName, List(new MacroParameterName("PARAM")))
+        localMacroManager.addMacroLine(macroBody)
+        localMacroManager.endMacro()
+        val strings = localMacroManager.expandMacro(macroName, List(new MacroArgument("YES")))
+        strings must be(List(expectedExpansion))
+    }
+
+    @Test
+    def macroParameterReplacementStartOfLine(): Unit = {
+        checkParameterReplacementDelimiter("PARAM ; start of line", "YES ; start of line")
+    }
+
+    @Test
+    def macroParameterReplacementStartOfLineWithLeadingWhitespace(): Unit = {
+        checkParameterReplacementDelimiter(" PARAM ; start of line", " YES ; start of line")
+    }
+
+    @Test
+    def macroParameterReplacementEndOfLine(): Unit = {
+        checkParameterReplacementDelimiter("LLL: DB PARAM", "LLL: DB YES")
+    }
+
+    @Test
+    def macroParameterReplacementEndOfLineWithTrailingWhitespace(): Unit = {
+        checkParameterReplacementDelimiter("LLL: DB PARAM ", "LLL: DB YES ")
+    }
+
+    @Test
+    def macroParameterReplacementStartAndEndOfLine(): Unit = {
+        checkParameterReplacementDelimiter("PARAM", "YES")
+    }
+
+    @Test
+    def macroParameterReplacementSurroundingWhitespace(): Unit = {
+        checkParameterReplacementDelimiter(" PARAM ", " YES ")
+    }
+
+    @Test
+    def macroParameterReplacementPrecedingComma(): Unit = {
+        checkParameterReplacementDelimiter("LLL: DB 5,PARAM", "LLL: DB 5,YES")
+    }
+
+    @Test
+    def macroParameterReplacementSucceedingComma(): Unit = {
+        checkParameterReplacementDelimiter("LLL: DB PARAM,5", "LLL: DB YES,5")
+    }
+
+    @Test
+    def macroParameterReplacementPrecedingNumber(): Unit = {
+        checkParameterReplacementDelimiter("LLL: DB 5PARAM", "LLL: DB 5PARAM")
+        // syntactically wrong, but that's not for the macro manager to determine
+    }
+
+    @Test
+    def macroParameterReplacementSuccedingNumber(): Unit = {
+        checkParameterReplacementDelimiter("LLL: DB PARAM4", "LLL: DB PARAM4")
+        // syntactically wrong, but that's not for the macro manager to determine
+    }
+
+    @Test
+    def macroParameterReplacementSurroundedByNumbers(): Unit = {
+        checkParameterReplacementDelimiter("LLL: DB 3PARAM4", "LLL: DB 3PARAM4")
+        // syntactically wrong, but that's not for the macro manager to determine
+    }
+
+    @Test
+    def macroParameterReplacementPrecedingLetter(): Unit = {
+        checkParameterReplacementDelimiter("LLL: DB XPARAM", "LLL: DB XPARAM")
+    }
+
+    @Test
+    def macroParameterReplacementSuccedingLetter(): Unit = {
+        checkParameterReplacementDelimiter("LLL: DB PARAMX", "LLL: DB PARAMX")
+    }
+
+    @Test
+    def macroParameterReplacementSurroundedByLetters(): Unit = {
+        checkParameterReplacementDelimiter("LLL: DB YPARAMX", "LLL: DB YPARAMX")
+    }
+
+    @Test
+    def macroParameterReplacementPrecedingUnderscore(): Unit = {
+        checkParameterReplacementDelimiter("LLL: DB _PARAM", "LLL: DB _PARAM")
+    }
+
+    @Test
+    def macroParameterReplacementSuccedingUnderscore(): Unit = {
+        checkParameterReplacementDelimiter("LLL: DB PARAM_", "LLL: DB PARAM_")
+    }
+
+    @Test
+    def macroParameterReplacementSurroundedByUnderscores(): Unit = {
+        checkParameterReplacementDelimiter("LLL: DB _PARAM_", "LLL: DB _PARAM_")
+    }
+
+    val punctuation = ",.<>/?;:{}[]|!@#$%^&*()-+="
+
+    @Test
+    def macroParameterReplacementPrecedingPunctuation(): Unit = {
+        for (c <- punctuation) {
+            checkParameterReplacementDelimiter("LLL: DB " + c + "PARAM", "LLL: DB " + c + "YES")
+        }
+    }
+
+    @Test
+    def macroParameterReplacementSuccedingPunctuation(): Unit = {
+        for (c <- punctuation) {
+            checkParameterReplacementDelimiter("LLL: DB PARAM" + c, "LLL: DB YES" + c)
+        }
+    }
+
+    @Test
+    def macroParameterReplacementSurroundedByPunctuation(): Unit = {
+        for (c <- punctuation) {
+            checkParameterReplacementDelimiter("LLL: DB " + c + "PARAM" + c, "LLL: DB " + c + "YES" + c)
+        }
     }
 
     @Test

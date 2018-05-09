@@ -22,12 +22,11 @@ Currently working on the parser, and macro expansion. No code generation yet.
 
 Remaining work:
 
-* macro expansion via the macro manager - wire expandMacro in
+* macro arg NAME should not replace _NAME
 * nested macro invocation (e.g. $COLON uses $CODE)
+* strip ;; comments from expanded macros, pass ; comments through
 * handling conversion of exceptions that the macro manager might throw when expanding
 * label on macro invocation must appear on first line of expansion only
-* calling back into the parser to convert expanded strings into Lines, flatmap these into the macro expansion
-  output, retaining the initial macro invocation's single line number
 * better case insensitivity of keywords https://stackoverflow.com/questions/38070885/how-to-handle-case-insensitive-keywords-with-scala-parser-combinators
 * macros shouldn't be able to replace keywords
 * directives: if1/endif, dup (n) after db/dw/dd, end.* (ignore)
@@ -72,7 +71,7 @@ Syntax
 ------
 Since the initial project using this assembler is eForth, and eForth has
 traditionally been written using Microsoft Macro Assembler 5.1, the syntax
-follows that assembler. Only a small subset of MASM's language is needed.
+follows that assembler. Only a very small subset of MASM's language is needed.
 
 The following fragment illustrates most of the key syntax:
 ```

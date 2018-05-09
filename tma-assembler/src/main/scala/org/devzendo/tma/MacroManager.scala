@@ -16,7 +16,8 @@
 
 package org.devzendo.tma
 
-import org.apache.commons.lang.StringUtils
+import java.util.regex.Pattern
+
 import org.devzendo.tma.ast.AST.{MacroArgument, MacroName, MacroParameterName}
 import org.devzendo.tma.ast.MacroDefinition
 import org.log4s.Logger
@@ -73,14 +74,24 @@ class MacroManager(val debugParser: Boolean) {
         macros(macroName) = MacroDefinition(macroName, macroParameterNames, macroLines.toList)
     }
 
+    val delimCharsBefore = """(?<=[,.<>/?;:{}\[\]|!@#$%^&*()\-+=\s])"""
+    val delimCharsAfter = """(?=[,.<>/?;:{}\[\]|!@#$%^&*()\-+=\s])"""
+    def formMatchPattern(name: MacroParameterName): Pattern = {
+        val nameAtStart = "^" + name + delimCharsAfter
+        val nameBetweenDelimiters = delimCharsBefore + name + delimCharsAfter
+        val nameAtEnd = delimCharsBefore + name + "$"
+        val nameIsEntireString = "^" + name + "$"
+        val regex = "(" + nameAtStart + "|" + nameBetweenDelimiters + "|" + nameAtEnd + "|" + nameIsEntireString + ")"
+        Pattern.compile(regex)
+    }
 
     def expandMacro(macroName: MacroName, arguments: List[MacroArgument]): List[String] = {
         if (debugParser) logger.debug("expandMacro(" + macroName + ", " + arguments + ")")
-        val defn = macros.getOrElse(macroName, {
+        val definition = macros.getOrElse(macroName, {
             throw new IllegalStateException("Macro '" + macroName + "' does not exist")
         })
-        if (arguments.length > defn.parameterNames.length) {
-            throw new IllegalStateException("Macro '" + macroName + "' has " + defn.parameterNames.length + " parameters, but is called with " + arguments.length)
+        if (arguments.length > definition.parameterNames.length) {
+            throw new IllegalStateException("Macro '" + macroName + "' has " + definition.parameterNames.length + " parameters, but is called with " + arguments.length)
         }
 
         // Map parameter names to arguments, or empty strings if the argument list is shorter than the parameter list.
@@ -92,19 +103,24 @@ class MacroManager(val debugParser: Boolean) {
                 emptyArg
             }
         }
-        val paramAndIndex = defn.parameterNames.zipWithIndex
+        val paramAndIndex = definition.parameterNames.zipWithIndex
         val paramToArgMap = paramAndIndex.foldLeft(Map[MacroParameterName, MacroArgument]()) {
             (m, pi) => m + (pi._1 -> getArg(pi._2))
+        }
+        val paramNameToPattern = paramAndIndex.foldLeft(Map[MacroParameterName, Pattern]()) {
+            (m, pi) => m + (pi._1 -> formMatchPattern(pi._1))
         }
         if (debugParser) for (elem <- paramAndIndex) { logger.debug("  arg #" + elem._2 + " " + elem._1 + "=" + paramToArgMap(elem._1)) }
 
         // Yuk, mutability!
         def expandLine(instr: String): String = {
             var str = instr
-            defn.parameterNames.foreach( pn => str = StringUtils.replace(str, pn, paramToArgMap(pn)))
+            definition.parameterNames.foreach( parameterName => str = paramNameToPattern(parameterName).matcher(str).replaceAll(paramToArgMap(parameterName)))
+
+            //  definition.parameterNames.foreach( parameterName => str = StringUtils.replace(str, parameterName, paramToArgMap(parameterName)))
             str
         }
-        val expansion = defn.textLines map { expandLine }
+        val expansion = definition.textLines map { expandLine }
         if (debugParser) for (lineAndNumber <- expansion.zipWithIndex) { logger.debug("line: #" + lineAndNumber._2 + "=|" + lineAndNumber._1 + "|")}
         expansion
     }

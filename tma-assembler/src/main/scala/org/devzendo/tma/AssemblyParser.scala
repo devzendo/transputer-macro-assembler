@@ -135,9 +135,13 @@ class AssemblyParser(val debugParser: Boolean, val macroManager: MacroManager) {
           opt(label) ~ macroInvocation <~ opt(comment)
           ) ^^ {
             case optLabel ~ macroInvocation =>
-                if (debugParser) logger.debug("in macroInvocationLine")
-                List(Line(lineNumber, text, optLabel, Some(macroInvocation)))
-                // TODO add expanded/parsed lines
+                if (debugParser) logger.debug("in macroInvocationLine, macroInvocation is " + macroInvocation)
+                val macroInvocationLine = Line(lineNumber, text, optLabel, Some(macroInvocation))
+                val expansion = macroManager.expandMacro(macroInvocation.name, macroInvocation.args)
+                if (debugParser) expansion.foreach( (f: String) => logger.debug("expanded macro: |" + f + "|"))
+                val parsedExpansions = expansion.flatMap((str: String) => AssemblyParser.this.parse((str, lineNumber)))
+                if (debugParser) parsedExpansions.foreach( (l: Line) => logger.debug("expanded parsed macro: |" + l + "|"))
+                macroInvocationLine :: parsedExpansions
         }
 
         def label: Parser[Label] = (
