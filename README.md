@@ -22,7 +22,7 @@ Currently working on the parser, and macro expansion. No code generation yet.
 
 Remaining work:
 
-* macro arg NAME should not replace _NAME
+* cache the conversion from macro parameter names to Pattern objects in the MacroManager.
 * nested macro invocation (e.g. $COLON uses $CODE)
 * strip ;; comments from expanded macros, pass ; comments through
 * handling conversion of exceptions that the macro manager might throw when expanding

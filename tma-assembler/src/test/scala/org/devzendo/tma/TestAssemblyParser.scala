@@ -18,7 +18,7 @@ package org.devzendo.tma
 import org.devzendo.tma.ast.AST._
 import org.devzendo.tma.ast._
 import org.junit.rules.ExpectedException
-import org.junit.{Ignore, Rule, Test}
+import org.junit.{Rule, Test}
 import org.log4s.Logger
 import org.scalatest.MustMatchers
 import org.scalatest.junit.AssertionsForJUnit
@@ -560,7 +560,6 @@ class TestAssemblyParser extends AssertionsForJUnit with MustMatchers with Mocki
         ))
     }
 
-    @Ignore // TODO fixme!
     @Test
     def fullMacroInvocation(): Unit = {
         val macroLines = List(
@@ -579,22 +578,18 @@ class TestAssemblyParser extends AssertionsForJUnit with MustMatchers with Mocki
         )
         parseLines(macroLines)
         val lines = parseLine("\t\t$CODE\t3,'?RX',QRX")
-
-        lines.foreach( (f: Line) => logger.info(f.toString) )
         lines must be (List(
-            Line(13, "$CODE\t3,'?RX',QRX", None, Some(MacroInvocation(new MacroName("$CODE"), List( new MacroArgument("3"), new MacroArgument("'?RX'"), new MacroArgument("QRX")))))
-            /*Line(1, "$CODE\tMACRO\tLEX,NAME,LABEL", None, Some(MacroStart(new MacroName("$CODE"), List(new MacroParameterName("LEX"), new MacroParameterName("NAME"), new MacroParameterName("LABEL"))))),
-            Line(2, "\tALIGN\t4\t\t\t\t;;force to cell boundary", None, Some(MacroBody("ALIGN\t4\t\t\t\t;;force to cell boundary"))),
-            Line(3, "LABEL:\t\t\t\t\t\t;;assembly label", None, Some(MacroBody("LABEL:\t\t\t\t\t\t;;assembly label"))),
-            Line(4, "\t_CODE\t= $\t\t\t\t;;save code pointer", None, Some(MacroBody("_CODE\t= $\t\t\t\t;;save code pointer"))),
-            Line(5, "\t_LEN\t= (LEX AND 01FH)/CELLL\t\t;;string cell count, round down", None, Some(MacroBody("_LEN\t= (LEX AND 01FH)/CELLL\t\t;;string cell count, round down"))),
-            Line(6, "\t_NAME\t= _NAME-((_LEN+3)*CELLL)\t;;new header on cell boundary", None, Some(MacroBody("_NAME\t= _NAME-((_LEN+3)*CELLL)\t;;new header on cell boundary"))),
-            Line(7, "ORG\t_NAME\t\t\t\t\t;;set name pointer", None, Some(MacroBody("ORG\t_NAME\t\t\t\t\t;;set name pointer"))),
-            Line(8, "\tDD\t _CODE,_LINK\t\t\t;;token pointer and link", None, Some(MacroBody("DD\t _CODE,_LINK\t\t\t;;token pointer and link"))),
-            Line(9, "\t_LINK\t= $\t\t\t\t;;link points to a name string", None, Some(MacroBody("_LINK\t= $\t\t\t\t;;link points to a name string"))),
-            Line(10, "\tDB\tLEX,NAME\t\t\t;;name string", None, Some(MacroBody("DB\tLEX,NAME\t\t\t;;name string"))),
-            Line(11, "ORG\t_CODE\t\t\t\t\t;;restore code pointer", None, Some(MacroBody("ORG\t_CODE\t\t\t\t\t;;restore code pointer"))),
-            Line(12, "\tENDM", None, Some(MacroEnd()))*/
+            Line(13, "$CODE\t3,'?RX',QRX", None, Some(MacroInvocation(new MacroName("$CODE"), List( new MacroArgument("3"), new MacroArgument("'?RX'"), new MacroArgument("QRX"))))),
+            Line(13, "ALIGN\t4\t\t\t\t;;force to cell boundary", None, Some(Align(4))),
+            Line(13, "QRX:\t\t\t\t\t\t;;assembly label", Some(new Label("QRX")), None),
+            Line(13, "_CODE\t= $\t\t\t\t;;save code pointer", None, Some(VariableAssignment(new SymbolName("_CODE"), SymbolArg("$")))),
+            Line(13, "_LEN\t= (3 AND 01FH)/CELLL\t\t;;string cell count, round down", None, Some(VariableAssignment(new SymbolName("_LEN"), Binary(Div(), Binary(And(), Number(3), Number(31)), SymbolArg("CELLL"))))),
+            Line(13, "_NAME\t= _NAME-((_LEN+3)*CELLL)\t;;new header on cell boundary", None, Some(VariableAssignment(new SymbolName("_NAME"), Binary(Sub(), SymbolArg("_NAME"), Binary(Mult(), Binary(Add(), SymbolArg("_LEN"), Number(3)), SymbolArg("CELLL")))))),
+            Line(13, "ORG\t_NAME\t\t\t\t\t;;set name pointer", None, Some(Org(SymbolArg("_NAME")))),
+            Line(13, "DD\t _CODE,_LINK\t\t\t;;token pointer and link", None, Some(DD(List(SymbolArg("_CODE"), SymbolArg("_LINK"))))),
+            Line(13, "_LINK\t= $\t\t\t\t;;link points to a name string", None, Some(VariableAssignment(new SymbolName("_LINK"), SymbolArg("$")))),
+            Line(13, "DB\t3,'?RX'\t\t\t;;name string", None, Some(DB(List(Number(3), Characters("?RX"))))),
+            Line(13, "ORG\t_CODE\t\t\t\t\t;;restore code pointer", None, Some(Org(SymbolArg("_CODE"))))
         ))
     }
 }
