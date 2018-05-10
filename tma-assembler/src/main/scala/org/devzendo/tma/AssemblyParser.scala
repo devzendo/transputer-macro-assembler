@@ -131,6 +131,14 @@ class AssemblyParser(val debugParser: Boolean, val macroManager: MacroManager) {
                 List(Line(lineNumber, text, optLabel, optStatement))
         }
 
+        def replaceFirstLabel(maybeLabel: Option[Label], lines: List[Line]): List[Line] = {
+            if (maybeLabel.isEmpty || lines.isEmpty) {
+                lines
+            } else {
+                lines.head.copy(label = maybeLabel) :: lines.tail
+            }
+        }
+
         def macroInvocationLine: Parser[List[Line]] = (
           opt(label) ~ macroInvocation <~ opt(comment)
           ) ^^ {
@@ -140,8 +148,10 @@ class AssemblyParser(val debugParser: Boolean, val macroManager: MacroManager) {
                 val expansion = macroManager.expandMacro(macroInvocation.name, macroInvocation.args)
                 if (debugParser) expansion.foreach( (f: String) => logger.debug("expanded macro: |" + f + "|"))
                 val parsedExpansions = expansion.flatMap((str: String) => AssemblyParser.this.parse((str, lineNumber)))
-                if (debugParser) parsedExpansions.foreach( (l: Line) => logger.debug("expanded parsed macro: |" + l + "|"))
-                macroInvocationLine :: parsedExpansions
+                // Ensure that any label in the macro invocation is set in the first expanded parsed line
+                val parsedExpansionsWithInvocationLabel = replaceFirstLabel(optLabel, parsedExpansions)
+                if (debugParser) parsedExpansionsWithInvocationLabel.foreach( (l: Line) => logger.debug("expanded parsed macro: |" + l + "|"))
+                macroInvocationLine :: parsedExpansionsWithInvocationLabel
         }
 
         def label: Parser[Label] = (

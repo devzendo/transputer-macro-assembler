@@ -636,4 +636,61 @@ class TestAssemblyParser extends AssertionsForJUnit with MustMatchers with Mocki
             "\tENDM"
         ))
     }
+
+    @Test
+    def labelAtMacroInvocationOccursOnFirstLineOfExpansion(): Unit = {
+        parseLines(List(
+            "FOO\tMACRO\tFIRST,SECOND",
+            "\tDB\tFIRST",
+            "\tDB\tSECOND",
+            "\tENDM"
+        ))
+        val lines = parseLine("LLL:\tFOO\t1,2")
+        dumpLines(lines)
+        lines must be (List(
+            Line(5, "LLL:\tFOO\t1,2", Some(new Label("LLL")), Some(MacroInvocation(new MacroName("FOO"), List( new MacroArgument("1"), new MacroArgument("2"))))),
+            Line(5, "DB\t1", Some(new Label("LLL")), Some(DB(List(Number(1))))),
+            Line(5, "DB\t2", None, Some(DB(List(Number(2)))))
+        ))
+    }
+
+    private def dumpLines(lines: List[Line]) = {
+        logger.info("======================================")
+        lines.foreach((l: Line) => logger.info(l.toString))
+        logger.info("======================================")
+    }
+
+    @Test
+    def labelInFirstMacroBodyLineOccursOnFirstLineOfExpansionIfNoLabelAtMacroInvocation(): Unit = {
+        parseLines(List(
+            "FOO\tMACRO\tFIRST,SECOND",
+            "LLL:\tDB\tFIRST",
+            "\tDB\tSECOND",
+            "\tENDM"
+        ))
+        val lines = parseLine("FOO\t1,2")
+        dumpLines(lines)
+        lines must be (List(
+            Line(5, "FOO\t1,2", None, Some(MacroInvocation(new MacroName("FOO"), List( new MacroArgument("1"), new MacroArgument("2"))))),
+            Line(5, "LLL:\tDB\t1", Some(new Label("LLL")), Some(DB(List(Number(1))))),
+            Line(5, "DB\t2", None, Some(DB(List(Number(2)))))
+        ))
+    }
+
+    @Test
+    def labelAtMacroInvocationTakesPrecedenceOverLabelInFirstMacroBodyLine(): Unit = {
+        parseLines(List(
+            "FOO\tMACRO\tFIRST,SECOND",
+            "LLL:\tDB\tFIRST",
+            "\tDB\tSECOND",
+            "\tENDM"
+        ))
+        val lines = parseLine("XXX:\tFOO\t1,2")
+        dumpLines(lines)
+        lines must be (List(
+            Line(5, "XXX:\tFOO\t1,2", Some(new Label("XXX")), Some(MacroInvocation(new MacroName("FOO"), List( new MacroArgument("1"), new MacroArgument("2"))))),
+            Line(5, "LLL:\tDB\t1", Some(new Label("XXX")), Some(DB(List(Number(1))))), // Yes, the text says LLL: but the Line's Label is what matters.
+            Line(5, "DB\t2", None, Some(DB(List(Number(2)))))
+        ))
+    }
 }
