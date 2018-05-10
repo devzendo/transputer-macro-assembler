@@ -54,7 +54,7 @@ class AssemblyParser(val debugParser: Boolean, val macroManager: MacroManager) {
                 case parser.Success(r, _) =>
                     val rLines = r.asInstanceOf[List[Line]] // unsure why r is not right type
                     if (debugParser) {
-                        logger.debug("returning" + rLines)
+                        logger.debug("returning " + rLines)
                     }
                     lines ++= rLines
                     rLines

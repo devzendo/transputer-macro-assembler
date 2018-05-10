@@ -562,21 +562,8 @@ class TestAssemblyParser extends AssertionsForJUnit with MustMatchers with Mocki
 
     @Test
     def fullMacroInvocation(): Unit = {
-        val macroLines = List(
-            "$CODE\tMACRO\tLEX,NAME,LABEL",
-            "\tALIGN\t4\t\t\t\t;;force to cell boundary",
-            "LABEL:\t\t\t\t\t\t;;assembly label",
-            "\t_CODE\t= $\t\t\t\t;;save code pointer",
-            "\t_LEN\t= (LEX AND 01FH)/CELLL\t\t;;string cell count, round down",
-            "\t_NAME\t= _NAME-((_LEN+3)*CELLL)\t;;new header on cell boundary",
-            "ORG\t_NAME\t\t\t\t\t;;set name pointer",
-            "\tDD\t _CODE,_LINK\t\t\t;;token pointer and link",
-            "\t_LINK\t= $\t\t\t\t;;link points to a name string",
-            "\tDB\tLEX,NAME\t\t\t;;name string",
-            "ORG\t_CODE\t\t\t\t\t;;restore code pointer",
-            "\tENDM"
-        )
-        parseLines(macroLines)
+        parseCodeMacro
+
         val lines = parseLine("\t\t$CODE\t3,'?RX',QRX")
         lines must be (List(
             Line(13, "$CODE\t3,'?RX',QRX", None, Some(MacroInvocation(new MacroName("$CODE"), List( new MacroArgument("3"), new MacroArgument("'?RX'"), new MacroArgument("QRX"))))),
@@ -590,6 +577,63 @@ class TestAssemblyParser extends AssertionsForJUnit with MustMatchers with Mocki
             Line(13, "_LINK\t= $\t\t\t\t;;link points to a name string", None, Some(VariableAssignment(new SymbolName("_LINK"), SymbolArg("$")))),
             Line(13, "DB\t3,'?RX'\t\t\t;;name string", None, Some(DB(List(Number(3), Characters("?RX"))))),
             Line(13, "ORG\t_CODE\t\t\t\t\t;;restore code pointer", None, Some(Org(SymbolArg("_CODE"))))
+        ))
+    }
+
+    @Test
+    def fullNestedMacroInvocation(): Unit = {
+        parseCodeMacro
+        parseColonMacro
+
+        logger.debug("Parsing a $COLON invocation")
+        val lines = parseLine("\t\t$COLON\tCOMPO+5,'doVAR',DOVAR")
+        val expectedLines = List(
+            Line(18, "$COLON\tCOMPO+5,'doVAR',DOVAR", None, Some(MacroInvocation(new MacroName("$COLON"), List( new MacroArgument("COMPO+5"), new MacroArgument("'doVAR'"), new MacroArgument("DOVAR"))))),
+            Line(18, "$CODE\tCOMPO+5,'doVAR',DOVAR", None, Some(MacroInvocation(new MacroName("$CODE"), List( new MacroArgument("COMPO+5"), new MacroArgument("'doVAR'"), new MacroArgument("DOVAR"))))),
+            Line(18, "ALIGN\t4\t\t\t\t;;force to cell boundary", None, Some(Align(4))),
+            Line(18, "DOVAR:\t\t\t\t\t\t;;assembly label", Some(new Label("DOVAR")), None),
+            Line(18, "_CODE\t= $\t\t\t\t;;save code pointer", None, Some(VariableAssignment(new SymbolName("_CODE"), SymbolArg("$")))),
+            Line(18, "_LEN\t= (COMPO+5 AND 01FH)/CELLL\t\t;;string cell count, round down", None, Some(VariableAssignment(new SymbolName("_LEN"), Binary(Div(), Binary(Add(), SymbolArg("COMPO"), Binary(And(), Number(5), Number(31))), SymbolArg("CELLL"))))), /* TODO wrong precedence? */
+            Line(18, "_NAME\t= _NAME-((_LEN+3)*CELLL)\t;;new header on cell boundary", None, Some(VariableAssignment(new SymbolName("_NAME"), Binary(Sub(), SymbolArg("_NAME"), Binary(Mult(), Binary(Add(), SymbolArg("_LEN"), Number(3)), SymbolArg("CELLL")))))),
+            Line(18, "ORG\t_NAME\t\t\t\t\t;;set name pointer", None, Some(Org(SymbolArg("_NAME")))),
+            Line(18, "DD\t _CODE,_LINK\t\t\t;;token pointer and link", None, Some(DD(List(SymbolArg("_CODE"), SymbolArg("_LINK"))))),
+            Line(18, "_LINK\t= $\t\t\t\t;;link points to a name string", None, Some(VariableAssignment(new SymbolName("_LINK"), SymbolArg("$")))),
+            Line(18, "DB\tCOMPO+5,'doVAR'\t\t\t;;name string", None, Some(DB(List(Binary(Add(), SymbolArg("COMPO"), Number(5)), Characters("doVAR"))))),
+            Line(18, "ORG\t_CODE\t\t\t\t\t;;restore code pointer", None, Some(Org(SymbolArg("_CODE")))),
+            Line(18, "align\t4", None, Some(Align(4))),
+            Line(18, "db\t048h\t\t;; ldc x\tpoint to dd dolst", None, Some(DB(List(Number(72)))))
+        )
+        lines must be (expectedLines)
+    }
+
+    private def parseCodeMacro = {
+        logger.debug("Parsing the $CODE macro")
+        parseLines(List(
+            "$CODE\tMACRO\tLEX,NAME,LABEL",
+            "\tALIGN\t4\t\t\t\t;;force to cell boundary",
+            "LABEL:\t\t\t\t\t\t;;assembly label",
+            "\t_CODE\t= $\t\t\t\t;;save code pointer",
+            "\t_LEN\t= (LEX AND 01FH)/CELLL\t\t;;string cell count, round down",
+            "\t_NAME\t= _NAME-((_LEN+3)*CELLL)\t;;new header on cell boundary",
+            "ORG\t_NAME\t\t\t\t\t;;set name pointer",
+            "\tDD\t _CODE,_LINK\t\t\t;;token pointer and link",
+            "\t_LINK\t= $\t\t\t\t;;link points to a name string",
+            "\tDB\tLEX,NAME\t\t\t;;name string",
+            "ORG\t_CODE\t\t\t\t\t;;restore code pointer",
+            "\tENDM"
+        ))
+    }
+
+    private def parseColonMacro = {
+        logger.debug("Parsing the $COLON macro")
+        // This is a cut-down version of the full $COLON macro; the db list in the original isn't needed to test
+        // that nested macros work.
+        parseLines(List(
+            "$COLON\tMACRO\tLEX,NAME,LABEL",
+            "\t$CODE\tLEX,NAME,LABEL",
+            "\talign\t4",
+            "\tdb\t048h\t\t;; ldc x\tpoint to dd dolst",
+            "\tENDM"
         ))
     }
 }
