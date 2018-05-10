@@ -29,6 +29,8 @@ class MacroManager(val debugParser: Boolean) {
 
     private val macros = mutable.Map[MacroName, MacroDefinition]()
 
+    private val parameterNamePatterns = mutable.Map[MacroParameterName, Pattern]()
+
     private var inMacroBody = false
 
 
@@ -108,7 +110,7 @@ class MacroManager(val debugParser: Boolean) {
             (m, pi) => m + (pi._1 -> getArg(pi._2))
         }
         val paramNameToPattern = paramAndIndex.foldLeft(Map[MacroParameterName, Pattern]()) {
-            (m, pi) => m + (pi._1 -> formMatchPattern(pi._1))
+            (m, pi) => m + (pi._1 -> parameterNamePatterns.getOrElseUpdate(pi._1, formMatchPattern(pi._1)))
         }
         if (debugParser) for (elem <- paramAndIndex) { logger.debug("  arg #" + elem._2 + " " + elem._1 + "=" + paramToArgMap(elem._1)) }
 
