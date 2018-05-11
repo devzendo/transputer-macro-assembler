@@ -36,7 +36,7 @@ class TestAssemblyParser extends AssertionsForJUnit with MustMatchers with Mocki
     var _thrown: ExpectedException = ExpectedException.none
 
     private def parseLine(line: String) = {
-        val out = parser.parse((line, lineNumber))
+        val out = parser.parse(line, lineNumber)
         lineNumber = lineNumber + 1
         out
     }
@@ -67,7 +67,7 @@ class TestAssemblyParser extends AssertionsForJUnit with MustMatchers with Mocki
     def positiveLineNumber(): Unit = {
         thrown.expect(classOf[AssemblyParserException])
         thrown.expectMessage("0: Line numbers must be positive")
-        parser.parse((null, 0))
+        parser.parse(null, 0)
     }
 
     @Test
@@ -308,7 +308,7 @@ class TestAssemblyParser extends AssertionsForJUnit with MustMatchers with Mocki
     def dbZero(): Unit = {
         thrown.expect(classOf[AssemblyParserException])
         thrown.expectMessage("1: DB directive without data")
-        parser.parse(("DB\t", 1))
+        parser.parse("DB\t", 1)
     }
 
     @Test
@@ -351,7 +351,7 @@ class TestAssemblyParser extends AssertionsForJUnit with MustMatchers with Mocki
         thrown.expect(classOf[AssemblyParserException])
         thrown.expectMessage("1: Unknown statement 'DB\t'foo' + 3'") // Not the clearest message, but disallowing is clear.
 
-        parser.parse(("DB\t'foo' + 3", 1))
+        parser.parse("DB\t'foo' + 3", 1)
     }
 
     @Test
@@ -365,7 +365,7 @@ class TestAssemblyParser extends AssertionsForJUnit with MustMatchers with Mocki
     def dwZero(): Unit = {
         thrown.expect(classOf[AssemblyParserException])
         thrown.expectMessage("1: DW directive without data")
-        parser.parse(("DW\t", 1))
+        parser.parse("DW\t", 1)
     }
 
     @Test
@@ -389,7 +389,7 @@ class TestAssemblyParser extends AssertionsForJUnit with MustMatchers with Mocki
     def ddZero(): Unit = {
         thrown.expect(classOf[AssemblyParserException])
         thrown.expectMessage("1: DD directive without data")
-        parser.parse(("DD\t", 1))
+        parser.parse("DD\t", 1)
     }
 
     @Test
@@ -423,7 +423,7 @@ class TestAssemblyParser extends AssertionsForJUnit with MustMatchers with Mocki
     def whatTheActual(): Unit = {
         thrown.expect(classOf[AssemblyParserException])
         thrown.expectMessage("1: Unknown statement 'blarf!'")
-        parser.parse(("blarf!", 1))
+        parser.parse("blarf!", 1)
     }
 
     @Test
@@ -513,17 +513,17 @@ class TestAssemblyParser extends AssertionsForJUnit with MustMatchers with Mocki
     def nestedMacroDefinitions(): Unit = {
         thrown.expect(classOf[AssemblyParserException])
         thrown.expectMessage("2: Macro definitions cannot be nested")
-        parser.parse(("$CODE\tMACRO\tLEX,NAME,LABEL", 1))
-        parser.parse(("$COLON\tMACRO\tLEX,NAME,LABEL", 2))
+        parser.parse("$CODE\tMACRO\tLEX,NAME,LABEL", 1)
+        parser.parse("$COLON\tMACRO\tLEX,NAME,LABEL", 2)
     }
 
     @Test
     def macroCannotBeRedefined(): Unit = {
         thrown.expect(classOf[AssemblyParserException])
         thrown.expectMessage("3: Macro '$CODE' already defined")
-        parser.parse(("$CODE\tMACRO\tLEX,NAME,LABEL", 1))
-        parser.parse(("\tendm", 2))
-        parser.parse(("$CODE\tMACRO\tLEX,NAME,LABEL", 3))
+        parser.parse("$CODE\tMACRO\tLEX,NAME,LABEL", 1)
+        parser.parse("\tendm", 2)
+        parser.parse("$CODE\tMACRO\tLEX,NAME,LABEL", 3)
     }
 
     @Test
@@ -548,7 +548,45 @@ class TestAssemblyParser extends AssertionsForJUnit with MustMatchers with Mocki
         checkCorrectMacroInvocation(textLines)
     }
 
-    private def checkCorrectMacroInvocation(textLines: List[Label]) = {
+    @Test
+    def macroInvocationWithArgumentsFollowedBySingleComment(): Unit = {
+        val textLines = List(
+            "$CODE\tMACRO\tLEX,NAME,LABEL",
+            "\tENDM",
+            "\t\t$CODE\t3\t  \t\t \t\t'URD'\turdcode\t; comment"
+        )
+
+        val lines = checkCorrectMacroInvocation(textLines)
+        val invocationLine = lines.last
+        invocationLine.stmt match {
+            case Some(MacroInvocation(_, args)) =>
+                args.size must be(3) // not 4 or 5, with the fourth being the comment delimiter ; and fifth 'comment'
+            case _ =>
+                fail("Was expecting a MacroInvocation")
+        }
+        invocationLine.text must be("$CODE\t3\t  \t\t \t\t'URD'\turdcode\t; comment")
+    }
+
+    @Test
+    def macroInvocationWithArgumentsFollowedByDoubleComment(): Unit = {
+        val textLines = List(
+            "$CODE\tMACRO\tLEX,NAME,LABEL",
+            "\tENDM",
+            "\t\t$CODE\t3\t  \t\t \t\t'URD'\turdcode\t;; comment"
+        )
+
+        val lines = checkCorrectMacroInvocation(textLines)
+        val invocationLine = lines.last
+        invocationLine.stmt match {
+            case Some(MacroInvocation(_, args)) =>
+                args.size must be(3) // not 4 or 5, with the fourth being the comment delimiter ;; and fifth 'comment'
+            case _ =>
+                fail("Was expecting a MacroInvocation")
+        }
+        invocationLine.text must be("$CODE\t3\t  \t\t \t\t'URD'\turdcode\t;; comment")
+    }
+
+    private def checkCorrectMacroInvocation(textLines: List[Label]): List[Line] = {
         val lines = parseLines(textLines)
         val stmts = lines.map {
             _.stmt.get
@@ -558,6 +596,7 @@ class TestAssemblyParser extends AssertionsForJUnit with MustMatchers with Mocki
             MacroEnd(),
             MacroInvocation(new MacroName("$CODE"), List(new MacroArgument("3"), new MacroArgument("'URD'"), new MacroArgument("urdcode")))
         ))
+        lines
     }
 
     @Test
@@ -565,18 +604,19 @@ class TestAssemblyParser extends AssertionsForJUnit with MustMatchers with Mocki
         parseCodeMacro
 
         val lines = parseLine("\t\t$CODE\t3,'?RX',QRX")
+        dumpLines(lines)
         lines must be (List(
             Line(13, "$CODE\t3,'?RX',QRX", None, Some(MacroInvocation(new MacroName("$CODE"), List( new MacroArgument("3"), new MacroArgument("'?RX'"), new MacroArgument("QRX"))))),
-            Line(13, "ALIGN\t4\t\t\t\t;;force to cell boundary", None, Some(Align(4))),
-            Line(13, "QRX:\t\t\t\t\t\t;;assembly label", Some(new Label("QRX")), None),
-            Line(13, "_CODE\t= $\t\t\t\t;;save code pointer", None, Some(VariableAssignment(new SymbolName("_CODE"), SymbolArg("$")))),
-            Line(13, "_LEN\t= (3 AND 01FH)/CELLL\t\t;;string cell count, round down", None, Some(VariableAssignment(new SymbolName("_LEN"), Binary(Div(), Binary(And(), Number(3), Number(31)), SymbolArg("CELLL"))))),
-            Line(13, "_NAME\t= _NAME-((_LEN+3)*CELLL)\t;;new header on cell boundary", None, Some(VariableAssignment(new SymbolName("_NAME"), Binary(Sub(), SymbolArg("_NAME"), Binary(Mult(), Binary(Add(), SymbolArg("_LEN"), Number(3)), SymbolArg("CELLL")))))),
-            Line(13, "ORG\t_NAME\t\t\t\t\t;;set name pointer", None, Some(Org(SymbolArg("_NAME")))),
-            Line(13, "DD\t _CODE,_LINK\t\t\t;;token pointer and link", None, Some(DD(List(SymbolArg("_CODE"), SymbolArg("_LINK"))))),
-            Line(13, "_LINK\t= $\t\t\t\t;;link points to a name string", None, Some(VariableAssignment(new SymbolName("_LINK"), SymbolArg("$")))),
-            Line(13, "DB\t3,'?RX'\t\t\t;;name string", None, Some(DB(List(Number(3), Characters("?RX"))))),
-            Line(13, "ORG\t_CODE\t\t\t\t\t;;restore code pointer", None, Some(Org(SymbolArg("_CODE"))))
+            Line(13, "ALIGN\t4", None, Some(Align(4))),
+            Line(13, "QRX:", Some(new Label("QRX")), None),
+            Line(13, "_CODE\t= $", None, Some(VariableAssignment(new SymbolName("_CODE"), SymbolArg("$")))),
+            Line(13, "_LEN\t= (3 AND 01FH)/CELLL", None, Some(VariableAssignment(new SymbolName("_LEN"), Binary(Div(), Binary(And(), Number(3), Number(31)), SymbolArg("CELLL"))))),
+            Line(13, "_NAME\t= _NAME-((_LEN+3)*CELLL)", None, Some(VariableAssignment(new SymbolName("_NAME"), Binary(Sub(), SymbolArg("_NAME"), Binary(Mult(), Binary(Add(), SymbolArg("_LEN"), Number(3)), SymbolArg("CELLL")))))),
+            Line(13, "ORG\t_NAME", None, Some(Org(SymbolArg("_NAME")))),
+            Line(13, "DD\t _CODE,_LINK", None, Some(DD(List(SymbolArg("_CODE"), SymbolArg("_LINK"))))),
+            Line(13, "_LINK\t= $", None, Some(VariableAssignment(new SymbolName("_LINK"), SymbolArg("$")))),
+            Line(13, "DB\t3,'?RX'", None, Some(DB(List(Number(3), Characters("?RX"))))),
+            Line(13, "ORG\t_CODE", None, Some(Org(SymbolArg("_CODE"))))
         ))
     }
 
@@ -590,18 +630,18 @@ class TestAssemblyParser extends AssertionsForJUnit with MustMatchers with Mocki
         val expectedLines = List(
             Line(18, "$COLON\tCOMPO+5,'doVAR',DOVAR", None, Some(MacroInvocation(new MacroName("$COLON"), List( new MacroArgument("COMPO+5"), new MacroArgument("'doVAR'"), new MacroArgument("DOVAR"))))),
             Line(18, "$CODE\tCOMPO+5,'doVAR',DOVAR", None, Some(MacroInvocation(new MacroName("$CODE"), List( new MacroArgument("COMPO+5"), new MacroArgument("'doVAR'"), new MacroArgument("DOVAR"))))),
-            Line(18, "ALIGN\t4\t\t\t\t;;force to cell boundary", None, Some(Align(4))),
-            Line(18, "DOVAR:\t\t\t\t\t\t;;assembly label", Some(new Label("DOVAR")), None),
-            Line(18, "_CODE\t= $\t\t\t\t;;save code pointer", None, Some(VariableAssignment(new SymbolName("_CODE"), SymbolArg("$")))),
-            Line(18, "_LEN\t= (COMPO+5 AND 01FH)/CELLL\t\t;;string cell count, round down", None, Some(VariableAssignment(new SymbolName("_LEN"), Binary(Div(), Binary(Add(), SymbolArg("COMPO"), Binary(And(), Number(5), Number(31))), SymbolArg("CELLL"))))), /* TODO wrong precedence? */
-            Line(18, "_NAME\t= _NAME-((_LEN+3)*CELLL)\t;;new header on cell boundary", None, Some(VariableAssignment(new SymbolName("_NAME"), Binary(Sub(), SymbolArg("_NAME"), Binary(Mult(), Binary(Add(), SymbolArg("_LEN"), Number(3)), SymbolArg("CELLL")))))),
-            Line(18, "ORG\t_NAME\t\t\t\t\t;;set name pointer", None, Some(Org(SymbolArg("_NAME")))),
-            Line(18, "DD\t _CODE,_LINK\t\t\t;;token pointer and link", None, Some(DD(List(SymbolArg("_CODE"), SymbolArg("_LINK"))))),
-            Line(18, "_LINK\t= $\t\t\t\t;;link points to a name string", None, Some(VariableAssignment(new SymbolName("_LINK"), SymbolArg("$")))),
-            Line(18, "DB\tCOMPO+5,'doVAR'\t\t\t;;name string", None, Some(DB(List(Binary(Add(), SymbolArg("COMPO"), Number(5)), Characters("doVAR"))))),
-            Line(18, "ORG\t_CODE\t\t\t\t\t;;restore code pointer", None, Some(Org(SymbolArg("_CODE")))),
+            Line(18, "ALIGN\t4", None, Some(Align(4))),
+            Line(18, "DOVAR:", Some(new Label("DOVAR")), None),
+            Line(18, "_CODE\t= $", None, Some(VariableAssignment(new SymbolName("_CODE"), SymbolArg("$")))),
+            Line(18, "_LEN\t= (COMPO+5 AND 01FH)/CELLL", None, Some(VariableAssignment(new SymbolName("_LEN"), Binary(Div(), Binary(Add(), SymbolArg("COMPO"), Binary(And(), Number(5), Number(31))), SymbolArg("CELLL"))))), /* TODO wrong precedence? */
+            Line(18, "_NAME\t= _NAME-((_LEN+3)*CELLL)", None, Some(VariableAssignment(new SymbolName("_NAME"), Binary(Sub(), SymbolArg("_NAME"), Binary(Mult(), Binary(Add(), SymbolArg("_LEN"), Number(3)), SymbolArg("CELLL")))))),
+            Line(18, "ORG\t_NAME", None, Some(Org(SymbolArg("_NAME")))),
+            Line(18, "DD\t _CODE,_LINK", None, Some(DD(List(SymbolArg("_CODE"), SymbolArg("_LINK"))))),
+            Line(18, "_LINK\t= $", None, Some(VariableAssignment(new SymbolName("_LINK"), SymbolArg("$")))),
+            Line(18, "DB\tCOMPO+5,'doVAR'", None, Some(DB(List(Binary(Add(), SymbolArg("COMPO"), Number(5)), Characters("doVAR"))))),
+            Line(18, "ORG\t_CODE", None, Some(Org(SymbolArg("_CODE")))),
             Line(18, "align\t4", None, Some(Align(4))),
-            Line(18, "db\t048h\t\t;; ldc x\tpoint to dd dolst", None, Some(DB(List(Number(72)))))
+            Line(18, "db\t048h", None, Some(DB(List(Number(72)))))
         )
         lines must be (expectedLines)
     }
@@ -693,4 +733,91 @@ class TestAssemblyParser extends AssertionsForJUnit with MustMatchers with Mocki
             Line(5, "DB\t2", None, Some(DB(List(Number(2)))))
         ))
     }
+
+    @Test
+    def singleSemicolonCommentsArePassedThroughInMacroExpansions(): Unit = {
+        parseLines(List(
+            "FOO\tMACRO",
+            "\t; single semicolon passed through",
+            "\tENDM"
+        ))
+        val lines = parseLine("\tFOO")
+        dumpLines(lines)
+        lines must be (List(
+            Line(4, "FOO", None, Some(MacroInvocation(new MacroName("FOO"), List()))),
+            Line(4, "; single semicolon passed through", None, None)
+        ))
+    }
+
+    @Test
+    def doubleSemicolonCommentsAreNotPassedThroughInMacroExpansions(): Unit = {
+        parseLines(List(
+            "FOO\tMACRO",
+            "\t  ;; double semicolon not passed through",
+            "\tENDM"
+        ))
+        val lines = parseLine("\tFOO")
+        dumpLines(lines)
+        lines must be (List(
+            Line(4, "FOO", None, Some(MacroInvocation(new MacroName("FOO"), List()))),
+            Line(4, "", None, None)
+        ))
+    }
+
+    @Test
+    def singleSemicolonCommentsArePassedThroughInMacroInvocations(): Unit = {
+        parseLines(List(
+            "FOO\tMACRO",
+            "\tENDM"
+        ))
+        val lines = parseLine("\tFOO\t; comment")
+        dumpLines(lines)
+        lines must be (List(
+            Line(3, "FOO\t; comment", None, Some(MacroInvocation(new MacroName("FOO"), List())))
+        ))
+    }
+
+    @Test
+    def doubleSemicolonCommentsArePassedThroughInMacroInvocations(): Unit = {
+        parseLines(List(
+            "FOO\tMACRO",
+            "\tENDM"
+        ))
+        val lines = parseLine("\tFOO\t;; comment")
+        dumpLines(lines)
+        lines must be (List(
+            Line(3, "FOO\t;; comment", None, Some(MacroInvocation(new MacroName("FOO"), List())))
+        ))
+    }
+
+    @Test
+    def doubleSemicolonCommentsInSingleQuotedStringsArePassedThroughInMacroExpansions(): Unit = {
+        parseLines(List(
+            "FOO\tMACRO",
+            "\tDB ';; see me'",
+            "\tENDM"
+        ))
+        val lines = parseLine("\tFOO")
+        dumpLines(lines)
+        lines must be (List(
+            Line(4, "FOO", None, Some(MacroInvocation(new MacroName("FOO"), List()))),
+            Line(4, "DB ';; see me'", None, Some(DB(List(Characters(";; see me")))))
+        ))
+    }
+
+    @Test
+    def doubleSemicolonCommentsInDoubleQuotedStringsArePassedThroughInMacroExpansions(): Unit = {
+        parseLines(List(
+            "FOO\tMACRO",
+            "\tDB \";; see me\"",
+            "\tENDM"
+        ))
+        val lines = parseLine("\tFOO")
+        dumpLines(lines)
+        lines must be (List(
+            Line(4, "FOO", None, Some(MacroInvocation(new MacroName("FOO"), List()))),
+            Line(4, "DB \";; see me\"", None, Some(DB(List(Characters(";; see me")))))
+        ))
+    }
+
 }

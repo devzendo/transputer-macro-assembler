@@ -22,10 +22,6 @@ Currently working on the parser, and macro expansion. No code generation yet.
 
 Remaining work:
 
-* strip ;; comments from expanded macros, pass ; comments through
-* handling conversion of exceptions that the macro manager might throw when expanding
-* better case insensitivity of keywords https://stackoverflow.com/questions/38070885/how-to-handle-case-insensitive-keywords-with-scala-parser-combinators
-* macros shouldn't be able to replace keywords
 * directives: if1/endif, dup (n) after db/dw/dd, end.* (ignore)
 * honour the Cpu directive, to switch in Transputer family native instructions, rather than db-generating macros
 * Transputer pfix/nfix generation from direct opcodes
@@ -33,6 +29,11 @@ Remaining work:
 * code generation
   * prevent reassignment to the same constant
   * handle overflowing DB/DD/DW data in code generation
+
+* nice-to-haves...
+  * handling conversion of exceptions that the macro manager might throw when expanding
+  * better case insensitivity of keywords https://stackoverflow.com/questions/38070885/how-to-handle-case-insensitive-keywords-with-scala-parser-combinators
+  * macros shouldn't be able to replace keywords
 
 Rationale
 ---------

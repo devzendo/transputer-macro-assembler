@@ -107,7 +107,7 @@ class AssemblerMain(val argList: List[String]) {
         val asm = asmFile.get
         logger.debug("Reading lines from " + asm.getName)
         try {
-            Source.fromFile(asm).getLines().zipWithIndex.foreach(parser.parse)
+            Source.fromFile(asm).getLines().zipWithIndex.foreach((p: (String, Int)) => parser.parse(p._1, p._2))
             logger.debug("Parsing complete")
             val model: AssemblyModel = parser.createModel
 

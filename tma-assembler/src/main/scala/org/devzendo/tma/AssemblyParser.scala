@@ -33,11 +33,8 @@ class AssemblyParser(val debugParser: Boolean, val macroManager: MacroManager) {
         lines.toList
     }
 
-
     @throws(classOf[AssemblyParserException])
-    def parse(lineAndNumber: (String, Int)): List[Line] = {
-        val line = lineAndNumber._1
-        val lineNumber = lineAndNumber._2
+    def parse(line: String, lineNumber: Int, inMacroExpansion: Boolean = false): List[Line] = {
 
         def sanitizedInput = nullToEmpty(line).trim()
 
@@ -48,7 +45,7 @@ class AssemblyParser(val debugParser: Boolean, val macroManager: MacroManager) {
             throw new AssemblyParserException(lineNumber, "Line numbers must be positive")
         }
         if (sanitizedInput.length > 0) {
-            val parser = if (macroManager.isInMacroBody) new MacroBodyCombinatorParser(lineNumber) else new StatementCombinatorParser(lineNumber)
+            val parser = if (macroManager.isInMacroBody) new MacroBodyCombinatorParser(lineNumber) else new StatementCombinatorParser(lineNumber, inMacroExpansion)
             val parserOutput = parser.parseProgram(sanitizedInput)
             parserOutput match {
                 case parser.Success(r, _) =>
@@ -120,15 +117,25 @@ class AssemblyParser(val debugParser: Boolean, val macroManager: MacroManager) {
         }
     }
 
-    private class StatementCombinatorParser(lineNumber: Int) extends LineParser {
+    private class StatementCombinatorParser(lineNumber: Int, inMacroExpansion: Boolean) extends LineParser {
         def line: Parser[List[Line]] =  macroInvocationLine | statementLine
 
         def statementLine: Parser[List[Line]] = (
-            opt(label) ~ opt(statement) <~ opt(comment)
+            opt(label) ~ opt(statement) ~ opt(comment)
           ) ^^ {
-            case optLabel ~ optStatement =>
-                if (debugParser) logger.debug("in statementLine")
-                List(Line(lineNumber, text, optLabel, optStatement))
+            case optLabel ~ optStatement ~ optComment =>
+                if (debugParser) logger.debug("in statementLine, inMacroExpansion=" + inMacroExpansion + ", optComment=" + optComment)
+                val returnedText = removeDoubleSemicolonCommentsInMacroExpansion(optComment)
+                if (debugParser) logger.debug("in statementLine after ;;-removal, text=|" + returnedText + "|")
+                List(Line(lineNumber, returnedText, optLabel, optStatement))
+        }
+
+        private def removeDoubleSemicolonCommentsInMacroExpansion(optComment: Option[Comment]): String = {
+            val returnedText = (inMacroExpansion, optComment) match {
+                case (true, Some(DoubleComment(comment: String))) => text.substring(0, text.length - comment.length).trim
+                case _ => text // already trimmed
+            }
+            returnedText
         }
 
         def replaceFirstLabel(maybeLabel: Option[Label], lines: List[Line]): List[Line] = {
@@ -145,9 +152,10 @@ class AssemblyParser(val debugParser: Boolean, val macroManager: MacroManager) {
             case optLabel ~ macroInvocation =>
                 if (debugParser) logger.debug("in macroInvocationLine, macroInvocation is " + macroInvocation)
                 val macroInvocationLine = Line(lineNumber, text, optLabel, Some(macroInvocation))
+
                 val expansion = macroManager.expandMacro(macroInvocation.name, macroInvocation.args)
                 if (debugParser) expansion.foreach( (f: String) => logger.debug("expanded macro: |" + f + "|"))
-                val parsedExpansions = expansion.flatMap((str: String) => AssemblyParser.this.parse((str, lineNumber)))
+                val parsedExpansions = expansion.flatMap((str: String) => AssemblyParser.this.parse(str, lineNumber, true))
                 // Ensure that any label in the macro invocation is set in the first expanded parsed line
                 val parsedExpansionsWithInvocationLabel = replaceFirstLabel(optLabel, parsedExpansions)
                 if (debugParser) parsedExpansionsWithInvocationLabel.foreach( (l: Line) => logger.debug("expanded parsed macro: |" + l + "|"))
@@ -216,7 +224,7 @@ class AssemblyParser(val debugParser: Boolean, val macroManager: MacroManager) {
             }
         }
 
-        def macroArgument: Parser[MacroArgument] = """[^\s,]+""".r ^^ {
+        def macroArgument: Parser[MacroArgument] = """[^\s,;]+""".r ^^ {
             argument =>
                 if (debugParser) logger.debug("in macroArgument, argument is [" + argument + "]")
                 new MacroArgument(argument)
@@ -407,7 +415,12 @@ class AssemblyParser(val debugParser: Boolean, val macroManager: MacroManager) {
         def macroWord: Parser[String] =
             """(macro|MACRO)""".r ^^ ( _ => "MACRO" )
 
-        def comment: Parser[String] =
-            """;.*""".r
+        def comment: Parser[Comment] = doubleComment | singleComment
+
+        def doubleComment: Parser[DoubleComment] =
+            """;;.*""".r ^^ ( x => DoubleComment(x))
+
+        def singleComment: Parser[SingleComment] =
+            """;.*""".r ^^ ( x => SingleComment(x))
     }
 }

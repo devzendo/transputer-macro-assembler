@@ -75,6 +75,10 @@ case class IndirectInstruction(opcode: Opcode) extends Statement
 
 case class Memory(address: Int, data: List[Byte])
 
+sealed abstract class Comment(comment: String) {
+}
+case class SingleComment(comment: String) extends Comment(comment)
+case class DoubleComment(comment: String) extends Comment(comment)
 
 case class Line(number: Int, text: String, label: Option[Label], stmt: Option[Statement]) {
 }
