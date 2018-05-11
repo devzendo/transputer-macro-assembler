@@ -461,6 +461,21 @@ class TestAssemblyParser extends AssertionsForJUnit with MustMatchers with Mocki
         singleLineParsesToStatement("END\tORIG", End(SymbolArg("ORIG")))
     }
 
+    @Test
+    def conditionalIf1(): Unit = {
+        singleLineParsesToStatement("IF1", If1())
+    }
+
+    @Test
+    def conditionalElse(): Unit = {
+        singleLineParsesToStatement("ELSE", Else())
+    }
+
+    @Test
+    def conditionalEndif(): Unit = {
+        singleLineParsesToStatement("ENDIF", Endif())
+    }
+
     // This is a simple macro assembler for (initially) a simple, non-segmented architecture. If you need to add
     // directives to enable better assembly for x86, I'm happy to accept pull requests and tests. If you want to turn
     // it into a full, open source precise MASM clone... let's talk :)

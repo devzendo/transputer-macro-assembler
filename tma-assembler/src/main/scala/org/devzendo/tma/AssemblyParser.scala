@@ -171,7 +171,7 @@ class AssemblyParser(val debugParser: Boolean, val macroManager: MacroManager) {
         }
 
         def statement: Parser[Statement] = constantAssignment | variableAssignment | macroStart | origin | data |
-            title | page | align | end | ignored
+            title | page | align | condif1 | condelse | condendif | end | ignored
 
         // Not sure why I can't use ~> and <~ here to avoid the equ?
         def constantAssignment: Parser[ConstantAssignment] = (
@@ -336,6 +336,10 @@ class AssemblyParser(val debugParser: Boolean, val macroManager: MacroManager) {
                 if (debugParser) logger.debug("in end, expression:" + expr)
                 End(expr)
         }
+
+        def condif1: Parser[If1] = """(if1|IF1)""".r ^^ ( _ => If1() )
+        def condelse: Parser[Else] = """(else|ELSE)""".r ^^ ( _ => Else() )
+        def condendif: Parser[Endif] = """(endif|ENDIF)""".r ^^ ( _ => Endif() )
 
         def ignored: Parser[Ignored] = ( ignoredKeyword ~ """.*""".r ) ^^ { _ => Ignored() }
         def ignoredKeyword: Regex = """(main|MAIN|assume|ASSUME)""".r
