@@ -442,6 +442,14 @@ class TestAssemblyParser extends AssertionsForJUnit with MustMatchers with Mocki
     }
 
     @Test
+    def end(): Unit = {
+        singleLineParsesToStatement("END\tORIG", End(SymbolArg("ORIG")))
+    }
+
+    // This is a simple macro assembler for (initially) a simple, non-segmented architecture. If you need to add
+    // directives to enable better assembly for x86, I'm happy to accept pull requests and tests. If you want to turn
+    // it into a full, open source precise MASM clone... let's talk :)
+    @Test
     def main(): Unit = {
         singleLineParsesToStatement("MAIN\tSEGMENT USE32", Ignored())
     }

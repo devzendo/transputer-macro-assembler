@@ -59,6 +59,7 @@ case class Page(rows: Int, columns: Int) extends Statement
 case class Processor(processor: String) extends Statement
 case class Align(num: Int) extends Statement
 case class Org(expr: Expression) extends Statement
+case class End(expr: Expression) extends Statement
 case class ConstantAssignment(symbolName: SymbolName, expr: Expression) extends Statement
 case class VariableAssignment(symbolName: SymbolName, expr: Expression) extends Statement
 case class MacroStart(name: MacroName, parameterNames: List[MacroParameterName]) extends Statement // Parameters are variables in macro definitions.

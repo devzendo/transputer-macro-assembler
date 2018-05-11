@@ -22,7 +22,7 @@ Currently working on the parser, and macro expansion. No code generation yet.
 
 Remaining work:
 
-* directives: if1/endif, dup (n) after db/dw/dd, end.* (ignore)
+* directives: if1/endif, dup (n) after db/dw/dd (ignore)
 * honour the Cpu directive, to switch in Transputer family native instructions, rather than db-generating macros
 * Transputer pfix/nfix generation from direct opcodes
 * documentation of syntax
