@@ -69,6 +69,9 @@ case class MacroInvocation(name: MacroName, args: List[MacroArgument]) extends S
 case class DB(expr: List[Expression]) extends Statement
 case class DW(expr: List[Expression]) extends Statement
 case class DD(expr: List[Expression]) extends Statement
+case class DBDup(count: Expression, repeatedValue: Expression) extends Statement
+case class DWDup(count: Expression, repeatedValue: Expression) extends Statement
+case class DDDup(count: Expression, repeatedValue: Expression) extends Statement
 case class Ignored() extends Statement
 case class DirectInstruction(opcode: Opcode, num: Int) extends Statement
 case class IndirectInstruction(opcode: Opcode) extends Statement

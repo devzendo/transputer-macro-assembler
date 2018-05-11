@@ -238,7 +238,7 @@ class AssemblyParser(val debugParser: Boolean, val macroManager: MacroManager) {
                 Org(expr)
         }
 
-        def data: Parser[Statement] = db | dw | dd
+        def data: Parser[Statement] = dbDup | dwDup | ddDup | db | dw | dd
 
         def db: Parser[DB] = (
           """(db|DB)""".r  ~> repsep(expression | characterExpression, ",")
@@ -249,6 +249,22 @@ class AssemblyParser(val debugParser: Boolean, val macroManager: MacroManager) {
                     throw new AssemblyParserException(lineNumber, "DB directive without data")
                 }
                 DB(exprs)
+        }
+
+        def dup: Parser[Expression] = (
+          """(dup|DUP)\s*\(""".r ~> (expression | characterExpression) <~ """\)""".r
+        ) ^^ {
+            repeatExpr =>
+                if (debugParser) logger.debug("in dup, repeat expr:" + repeatExpr)
+                repeatExpr
+        }
+
+        def dbDup: Parser[DBDup] = (
+          """(db|DB)""".r ~> expression ~ dup
+          ) ^^ {
+            case countExpr ~ repeatExpr =>
+                if (debugParser) logger.debug("in dbDup, countExpr:" + countExpr + " repeatedExpr:" + repeatExpr)
+                DBDup(countExpr, repeatExpr)
         }
 
         def dw: Parser[DW] = (
@@ -262,6 +278,14 @@ class AssemblyParser(val debugParser: Boolean, val macroManager: MacroManager) {
                 DW(exprs)
         }
 
+        def dwDup: Parser[DWDup] = (
+          """(db|DW)""".r ~> expression ~ dup
+          ) ^^ {
+            case countExpr ~ repeatExpr =>
+                if (debugParser) logger.debug("in dwDup, countExpr:" + countExpr + " repeatedExpr:" + repeatExpr)
+                DWDup(countExpr, repeatExpr)
+        }
+
         def dd: Parser[DD] = (
           """(dd|DD)""".r  ~> repsep(expression, ",")
           ) ^^ {
@@ -271,6 +295,14 @@ class AssemblyParser(val debugParser: Boolean, val macroManager: MacroManager) {
                     throw new AssemblyParserException(lineNumber, "DD directive without data")
                 }
                 DD(exprs)
+        }
+
+        def ddDup: Parser[DDDup] = (
+          """(dd|DD)""".r ~> expression ~ dup
+          ) ^^ {
+            case countExpr ~ repeatExpr =>
+                if (debugParser) logger.debug("in ddDup, countExpr:" + countExpr + " repeatedExpr:" + repeatExpr)
+                DDDup(countExpr, repeatExpr)
         }
 
         def title: Parser[Title] = (

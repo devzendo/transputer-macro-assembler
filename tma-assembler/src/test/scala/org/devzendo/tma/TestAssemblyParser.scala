@@ -327,6 +327,11 @@ class TestAssemblyParser extends AssertionsForJUnit with MustMatchers with Mocki
     }
 
     @Test
+    def dbDuplicate(): Unit = {
+        singleLineParsesToStatement("DB\t4 DUP(3)", DBDup(Number(4), Number(3)))
+    }
+
+    @Test
     def dbSingleQuotedCharacters(): Unit = {
         singleLineParsesToStatement("DB\t'Unga Bunga'", DB(List(Characters("Unga Bunga"))))
     }
@@ -379,6 +384,11 @@ class TestAssemblyParser extends AssertionsForJUnit with MustMatchers with Mocki
     }
 
     @Test
+    def dwDuplicate(): Unit = {
+        singleLineParsesToStatement("DW\t4 DUP(3)", DWDup(Number(4), Number(3)))
+    }
+
+    @Test
     def dwSingleOverflow(): Unit = {
         // This is allowed by the parser - it could be some expression we don't know the final value of, so
         // don't disallow it here, deal with it in code generation.
@@ -415,6 +425,11 @@ class TestAssemblyParser extends AssertionsForJUnit with MustMatchers with Mocki
     @Test
     def ddMultiple(): Unit = {
         singleLineParsesToStatement("DD\t1,2,3,4", DD(List(Number(1), Number(2), Number(3), Number(4))))
+    }
+
+    @Test
+    def ddDuplicate(): Unit = {
+        singleLineParsesToStatement("DD\t4 DUP(3)", DDDup(Number(4), Number(3)))
     }
 
     // ddSingleOverflow cannot be expressed since we use Ints, and 0x100000000 doesn't fit in one.
