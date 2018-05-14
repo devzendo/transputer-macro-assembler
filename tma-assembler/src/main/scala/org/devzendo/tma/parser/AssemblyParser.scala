@@ -16,9 +16,9 @@
 
 package org.devzendo.tma.parser
 
-import org.devzendo.tma.AssemblyModel
 import org.devzendo.tma.ast.AST.{Label, MacroArgument, MacroName, MacroParameterName}
 import org.devzendo.tma.ast._
+import org.devzendo.tma.codegen.AssemblyModel
 import org.log4s.Logger
 
 import scala.collection.mutable

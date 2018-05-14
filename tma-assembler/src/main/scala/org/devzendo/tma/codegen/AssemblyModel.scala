@@ -14,15 +14,8 @@
  * limitations under the License.
  */
 
-package org.devzendo.tma
+package org.devzendo.tma.codegen
 
-import java.io.File
-
-class ListingWriter(val outputFile: File) {
-    val logger = org.log4s.getLogger
-
-    def encode(model: AssemblyModel): Unit = {
-        logger.info("Writing listing file " + outputFile.getName)
-    }
+class AssemblyModel {
 
 }

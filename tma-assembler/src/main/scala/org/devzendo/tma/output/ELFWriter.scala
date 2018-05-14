@@ -14,15 +14,17 @@
  * limitations under the License.
  */
 
-package org.devzendo.tma
+package org.devzendo.tma.output
 
 import java.io.File
 
-class BinaryWriter(val outputFile: File) {
+import org.devzendo.tma.codegen.AssemblyModel
+
+class ELFWriter(val outputFile: File) {
     val logger = org.log4s.getLogger
 
     def encode(model: AssemblyModel): Unit = {
-        logger.info("Writing binary file " + outputFile.getName)
+        logger.info("Writing ELF file " + outputFile.getName)
     }
 
 }

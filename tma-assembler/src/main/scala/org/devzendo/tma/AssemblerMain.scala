@@ -20,6 +20,8 @@ import java.io.File
 import java.util
 
 import org.devzendo.commoncode.resource.ResourceLoader
+import org.devzendo.tma.codegen.AssemblyModel
+import org.devzendo.tma.output.{BinaryWriter, ELFWriter, ListingWriter}
 import org.devzendo.tma.parser.{AssemblyParser, AssemblyParserException, MacroManager}
 
 import scala.io.Source
