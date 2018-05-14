@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package org.devzendo.tma
+package org.devzendo.tma.parser
 
 import org.devzendo.tma.ast.AST.{MacroArgument, MacroName, MacroParameterName}
 import org.devzendo.tma.ast.MacroDefinition

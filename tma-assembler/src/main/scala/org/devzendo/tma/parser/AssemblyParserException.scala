@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package org.devzendo.tma
+package org.devzendo.tma.parser
 
 class AssemblyParserException(lineNumber: Int, warning: String) extends Exception(s"$lineNumber: $warning") {
 }

@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package org.devzendo.tma
+package org.devzendo.tma.parser
 
 import java.util.regex.Pattern
 
