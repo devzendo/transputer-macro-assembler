@@ -16,11 +16,7 @@
 
 package org.devzendo.tma.codegen
 
-trait CodeGenerator {
-    def createModel: AssemblyModel
-}
-
-class DefaultCodeGenerator(debugCodegen: Boolean) extends CodeGenerator {
+class CodeGenerator(debugCodegen: Boolean) {
     def createModel: AssemblyModel = {
         new AssemblyModel
     }

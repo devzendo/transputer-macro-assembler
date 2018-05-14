@@ -20,11 +20,8 @@ import java.io.File
 import java.util
 
 import org.devzendo.commoncode.resource.ResourceLoader
-import org.devzendo.tma.codegen.{AssemblyModel, CodeGenerator, DefaultCodeGenerator}
-import org.devzendo.tma.output.{BinaryWriter, ELFWriter, ListingWriter}
+import org.devzendo.tma.codegen.CodeGenerator
 import org.devzendo.tma.parser.{AssemblyParser, AssemblyParserException, MacroManager}
-
-import scala.io.Source
 
 class AssemblerMain(val argList: List[String]) {
     val logger = org.log4s.getLogger
@@ -109,7 +106,7 @@ class AssemblerMain(val argList: List[String]) {
     def start(): Unit = {
         val macroManager = new MacroManager(debugParser)
         val parser = new AssemblyParser(debugParser, macroManager)
-        val codegen = new DefaultCodeGenerator(debugCodegen)
+        val codegen = new CodeGenerator(debugCodegen)
         val controller = new AssemblerController(macroManager, parser, codegen)
         val asm = asmFile.get
 

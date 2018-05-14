@@ -16,19 +16,14 @@
 
 package org.devzendo.tma
 
-import org.devzendo.tma.codegen.{CodeGenerator, DefaultCodeGenerator}
+import org.devzendo.tma.codegen.CodeGenerator
 import org.devzendo.tma.parser.{AssemblyParser, AssemblyParserException, MacroManager}
-import org.junit.{Rule, Test}
 import org.junit.rules.ExpectedException
-import org.mockito.Mock
+import org.junit.{Rule, Test}
 import org.scalatest.MustMatchers
 import org.scalatest.junit.AssertionsForJUnit
-import org.scalatest.mock.MockitoSugar
 
-class TestAssemblerController extends AssertionsForJUnit with MustMatchers with MockitoSugar {
-
-    @Mock
-    val mockCodeGen = mock[CodeGenerator]
+class TestAssemblerController extends AssertionsForJUnit with MustMatchers {
 
     @Rule
     def thrown: ExpectedException = _thrown
@@ -36,7 +31,7 @@ class TestAssemblerController extends AssertionsForJUnit with MustMatchers with 
 
     val macroManager = new MacroManager(true)
     val parser = new AssemblyParser(true, macroManager)
-    val codegen = new DefaultCodeGenerator(true)
+    val codegen = new CodeGenerator(true)
     val controller = new AssemblerController(macroManager, parser, codegen)
 
     @Test
