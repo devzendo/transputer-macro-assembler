@@ -25,6 +25,8 @@ import org.scalatest.MustMatchers
 import org.scalatest.junit.AssertionsForJUnit
 import org.scalatest.mock.MockitoSugar
 
+import scala.collection.mutable
+
 class TestAssemblyParser extends AssertionsForJUnit with MustMatchers with MockitoSugar {
     val logger: Logger = org.log4s.getLogger
 
@@ -32,26 +34,32 @@ class TestAssemblyParser extends AssertionsForJUnit with MustMatchers with Mocki
     val parser = new AssemblyParser(true, macroManager)
     var lineNumber = 1
 
+    private val lines = mutable.ArrayBuffer[Line]()
+    def getCollectedLines: List[Line] = {
+        lines.toList
+    }
+
     @Rule
     def thrown: ExpectedException = _thrown
     var _thrown: ExpectedException = ExpectedException.none
 
-    private def parseLine(line: String) = {
+    private def parseLine(line: String): List[Line] = {
         val out = parser.parse(line, lineNumber)
         lineNumber = lineNumber + 1
+        lines ++= out
         out
     }
 
     private def parseLines(lines: List[String]): List[Line] = {
         lines.foreach(parseLine)
-        parser.getCollectedLines
+        getCollectedLines
     }
 
     private def parseSingleLine(line: String): Line = {
         parseLine(line)
-        val lines = parser.getCollectedLines
-        lines must have size 1
-        lines.head
+        val parsedLine = getCollectedLines
+        parsedLine must have size 1
+        parsedLine.head
     }
 
     private def singleLineParsesToStatement(line: String, expectedStatement: Statement): Unit = {
@@ -61,7 +69,7 @@ class TestAssemblyParser extends AssertionsForJUnit with MustMatchers with Mocki
 
     @Test
     def initial(): Unit = {
-        parser.getCollectedLines must be(empty)
+        lines must be(empty)
     }
 
     @Test
@@ -90,10 +98,10 @@ class TestAssemblyParser extends AssertionsForJUnit with MustMatchers with Mocki
     def incrementingLineNumbers(): Unit = {
         parseLine("  ; comment  ")
         parseLine("\t\t;;;another comment  ")
-        val lines = parser.getCollectedLines
-        lines must have size 2
-        lines.head must equal(Line(1, "; comment", None, None))
-        lines.tail.head must equal(Line(2, ";;;another comment", None, None))
+        val parsedLines = getCollectedLines
+        parsedLines must have size 2
+        parsedLines.head must equal(Line(1, "; comment", None, None))
+        parsedLines.tail.head must equal(Line(2, ";;;another comment", None, None))
     }
 
     @Test

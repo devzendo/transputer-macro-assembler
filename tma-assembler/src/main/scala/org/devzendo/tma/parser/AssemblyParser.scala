@@ -21,18 +21,12 @@ import org.devzendo.tma.ast._
 import org.devzendo.tma.codegen.AssemblyModel
 import org.log4s.Logger
 
-import scala.collection.mutable
 import scala.util.matching.Regex
 import scala.util.parsing.combinator._
 
 class AssemblyParser(val debugParser: Boolean, val macroManager: MacroManager) {
 
     val logger: Logger = org.log4s.getLogger
-
-    private val lines = mutable.ArrayBuffer[Line]()
-    def getCollectedLines: List[Line] = {
-        lines.toList
-    }
 
     @throws(classOf[AssemblyParserException])
     def parse(line: String, lineNumber: Int, inMacroExpansion: Boolean = false): List[Line] = {
@@ -54,7 +48,6 @@ class AssemblyParser(val debugParser: Boolean, val macroManager: MacroManager) {
                     if (debugParser) {
                         logger.debug("returning " + rLines)
                     }
-                    lines ++= rLines
                     rLines
 
                 case x =>
@@ -64,7 +57,6 @@ class AssemblyParser(val debugParser: Boolean, val macroManager: MacroManager) {
 
         } else {
             val line = Line(lineNumber, sanitizedInput, None, None)
-            lines += line
             List(line)
         }
     }
