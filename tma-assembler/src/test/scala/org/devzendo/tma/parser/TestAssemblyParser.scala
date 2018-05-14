@@ -23,11 +23,10 @@ import org.junit.{Rule, Test}
 import org.log4s.Logger
 import org.scalatest.MustMatchers
 import org.scalatest.junit.AssertionsForJUnit
-import org.scalatest.mock.MockitoSugar
 
 import scala.collection.mutable
 
-class TestAssemblyParser extends AssertionsForJUnit with MustMatchers with MockitoSugar {
+class TestAssemblyParser extends AssertionsForJUnit with MustMatchers {
     val logger: Logger = org.log4s.getLogger
 
     val macroManager = new MacroManager(true)
