@@ -20,7 +20,7 @@ import java.io.File
 import java.util
 
 import org.devzendo.commoncode.resource.ResourceLoader
-import org.devzendo.tma.codegen.AssemblyModel
+import org.devzendo.tma.codegen.{AssemblyModel, CodeGenerator, DefaultCodeGenerator}
 import org.devzendo.tma.output.{BinaryWriter, ELFWriter, ListingWriter}
 import org.devzendo.tma.parser.{AssemblyParser, AssemblyParserException, MacroManager}
 
@@ -37,6 +37,7 @@ class AssemblerMain(val argList: List[String]) {
     var binaryFile: Option[File] = None
     var listingFile: Option[File] = None
     var debugParser = false
+    var debugCodegen = false
 
     def existingFile(fileType: String, f: String): Option[File] = {
         val file = new File(f)
@@ -70,6 +71,7 @@ class AssemblerMain(val argList: List[String]) {
             case "-?" => { usage(); exit() }
             case "--version"  => { version(); exit() }
             case "-p" | "--parser"  => { debugParser = true }
+            case "-c" | "--codegen"  => { debugCodegen = true }
 
             case "-o" | "--output" => {
                 outputFile = expectFileName()
@@ -107,21 +109,32 @@ class AssemblerMain(val argList: List[String]) {
     def start(): Unit = {
         val macroManager = new MacroManager(debugParser)
         val parser = new AssemblyParser(debugParser, macroManager)
+        val codegen = new DefaultCodeGenerator(debugCodegen)
+        val controller = new AssemblerController(macroManager, parser, codegen)
         val asm = asmFile.get
-        logger.debug("Reading lines from " + asm.getName)
-        try {
-            Source.fromFile(asm).getLines().zipWithIndex.foreach((p: (String, Int)) => parser.parse(p._1, p._2))
-            logger.debug("Parsing complete")
-            val model: AssemblyModel = parser.createModel
 
-            outputFile.foreach(new ELFWriter(_).encode(model))
-            binaryFile.foreach(new BinaryWriter(_).encode(model))
-            listingFile.foreach(new ListingWriter(_).encode(model))
-        } catch {
-            // TODO catch this around each input line's parsing, and if any errors, don't go on to next stage.
-            case ape: AssemblyParserException =>
-                logger.error(ape.getMessage)
+        logger.debug("Start of parsing from from " + asm.getName)
+        val startParseTime = System.currentTimeMillis()
+        controller.parseFile(asm)
+        val endParseTime = System.currentTimeMillis()
+        logger.debug("Parsing complete in " + (endParseTime - startParseTime) + " ms")
+
+        val parserExceptions = controller.getParseExceptions()
+        if (parserExceptions.nonEmpty) {
+            logger.error("Parse errors:")
+            parserExceptions.foreach( (f: AssemblyParserException) => logger.error(f.getMessage))
+            errorQuit("Cannot continue")
         }
+
+        val startCodegenTime = System.currentTimeMillis()
+        controller.generateModel()
+        val endCodegenTime = System.currentTimeMillis()
+        logger.debug("Code generation complete in " + (endCodegenTime - startCodegenTime) + " ms")
+
+        val startOutputTime = System.currentTimeMillis()
+        controller.output(outputFile, binaryFile, listingFile)
+        val endOutputTime = System.currentTimeMillis()
+        logger.debug("Output complete in " + (endOutputTime - startOutputTime) + " ms")
     }
 
     // -----------------------------------------------------------------------------------------------------------------
@@ -141,6 +154,7 @@ class AssemblerMain(val argList: List[String]) {
         logger.info("-b|--binary output       - create a binary output file")
         logger.info("-l|--listing output.lst  - create a listing file")
         logger.info("-p|--parser              - enable parser diagnostics")
+        logger.info("-c|--codegen             - enable code generation diagnostics")
         logger.info("Logging output control options:")
         logger.info("--debug                  - set the log level to debug (default is info)")
         logger.info("--warn                   - set the log level to warning")

@@ -18,7 +18,6 @@ package org.devzendo.tma.parser
 
 import org.devzendo.tma.ast.AST.{Label, MacroArgument, MacroName, MacroParameterName}
 import org.devzendo.tma.ast._
-import org.devzendo.tma.codegen.AssemblyModel
 import org.log4s.Logger
 
 import scala.util.matching.Regex
@@ -64,10 +63,6 @@ class AssemblyParser(val debugParser: Boolean, val macroManager: MacroManager) {
     private def nullToEmpty(input: String): String = {
         if (input == null) "" else input
 
-    }
-
-    def createModel: AssemblyModel = {
-        new AssemblyModel
     }
 
     private trait LineParser extends JavaTokenParsers {

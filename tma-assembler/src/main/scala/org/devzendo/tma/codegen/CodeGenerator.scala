@@ -16,17 +16,14 @@
 
 package org.devzendo.tma.codegen
 
-import org.junit.Rule
-import org.junit.rules.ExpectedException
-import org.log4s.Logger
-import org.scalatest.MustMatchers
-import org.scalatest.junit.AssertionsForJUnit
+trait CodeGenerator {
+    def createModel: AssemblyModel
+}
 
-class TestCodeGenerator extends AssertionsForJUnit with MustMatchers {
-    val logger: Logger = org.log4s.getLogger
+class DefaultCodeGenerator(debugCodegen: Boolean) extends CodeGenerator {
+    def createModel: AssemblyModel = {
+        new AssemblyModel
+    }
 
-    @Rule
-    def thrown: ExpectedException = _thrown
-    var _thrown: ExpectedException = ExpectedException.none
 
 }
