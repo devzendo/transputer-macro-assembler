@@ -34,10 +34,7 @@ class TestAssemblyParser extends AssertionsForJUnit with MustMatchers with Mocki
     val parser = new AssemblyParser(true, macroManager)
     var lineNumber = 1
 
-    private val lines = mutable.ArrayBuffer[Line]()
-    def getCollectedLines: List[Line] = {
-        lines.toList
-    }
+    private val parsedLinesSoFar = mutable.ArrayBuffer[Line]()
 
     @Rule
     def thrown: ExpectedException = _thrown
@@ -46,20 +43,18 @@ class TestAssemblyParser extends AssertionsForJUnit with MustMatchers with Mocki
     private def parseLine(line: String): List[Line] = {
         val out = parser.parse(line, lineNumber)
         lineNumber = lineNumber + 1
-        lines ++= out
+        parsedLinesSoFar ++= out
         out
     }
 
-    private def parseLines(lines: List[String]): List[Line] = {
-        lines.foreach(parseLine)
-        getCollectedLines
+    private def parseLines(linesToParse: List[String]): List[Line] = {
+        linesToParse.flatMap(parseLine)
     }
 
     private def parseSingleLine(line: String): Line = {
         parseLine(line)
-        val parsedLine = getCollectedLines
-        parsedLine must have size 1
-        parsedLine.head
+        parsedLinesSoFar must have size 1
+        parsedLinesSoFar.head
     }
 
     private def singleLineParsesToStatement(line: String, expectedStatement: Statement): Unit = {
@@ -69,7 +64,7 @@ class TestAssemblyParser extends AssertionsForJUnit with MustMatchers with Mocki
 
     @Test
     def initial(): Unit = {
-        lines must be(empty)
+        parsedLinesSoFar must be(empty)
     }
 
     @Test
@@ -98,10 +93,9 @@ class TestAssemblyParser extends AssertionsForJUnit with MustMatchers with Mocki
     def incrementingLineNumbers(): Unit = {
         parseLine("  ; comment  ")
         parseLine("\t\t;;;another comment  ")
-        val parsedLines = getCollectedLines
-        parsedLines must have size 2
-        parsedLines.head must equal(Line(1, "; comment", None, None))
-        parsedLines.tail.head must equal(Line(2, ";;;another comment", None, None))
+        parsedLinesSoFar must have size 2
+        parsedLinesSoFar.head must equal(Line(1, "; comment", None, None))
+        parsedLinesSoFar.tail.head must equal(Line(2, ";;;another comment", None, None))
     }
 
     @Test
@@ -531,7 +525,8 @@ class TestAssemblyParser extends AssertionsForJUnit with MustMatchers with Mocki
             "\t_NAME\t= _NAME-((_LEN+3)*CELLL)\t;;new header on cell boundary"
         )
 
-        val lines = parseLines(textLines)
+        parseLines(textLines)
+        val lines = parsedLinesSoFar.toList
         lines must have size 4
 
         val expectedStartStatement = MacroStart(new MacroName("$CODE"), expectedMacroParameterNames)
