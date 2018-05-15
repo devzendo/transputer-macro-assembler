@@ -41,7 +41,7 @@ class TestCodeGenerator extends AssertionsForJUnit with MustMatchers {
         model.rows must be(25)
         model.columns must be(80)
         model.processor must be(None)
-        model.getDollar() must be(0)
+        model.getDollar must be(0)
         model.getVariable(dollar) must be (0)
     }
 
@@ -97,7 +97,7 @@ class TestCodeGenerator extends AssertionsForJUnit with MustMatchers {
     @Test
     def orgNumber(): Unit = {
         val model = generateFromStatement(Org(Number(42)))
-        model.getDollar() must be(42)
+        model.getDollar must be(42)
         model.getVariable(dollar) must be(42)
     }
 }

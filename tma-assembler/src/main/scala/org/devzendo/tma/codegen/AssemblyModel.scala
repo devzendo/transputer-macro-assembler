@@ -36,7 +36,7 @@ class AssemblyModel {
 
     variables.put(dollar, 0)
 
-    def getDollar(): Int = getVariable(dollar)
+    def getDollar: Int = getVariable(dollar)
     def setDollar(n: Int): Unit = {
         setVariable(dollar, n)
     }
@@ -60,12 +60,11 @@ class AssemblyModel {
     def evaluateExpression(expr: Expression): Either[List[String], Int] = {
         expr match {
             case Number(n) => Right(n)
-            case SymbolArg(name) => {
+            case SymbolArg(name) =>
                 variable(name) match {
                     case Some(n) => Right(n)
                     case None => Left(List(name))
                 }
-            }
         }
     }
 
