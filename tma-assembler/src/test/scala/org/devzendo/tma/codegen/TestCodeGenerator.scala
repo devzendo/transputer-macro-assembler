@@ -18,7 +18,7 @@ package org.devzendo.tma.codegen
 
 import org.devzendo.tma.ast.AST.Label
 import org.devzendo.tma.ast._
-import org.junit.{Rule, Test}
+import org.junit.{Ignore, Rule, Test}
 import org.junit.rules.ExpectedException
 import org.log4s.Logger
 import org.scalatest.MustMatchers
@@ -26,6 +26,7 @@ import org.scalatest.junit.AssertionsForJUnit
 
 class TestCodeGenerator extends AssertionsForJUnit with MustMatchers {
     val logger: Logger = org.log4s.getLogger
+    val dollar = "$"
 
     @Rule
     def thrown: ExpectedException = _thrown
@@ -40,6 +41,8 @@ class TestCodeGenerator extends AssertionsForJUnit with MustMatchers {
         model.rows must be(25)
         model.columns must be(80)
         model.processor must be(None)
+        model.getDollar() must be(0)
+        model.getVariable(dollar) must be (0)
     }
 
     private def generateFromStatement(stmt: Statement): AssemblyModel = {
@@ -79,5 +82,22 @@ class TestCodeGenerator extends AssertionsForJUnit with MustMatchers {
     def ignored(): Unit = {
         generateFromStatement(Ignored())
         // nothing to test, it just doesn't throw...
+    }
+
+    @Ignore
+    @Test
+    def unknownVariableRetrieval(): Unit = {
+        // TODO need to do Org, which doesn't permit forward references, first.
+
+        thrown.expect(classOf[AssemblyModelException])
+        thrown.expectMessage("1: Variable 'FNORD' has not been defined")
+        generateFromStatement(Org(SymbolArg("FNORD")))
+    }
+
+    @Test
+    def orgNumber(): Unit = {
+        val model = generateFromStatement(Org(Number(42)))
+        model.getDollar() must be(42)
+        model.getVariable(dollar) must be(42)
     }
 }

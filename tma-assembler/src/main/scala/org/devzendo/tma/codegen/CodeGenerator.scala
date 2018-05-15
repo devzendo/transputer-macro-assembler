@@ -20,6 +20,7 @@ import org.devzendo.tma.ast._
 import org.log4s.Logger
 
 class CodeGenerator(debugCodegen: Boolean) {
+
     val logger: Logger = org.log4s.getLogger
 
     private val model = new AssemblyModel
@@ -30,6 +31,7 @@ class CodeGenerator(debugCodegen: Boolean) {
         )
     }
 
+
     private def processStatement(stmt: Statement) = {
         stmt match {
             case Title(text) => model.title = text
@@ -38,8 +40,16 @@ class CodeGenerator(debugCodegen: Boolean) {
                 model.columns = columns
             }
             case Processor(name) => model.processor = Some(name)
+            case Org(expr) => processOrg(expr)
 
             case Ignored() => // Do nothing
+        }
+    }
+
+    private def processOrg(expr: Expression) = {
+        val either = model.evaluateExpression(expr)
+        either match {
+            case Right(n) => model.setDollar(n)
         }
     }
 
