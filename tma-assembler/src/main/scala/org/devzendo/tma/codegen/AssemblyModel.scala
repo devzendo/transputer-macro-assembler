@@ -21,4 +21,7 @@ package org.devzendo.tma.codegen
  */
 class AssemblyModel {
     var title = ""
+    var rows = 25
+    var columns = 80
+    var processor: Option[String] = None
 }

@@ -16,7 +16,7 @@
 
 package org.devzendo.tma.codegen
 
-import org.devzendo.tma.ast.{Line, Statement, Title}
+import org.devzendo.tma.ast._
 import org.log4s.Logger
 
 class CodeGenerator(debugCodegen: Boolean) {
@@ -33,6 +33,13 @@ class CodeGenerator(debugCodegen: Boolean) {
     private def processStatement(stmt: Statement) = {
         stmt match {
             case Title(text) => model.title = text
+            case Page(rows, columns) => {
+                model.rows = rows
+                model.columns = columns
+            }
+            case Processor(name) => model.processor = Some(name)
+
+            case Ignored() => // Do nothing
         }
     }
 

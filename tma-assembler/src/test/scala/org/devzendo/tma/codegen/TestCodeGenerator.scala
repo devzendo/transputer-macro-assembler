@@ -17,7 +17,7 @@
 package org.devzendo.tma.codegen
 
 import org.devzendo.tma.ast.AST.Label
-import org.devzendo.tma.ast.{Line, Statement, Title}
+import org.devzendo.tma.ast._
 import org.junit.{Rule, Test}
 import org.junit.rules.ExpectedException
 import org.log4s.Logger
@@ -37,6 +37,9 @@ class TestCodeGenerator extends AssertionsForJUnit with MustMatchers {
     def initialConditions(): Unit = {
         val model = codegen.createModel(List.empty)
         model.title must be("")
+        model.rows must be(25)
+        model.columns must be(80)
+        model.processor must be(None)
     }
 
     private def generateFromStatement(stmt: Statement): AssemblyModel = {
@@ -57,7 +60,24 @@ class TestCodeGenerator extends AssertionsForJUnit with MustMatchers {
 
     @Test
     def title(): Unit = {
-        val model = generateFromStatement(Title("custom title"))
-        model.title must be("custom title")
+        generateFromStatement(Title("custom title")).title must be("custom title")
+    }
+
+    @Test
+    def page(): Unit = {
+        val model = generateFromStatement(Page(60, 132))
+        model.rows must be(60)
+        model.columns must be(132)
+    }
+
+    @Test
+    def processor(): Unit = {
+        generateFromStatement(Processor("T800")).processor must be(Some("T800"))
+    }
+
+    @Test
+    def ignored(): Unit = {
+        generateFromStatement(Ignored())
+        // nothing to test, it just doesn't throw...
     }
 }
