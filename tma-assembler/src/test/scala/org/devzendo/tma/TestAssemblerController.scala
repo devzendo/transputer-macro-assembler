@@ -70,4 +70,13 @@ class TestAssemblerController extends AssertionsForJUnit with MustMatchers {
         controller.generateModel()
     }
 
+    @Test // indirect, avoids mocks, and the interface extraction they'd necessitate just to test.
+    def generate(): Unit = {
+        controller.parseTextLine(1, "title 'hello world'")
+        // not much of a program! tests that the parsed lines are passed to codegen though..
+        val model = controller.generateModel()
+        model.title must be("'hello world'")
+    }
+
+    // TODO model generation errors accumulate
 }

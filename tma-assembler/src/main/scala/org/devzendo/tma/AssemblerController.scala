@@ -62,19 +62,21 @@ class AssemblerController(macroManager: MacroManager, parser: AssemblyParser, co
 
     var model: AssemblyModel = new AssemblyModel()
 
-    def generateModel(): Unit = {
+    def generateModel(): AssemblyModel = {
         if (parsedLinesSoFar.isEmpty) {
             throw new RuntimeException("No parsed input")
         }
         if (parseErrors.nonEmpty) {
             throw new RuntimeException("Parse errors; cannot continue")
         }
-        // ...
+        model = codegen.createModel(parsedLinesSoFar.toList)
+        model
     }
 
     // OUTPUT PHASE ----------------------------------------------------------------------------------------------------
 
     def output(outputFile: Option[File], binaryFile: Option[File], listingFile: Option[File]): Unit = {
+        // TODO throw if model not generated...
         outputFile.foreach(new ELFWriter(_).encode(model))
         binaryFile.foreach(new BinaryWriter(_).encode(model))
         listingFile.foreach(new ListingWriter(_).encode(model))

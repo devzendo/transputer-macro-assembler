@@ -16,7 +16,9 @@
 
 package org.devzendo.tma.codegen
 
-import org.junit.Rule
+import org.devzendo.tma.ast.AST.Label
+import org.devzendo.tma.ast.{Line, Statement, Title}
+import org.junit.{Rule, Test}
 import org.junit.rules.ExpectedException
 import org.log4s.Logger
 import org.scalatest.MustMatchers
@@ -29,4 +31,33 @@ class TestCodeGenerator extends AssertionsForJUnit with MustMatchers {
     def thrown: ExpectedException = _thrown
     var _thrown: ExpectedException = ExpectedException.none
 
+    val codegen = new CodeGenerator(true)
+
+    @Test
+    def initialConditions(): Unit = {
+        val model = codegen.createModel(List.empty)
+        model.title must be("")
+    }
+
+    private def generateFromStatement(stmt: Statement): AssemblyModel = {
+        generateFromLine(Line(1, "", None, Some(stmt)))
+    }
+
+    private def generateFromLabelledStatement(label: Label, stmt: Statement): AssemblyModel = {
+        generateFromLine(Line(1, "", Some(label), Some(stmt)))
+    }
+
+    private def generateFromLine(line: Line): AssemblyModel = {
+        generateFromLines(List(line))
+    }
+
+    private def generateFromLines(lines: List[Line]): AssemblyModel = {
+        codegen.createModel(lines)
+    }
+
+    @Test
+    def title(): Unit = {
+        val model = generateFromStatement(Title("custom title"))
+        model.title must be("custom title")
+    }
 }

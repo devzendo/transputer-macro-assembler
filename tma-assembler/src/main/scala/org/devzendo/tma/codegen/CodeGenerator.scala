@@ -16,10 +16,30 @@
 
 package org.devzendo.tma.codegen
 
+import org.devzendo.tma.ast.{Line, Statement, Title}
+import org.log4s.Logger
+
 class CodeGenerator(debugCodegen: Boolean) {
-    def createModel: AssemblyModel = {
-        new AssemblyModel
+    val logger: Logger = org.log4s.getLogger
+
+    private val model = new AssemblyModel
+
+    def processLine(line: Line): Unit = {
+        line.stmt.foreach ( (stmt: Statement) =>
+            processStatement(stmt)
+        )
     }
 
+    private def processStatement(stmt: Statement) = {
+        stmt match {
+            case Title(text) => model.title = text
+        }
+    }
 
+    def createModel(lines: List[Line]): AssemblyModel = {
+        logger.debug("Creating model from " + lines.size + " line(s)")
+
+        lines.foreach( (l: Line) => processLine(l) )
+        model
+    }
 }

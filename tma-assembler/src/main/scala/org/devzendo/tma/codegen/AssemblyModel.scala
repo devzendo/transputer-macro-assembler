@@ -16,6 +16,9 @@
 
 package org.devzendo.tma.codegen
 
+/*
+ * A mutable structure holding the output of the CodeGenerator.
+ */
 class AssemblyModel {
-
+    var title = ""
 }
