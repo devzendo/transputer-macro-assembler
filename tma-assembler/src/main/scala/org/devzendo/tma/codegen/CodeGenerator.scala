@@ -63,11 +63,10 @@ class CodeGenerator(debugCodegen: Boolean) {
         val either = model.evaluateExpression(expr)
         // TODO throw on undefineds
         either match {
-            case Left(undefineds) =>
-            case Right(n) => {
+            case Left(undefineds) => throw new CodeGenerationException(lineNumber, "Undefined symbol(s) '" + undefineds.mkString(",") + "'")
+            case Right(n) =>
                 logger.debug("Org: " + n)
                 model.setDollar(n, lineNumber)
-            }
         }
     }
 
@@ -76,10 +75,9 @@ class CodeGenerator(debugCodegen: Boolean) {
         // TODO throw on undefineds
         either match {
             case Left(undefineds) =>
-            case Right(value) => {
+            case Right(value) =>
                 logger.debug("Constant " + name + " = " + value)
                 model.setConstant(name, value, lineNumber)
-            }
         }
     }
 

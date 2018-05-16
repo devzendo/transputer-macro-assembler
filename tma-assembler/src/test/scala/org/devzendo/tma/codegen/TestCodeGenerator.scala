@@ -18,8 +18,8 @@ package org.devzendo.tma.codegen
 
 import org.devzendo.tma.ast.AST.{Label, SymbolName}
 import org.devzendo.tma.ast._
-import org.junit.{Ignore, Rule, Test}
 import org.junit.rules.ExpectedException
+import org.junit.{Rule, Test}
 import org.log4s.Logger
 import org.scalatest.MustMatchers
 import org.scalatest.junit.AssertionsForJUnit
@@ -91,13 +91,10 @@ class TestCodeGenerator extends AssertionsForJUnit with MustMatchers {
         // nothing to test, it just doesn't throw...
     }
 
-    @Ignore
     @Test
-    def unknownVariableRetrieval(): Unit = {
-        // TODO need to do Org, which doesn't permit forward references, first.
-
+    def orgUnknownSymbolRetrieval(): Unit = {
         thrown.expect(classOf[CodeGenerationException])
-        thrown.expectMessage("1: Variable 'FNORD' has not been defined")
+        thrown.expectMessage("1: Undefined symbol(s) 'FNORD'") // could be Constant, Variable or Label - don't know which
         generateFromStatement(Org(SymbolArg("FNORD")))
     }
 
