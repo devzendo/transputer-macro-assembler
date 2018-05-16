@@ -63,6 +63,10 @@ class AssemblyModel {
             case Some(con) => throw new AssemblyModelException("Variable '" + name + "' cannot override existing constant; initially defined on line " + con.definitionLine)
             case None => // drop through
         }
+        labels.get(name) match {
+            case Some(label) => throw new AssemblyModelException("Variable '" + name + "' cannot override existing label; initially defined on line " + label.definitionLine)
+            case None => // drop through
+        }
         variables.put(name, Value(n, lineNumber))
         logger.debug("Variable " + name + " = " + n)
     }
@@ -82,11 +86,43 @@ class AssemblyModel {
             case Some(vr) => throw new AssemblyModelException("Constant '" + name + "' cannot override existing variable; last stored on line " + vr.definitionLine)
             case None => // drop through
         }
+        labels.get(name) match {
+            case Some(label) => throw new AssemblyModelException("Constant '" + name + "' cannot override existing label; initially defined on line " + label.definitionLine)
+            case None => // drop through
+        }
         constants.get(name) match {
             case Some(con) => throw new AssemblyModelException("Constant '" + name + "' cannot be redefined; initially defined on line " + con.definitionLine)
             case None => {
                 constants.put(name, Value(n, lineNumber))
                 logger.debug("Constant " + name + " = " + n)
+            }
+        }
+    }
+
+    def getLabel(name: String): Int = {
+        labels.get(name) match {
+            case Some(con) => con.value
+            case None => throw new AssemblyModelException("Label '" + name + "' has not been defined")
+        }
+    }
+    def label(name: String): Option[Int] = labels.get(name) match {
+        case Some(label) => Some(label.value)
+        case None => None
+    }
+    def setLabel(name: String, n: Int, lineNumber: Int): Unit = {
+        variables.get(name) match {
+            case Some(vr) => throw new AssemblyModelException("Label '" + name + "' cannot override existing variable; last stored on line " + vr.definitionLine)
+            case None => // drop through
+        }
+        constants.get(name) match {
+            case Some(con) => throw new AssemblyModelException("Label '" + name + "' cannot override existing constant; initially defined on line " + con.definitionLine)
+            case None => // drop through
+        }
+        labels.get(name) match {
+            case Some(label) => throw new AssemblyModelException("Label '" + name + "' cannot be redefined; initially defined on line " + label.definitionLine)
+            case None => {
+                labels.put(name, Value(n, lineNumber))
+                logger.debug("Label " + name + " = " + n)
             }
         }
     }

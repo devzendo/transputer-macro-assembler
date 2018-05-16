@@ -35,6 +35,8 @@ class TestAssemblyModel extends AssertionsForJUnit with MustMatchers {
     val model = new AssemblyModel
 
 
+    // Variables -------------------------------------------------------------------------------------------------------
+
     @Test
     def unknownVariableRetrieval(): Unit = {
         thrown.expect(classOf[AssemblyModelException])
@@ -62,8 +64,8 @@ class TestAssemblyModel extends AssertionsForJUnit with MustMatchers {
         model.setVariable(fnord, 69, 0)
         model.getVariable(fnord) must be(69)
         model.variable(fnord) must be(Some(69))
-        model.constant(fnord) must be(None) // it's a variable, not a constant
-        // TODO add a test for label lookup failure when they're added
+        model.constant(fnord) must be(None) // it's a variable, not a constant, nor a label
+        model.label(fnord) must be(None)
     }
 
     @Test
@@ -74,12 +76,39 @@ class TestAssemblyModel extends AssertionsForJUnit with MustMatchers {
     }
 
     @Test
+    def variableCannotBeDefinedOverExistingConstant(): Unit = {
+        thrown.expect(classOf[AssemblyModelException])
+        thrown.expectMessage("Variable '" + fnord + "' cannot override existing constant; initially defined on line 1")
+
+        model.setConstant(fnord, 69, 1)
+        model.setVariable(fnord, 17, 2)
+    }
+
+    @Test
+    def variableCannotBeDefinedOverExistingLabel(): Unit = {
+        thrown.expect(classOf[AssemblyModelException])
+        thrown.expectMessage("Variable '" + fnord + "' cannot override existing label; initially defined on line 1")
+
+        model.setLabel(fnord, 69, 1)
+        model.setVariable(fnord, 17, 2)
+    }
+
+    // Constants -------------------------------------------------------------------------------------------------------
+
+    @Test
+    def unknownConstantRetrieval(): Unit = {
+        thrown.expect(classOf[AssemblyModelException])
+        thrown.expectMessage("Constant '" + fnord + "' has not been defined")
+        model.getConstant(fnord)
+    }
+
+    @Test
     def constantCanBeSet(): Unit = {
         model.setConstant(fnord, 69, 1)
         model.getConstant(fnord) must be(69)
         model.constant(fnord) must be(Some(69))
-        model.variable(fnord) must be(None) // it's a constant, not a variable
-        // TODO add a test for label lookup failure when they're added
+        model.variable(fnord) must be(None) // it's a constant, not a variable, nor a label
+        model.label(fnord) must be(None)
     }
 
     @Test
@@ -101,16 +130,59 @@ class TestAssemblyModel extends AssertionsForJUnit with MustMatchers {
     }
 
     @Test
-    def variableCannotBeDefinedOverExistingConstant(): Unit = {
+    def constantCannotBeDefinedOverExistingLabel(): Unit = {
         thrown.expect(classOf[AssemblyModelException])
-        thrown.expectMessage("Variable '" + fnord + "' cannot override existing constant; initially defined on line 1")
+        thrown.expectMessage("Constant '" + fnord + "' cannot override existing label; initially defined on line 1")
 
-        model.setConstant(fnord, 69, 1)
-        model.setVariable(fnord, 17, 2)
+        model.setLabel(fnord, 69, 1)
+        model.setConstant(fnord, 17, 2)
     }
 
-    // TODO cannot have a label with the same name as an existing constant
-    // TODO cannot have a label with the same name as an existing variable
+    // Labels ----------------------------------------------------------------------------------------------------------
+    @Test
+    def unknownLabelRetrieval(): Unit = {
+        thrown.expect(classOf[AssemblyModelException])
+        thrown.expectMessage("Label '" + fnord + "' has not been defined")
+        model.getLabel(fnord)
+    }
+
+    @Test
+    def labelCanBeSet(): Unit = {
+        model.setLabel(fnord, 69, 1)
+        model.getLabel(fnord) must be(69)
+        model.label(fnord) must be(Some(69))
+        model.variable(fnord) must be(None) // it's a label, not a variable, nor a constant (semantically, though it is constant)
+        model.constant(fnord) must be(None)
+    }
+
+    @Test
+    def labelCannotBeRedefined(): Unit = {
+        thrown.expect(classOf[AssemblyModelException])
+        thrown.expectMessage("Label '" + fnord + "' cannot be redefined; initially defined on line 1")
+
+        model.setLabel(fnord, 69, 1)
+        model.setLabel(fnord, 17, 2)
+    }
+
+    @Test
+    def labelCannotBeDefinedOverExistingVariable(): Unit = {
+        thrown.expect(classOf[AssemblyModelException])
+        thrown.expectMessage("Label '" + fnord + "' cannot override existing variable; last stored on line 1")
+
+        model.setVariable(fnord, 17, 1)
+        model.setLabel(fnord, 69, 2)
+    }
+
+    @Test
+    def labelCannotBeDefinedOverExistingConstant(): Unit = {
+        thrown.expect(classOf[AssemblyModelException])
+        thrown.expectMessage("Label '" + fnord + "' cannot override existing constant; initially defined on line 1")
+
+        model.setConstant(fnord, 17, 1)
+        model.setLabel(fnord, 69, 2)
+    }
+
+    // Evaluate Expression ---------------------------------------------------------------------------------------------
 
     @Test
     def evalNumber(): Unit = {
