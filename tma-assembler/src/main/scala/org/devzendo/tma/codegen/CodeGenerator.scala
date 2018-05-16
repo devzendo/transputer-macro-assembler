@@ -16,7 +16,7 @@
 
 package org.devzendo.tma.codegen
 
-import org.devzendo.tma.ast.AST.SymbolName
+import org.devzendo.tma.ast.AST.{Label, SymbolName}
 import org.devzendo.tma.ast._
 import org.log4s.Logger
 
@@ -27,14 +27,24 @@ class CodeGenerator(debugCodegen: Boolean) {
 
     def processLine(line: Line): Unit = {
         // TODO what about collecting exceptions?
-        // TODO what about labels?
         try {
-            line.stmt.foreach ( (stmt: Statement) =>
-                processStatement(line.number, stmt)
-            )
+            createLabel(line)
+            processLineStatement(line)
         } catch {
             case ame: AssemblyModelException => throw new CodeGenerationException(line.number, ame.getMessage)
         }
+    }
+
+    private def createLabel(line: Line) = {
+        line.label.foreach((label: Label) =>
+            model.setLabel(label, model.getDollar, line.number)
+        )
+    }
+
+    private def processLineStatement(line: Line) = {
+        line.stmt.foreach((stmt: Statement) =>
+            processStatement(line.number, stmt)
+        )
     }
 
     private def processStatement(lineNumber: Int, stmt: Statement) = {

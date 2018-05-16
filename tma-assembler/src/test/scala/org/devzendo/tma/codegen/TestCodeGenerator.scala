@@ -137,6 +137,15 @@ class TestCodeGenerator extends AssertionsForJUnit with MustMatchers {
     }
 
     @Test
+    def labelAssignmentFromDollar(): Unit = {
+        val model = generateFromLines(List(
+            Line(1, "irrelevant", None, Some(Org(Number(42)))),
+            Line(2, "irrelevant", Some(new Label(fnord)), None))
+        )
+        model.getLabel(fnord) must be(42)
+    }
+
+    @Test
     def exceptionsContainTheirLineNumber(): Unit = {
         // Need to detect that model exceptions are rethrown with their line number by the code generator.
         // Constant reassignment throws an exception, in the model (and this is tested in the model's tests); this is
