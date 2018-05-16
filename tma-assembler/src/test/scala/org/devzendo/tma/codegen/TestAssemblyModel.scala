@@ -202,7 +202,7 @@ class TestAssemblyModel extends AssertionsForJUnit with MustMatchers {
 
     @Test
     def evalSymbolArgOfUndefinedVariable(): Unit = {
-        model.evaluateExpression(SymbolArg(fnord)) must be(Left(List(fnord)))
+        model.evaluateExpression(SymbolArg(fnord)) must be(Left(Set(fnord)))
     }
 
     @Test

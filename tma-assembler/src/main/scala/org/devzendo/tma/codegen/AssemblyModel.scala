@@ -128,11 +128,11 @@ class AssemblyModel {
     }
 
     /**
-      * Evaluate an expression, returning Left(List(undefined variable names)) or Right(value)
+      * Evaluate an expression, returning Left(Set(undefined variable names)) or Right(value)
       * @param expr some expression, of any complexity
       * @return undefined variable names, or the evaluated value.
       */
-    def evaluateExpression(expr: Expression): Either[List[String], Int] = {
+    def evaluateExpression(expr: Expression): Either[Set[String], Int] = {
         logger.debug("Evaluating " + expr)
         expr match {
             case Number(n) => Right(n)
@@ -143,7 +143,7 @@ class AssemblyModel {
                     case None => {
                         constant(name) match {
                             case Some(n) => Right(n)
-                            case None => Left(List(name))
+                            case None => Left(Set(name))
                         }
                     }
                 }

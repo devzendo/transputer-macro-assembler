@@ -157,6 +157,4 @@ class TestCodeGenerator extends AssertionsForJUnit with MustMatchers {
             ConstantAssignment(new SymbolName(fnord), Number(12))
         ))
     }
-
-    // TODO multiple errors are stored
 }
