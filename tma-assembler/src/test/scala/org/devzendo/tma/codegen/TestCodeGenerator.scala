@@ -16,7 +16,7 @@
 
 package org.devzendo.tma.codegen
 
-import org.devzendo.tma.ast.AST.Label
+import org.devzendo.tma.ast.AST.{Label, SymbolName}
 import org.devzendo.tma.ast._
 import org.junit.{Ignore, Rule, Test}
 import org.junit.rules.ExpectedException
@@ -27,6 +27,8 @@ import org.scalatest.junit.AssertionsForJUnit
 class TestCodeGenerator extends AssertionsForJUnit with MustMatchers {
     val logger: Logger = org.log4s.getLogger
     val dollar = "$"
+    val fnord = "FNORD"
+
 
     @Rule
     def thrown: ExpectedException = _thrown
@@ -43,6 +45,11 @@ class TestCodeGenerator extends AssertionsForJUnit with MustMatchers {
         model.processor must be(None)
         model.getDollar must be(0)
         model.getVariable(dollar) must be (0)
+    }
+
+    private def generateFromStatements(stmts: List[Statement]): AssemblyModel = {
+        val stmts2Lines = stmts.zipWithIndex.map((p: (Statement, Int)) => Line(p._2 + 1, p._1.toString, None, Some(p._1)))
+        generateFromLines(stmts2Lines)
     }
 
     private def generateFromStatement(stmt: Statement): AssemblyModel = {
@@ -89,7 +96,7 @@ class TestCodeGenerator extends AssertionsForJUnit with MustMatchers {
     def unknownVariableRetrieval(): Unit = {
         // TODO need to do Org, which doesn't permit forward references, first.
 
-        thrown.expect(classOf[AssemblyModelException])
+        thrown.expect(classOf[CodeGenerationException])
         thrown.expectMessage("1: Variable 'FNORD' has not been defined")
         generateFromStatement(Org(SymbolArg("FNORD")))
     }
@@ -100,4 +107,50 @@ class TestCodeGenerator extends AssertionsForJUnit with MustMatchers {
         model.getDollar must be(42)
         model.getVariable(dollar) must be(42)
     }
+
+    @Test
+    def orgDefinedVariable(): Unit = {
+        val model = generateFromStatements(List(
+            ConstantAssignment(new SymbolName(fnord), Number(42)),
+            Org(SymbolArg(fnord))
+        ))
+        model.getDollar must be(42)
+        model.getVariable(dollar) must be(42)
+    }
+
+    @Test
+    def constantAssignment(): Unit = {
+        val model = generateFromStatement(ConstantAssignment(new SymbolName(fnord), Number(42)))
+        model.getConstant(fnord) must be(42)
+    }
+
+    @Test
+    def variableAssignment(): Unit = {
+        val model = generateFromStatement(VariableAssignment(new SymbolName(fnord), Number(42)))
+        model.getVariable(fnord) must be(42)
+    }
+
+    @Test
+    def variableReassignmentAllowed(): Unit = {
+        val model = generateFromStatements(List(
+            VariableAssignment(new SymbolName(fnord), Number(42)),
+            VariableAssignment(new SymbolName(fnord), Number(12))
+        ))
+        model.getVariable(fnord) must be(12)
+    }
+
+    @Test
+    def exceptionsContainTheirLineNumber(): Unit = {
+        // Need to detect that model exceptions are rethrown with their line number by the code generator.
+        // Constant reassignment throws an exception, in the model (and this is tested in the model's tests); this is
+        // rethrown including line number by the code generator.
+        thrown.expect(classOf[CodeGenerationException])
+        thrown.expectMessage("2: Constant 'FNORD' cannot be redefined; initially defined on line 1")
+        val model = generateFromStatements(List(
+            ConstantAssignment(new SymbolName(fnord), Number(42)),
+            ConstantAssignment(new SymbolName(fnord), Number(12))
+        ))
+    }
+
+    // TODO multiple errors are stored
 }

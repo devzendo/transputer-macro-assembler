@@ -50,19 +50,67 @@ class TestAssemblyModel extends AssertionsForJUnit with MustMatchers {
 
     @Test
     def dollarCanBeSet(): Unit = {
-        model.setDollar(50)
+        model.setDollar(50, 0)
         model.getDollar must be(50)
-        model.setVariable(dollar, 23)
+        model.setVariable(dollar, 23, 0)
         model.getDollar must be(23)
         model.getVariable(dollar) must be(23)
     }
 
     @Test
     def variableCanBeSet(): Unit = {
-        model.setVariable(fnord, 69)
+        model.setVariable(fnord, 69, 0)
+        model.getVariable(fnord) must be(69)
+        model.variable(fnord) must be(Some(69))
+        model.constant(fnord) must be(None) // it's a variable, not a constant
+        // TODO add a test for label lookup failure when they're added
+    }
+
+    @Test
+    def variableCanBeRedefined(): Unit = {
+        model.setVariable(fnord, 32, 0)
+        model.setVariable(fnord, 69, 0)
         model.getVariable(fnord) must be(69)
     }
 
+    @Test
+    def constantCanBeSet(): Unit = {
+        model.setConstant(fnord, 69, 1)
+        model.getConstant(fnord) must be(69)
+        model.constant(fnord) must be(Some(69))
+        model.variable(fnord) must be(None) // it's a constant, not a variable
+        // TODO add a test for label lookup failure when they're added
+    }
+
+    @Test
+    def constantCannotBeRedefined(): Unit = {
+        thrown.expect(classOf[AssemblyModelException])
+        thrown.expectMessage("Constant '" + fnord + "' cannot be redefined; initially defined on line 1")
+
+        model.setConstant(fnord, 69, 1)
+        model.setConstant(fnord, 17, 2)
+    }
+
+    @Test
+    def constantCannotBeDefinedOverExistingVariable(): Unit = {
+        thrown.expect(classOf[AssemblyModelException])
+        thrown.expectMessage("Constant '" + fnord + "' cannot override existing variable; last stored on line 1")
+
+        model.setVariable(fnord, 69, 1)
+        model.setConstant(fnord, 17, 2)
+    }
+
+    @Test
+    def variableCannotBeDefinedOverExistingConstant(): Unit = {
+        thrown.expect(classOf[AssemblyModelException])
+        thrown.expectMessage("Variable '" + fnord + "' cannot override existing constant; initially defined on line 1")
+
+        model.setConstant(fnord, 69, 1)
+        model.setVariable(fnord, 17, 2)
+    }
+
+    // TODO cannot have a label with the same name as an existing constant
+    // TODO cannot have a label with the same name as an existing variable
 
     @Test
     def evalNumber(): Unit = {
@@ -71,7 +119,7 @@ class TestAssemblyModel extends AssertionsForJUnit with MustMatchers {
 
     @Test
     def evalSymbolArgOfExistingVariable(): Unit = {
-        model.setVariable(fnord, 45)
+        model.setVariable(fnord, 45, 0)
         model.evaluateExpression(SymbolArg(fnord)) must be(Right(45))
     }
 
@@ -83,6 +131,12 @@ class TestAssemblyModel extends AssertionsForJUnit with MustMatchers {
     @Test
     def evalSymbolArgOfUndefinedVariable(): Unit = {
         model.evaluateExpression(SymbolArg(fnord)) must be(Left(List(fnord)))
+    }
+
+    @Test
+    def evalSymbolArgOfExistingConstant(): Unit = {
+        model.setConstant(fnord, 45, 1)
+        model.evaluateExpression(SymbolArg(fnord)) must be(Right(45))
     }
 
 }

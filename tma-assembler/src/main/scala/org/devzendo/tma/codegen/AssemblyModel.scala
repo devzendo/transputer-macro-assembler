@@ -17,6 +17,7 @@
 package org.devzendo.tma.codegen
 
 import org.devzendo.tma.ast.{Expression, Number, SymbolArg}
+import org.log4s.Logger
 
 import scala.collection.mutable
 
@@ -24,6 +25,7 @@ import scala.collection.mutable
  * A mutable structure holding the output of the CodeGenerator.
  */
 class AssemblyModel {
+    val logger: Logger = org.log4s.getLogger
 
     private val dollar = "$"
 
@@ -32,24 +34,61 @@ class AssemblyModel {
     var columns = 80
     var processor: Option[String] = None
 
-    private val variables = mutable.HashMap[String, Int]()
+    case class Value(value: Int, definitionLine: Int)
 
-    variables.put(dollar, 0)
+    private val variables = mutable.HashMap[String, Value]()
+    private val constants = mutable.HashMap[String, Value]()
+    private val labels = mutable.HashMap[String, Value]()
+
+    setVariable(dollar, 0, 0)
 
     def getDollar: Int = getVariable(dollar)
-    def setDollar(n: Int): Unit = {
-        setVariable(dollar, n)
+    def setDollar(n: Int, lineNumber: Int): Unit = {
+        setVariable(dollar, n, lineNumber)
     }
 
     def getVariable(name: String): Int = {
         variables.get(name) match {
-            case Some(i) => i
+            case Some(vr) => vr.value
             case None => throw new AssemblyModelException("Variable '" + name + "' has not been defined")
         }
     }
-    def variable(name: String): Option[Int] = variables.get(name)
-    def setVariable(name: String, n: Int): Unit = {
-        variables.put(name, n)
+    def variable(name: String): Option[Int] = variables.get(name) match {
+        case Some(con) => Some(con.value)
+        case None => None
+    }
+
+    def setVariable(name: String, n: Int, lineNumber: Int): Unit = {
+        constants.get(name) match {
+            case Some(con) => throw new AssemblyModelException("Variable '" + name + "' cannot override existing constant; initially defined on line " + con.definitionLine)
+            case None => // drop through
+        }
+        variables.put(name, Value(n, lineNumber))
+        logger.debug("Variable " + name + " = " + n)
+    }
+
+    def getConstant(name: String): Int = {
+        constants.get(name) match {
+            case Some(con) => con.value
+            case None => throw new AssemblyModelException("Constant '" + name + "' has not been defined")
+        }
+    }
+    def constant(name: String): Option[Int] = constants.get(name) match {
+        case Some(con) => Some(con.value)
+        case None => None
+    }
+    def setConstant(name: String, n: Int, lineNumber: Int): Unit = {
+        variables.get(name) match {
+            case Some(vr) => throw new AssemblyModelException("Constant '" + name + "' cannot override existing variable; last stored on line " + vr.definitionLine)
+            case None => // drop through
+        }
+        constants.get(name) match {
+            case Some(con) => throw new AssemblyModelException("Constant '" + name + "' cannot be redefined; initially defined on line " + con.definitionLine)
+            case None => {
+                constants.put(name, Value(n, lineNumber))
+                logger.debug("Constant " + name + " = " + n)
+            }
+        }
     }
 
     /**
@@ -58,12 +97,19 @@ class AssemblyModel {
       * @return undefined variable names, or the evaluated value.
       */
     def evaluateExpression(expr: Expression): Either[List[String], Int] = {
+        logger.debug("Evaluating " + expr)
         expr match {
             case Number(n) => Right(n)
+
             case SymbolArg(name) =>
                 variable(name) match {
                     case Some(n) => Right(n)
-                    case None => Left(List(name))
+                    case None => {
+                        constant(name) match {
+                            case Some(n) => Right(n)
+                            case None => Left(List(name))
+                        }
+                    }
                 }
         }
     }
