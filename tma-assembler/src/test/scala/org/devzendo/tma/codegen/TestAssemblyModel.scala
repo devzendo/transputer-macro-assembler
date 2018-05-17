@@ -251,6 +251,51 @@ class TestAssemblyModel extends AssertionsForJUnit with MustMatchers {
         model.evaluateExpression(Unary(Not(), Number(-3))) must be(Right(2))
     }
 
+    @Test
+    def evalBinaryAdd(): Unit = {
+        model.evaluateExpression(Binary(Add(), Number(3), Number(4))) must be(Right(7))
+    }
+
+    @Test
+    def evalBinarySub(): Unit = {
+        model.evaluateExpression(Binary(Sub(), Number(8), Number(3))) must be(Right(5))
+    }
+
+    @Test
+    def evalBinaryMult(): Unit = {
+        model.evaluateExpression(Binary(Mult(), Number(8), Number(3))) must be(Right(24))
+    }
+
+    @Test
+    def evalBinaryDiv(): Unit = {
+        model.evaluateExpression(Binary(Div(), Number(8), Number(2))) must be(Right(4))
+    }
+
+    @Test
+    def evalBinaryShiftLeft(): Unit = {
+        model.evaluateExpression(Binary(ShiftLeft(), Number(8), Number(2))) must be(Right(32))
+    }
+
+    @Test
+    def evalBinaryShiftRight(): Unit = {
+        model.evaluateExpression(Binary(ShiftRight(), Number(16), Number(2))) must be(Right(4))
+    }
+
+    @Test
+    def evalBinaryAnd(): Unit = {
+        model.evaluateExpression(Binary(And(), Number(6), Number(3))) must be(Right(2))
+    }
+
+    @Test
+    def evalBinaryOr(): Unit = {
+        model.evaluateExpression(Binary(Or(), Number(6), Number(3))) must be(Right(7))
+    }
+
+    @Test
+    def evalBinaryXor(): Unit = {
+        model.evaluateExpression(Binary(Xor(), Number(7), Number(3))) must be(Right(4))
+    }
+
     // TODO db dup - should ensure that the repeat value is a number or constant - need to know how big the storage
     // will be
 }
