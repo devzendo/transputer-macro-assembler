@@ -220,4 +220,10 @@ class TestAssemblyModel extends AssertionsForJUnit with MustMatchers {
         model.evaluateExpression(SymbolArg(fnord)) must be(Right(45))
     }
 
+    @Test
+    def evalSymbolArgOfExistingLabel(): Unit = {
+        model.setLabel(fnord, 45, 1)
+        model.evaluateExpression(SymbolArg(fnord)) must be(Right(45))
+    }
+
 }

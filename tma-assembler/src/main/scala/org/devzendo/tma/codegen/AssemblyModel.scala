@@ -156,19 +156,15 @@ class AssemblyModel {
 
     // precondition: name is defined as a variable/constant/label
     private def lookupValue(name: SymbolName): Int = {
-        // HMMM perhaps there's an easier way than this...
-        variable(name) match {
-            case Some(n) => n
-            case None =>
-                constant(name) match {
-                    case Some(n) => n
-                    case None =>
-                        label(name) match {
-                            case Some(n) => n
-                            case None => throw new IllegalStateException("Precondition violation: " + name + " is supposed to be present as a variable/constant/label")
-                        }
-                }
+        def getFallback(map: mutable.HashMap[String, Value], key: String)(fallback: => Int): Int = {
+            map.get(key) match {
+                case Some(x) => x.value
+                case None => fallback
+            }
         }
+        getFallback(variables, name) (getFallback(constants, name) (getFallback(labels, name) ({
+            throw new IllegalStateException("Precondition violation: " + name + " is supposed to be present as a variable/constant/label")
+        })))
     }
 
     private def definedValue(name: SymbolName): Boolean = {
