@@ -236,6 +236,21 @@ class TestAssemblyModel extends AssertionsForJUnit with MustMatchers {
         model.evaluateExpression(Characters(fnord))
     }
 
+    @Test
+    def evalUnaryNegation(): Unit = {
+        model.evaluateExpression(Unary(Negate(), Number(3))) must be(Right(-3))
+        model.evaluateExpression(Unary(Negate(), Number(0))) must be(Right(0))
+        model.evaluateExpression(Unary(Negate(), Number(-3))) must be(Right(3))
+    }
+
+    @Test
+    def evalUnaryNot(): Unit = {
+        // Not is not actually used in eForth!
+        model.evaluateExpression(Unary(Not(), Number(1))) must be(Right(-2))
+        model.evaluateExpression(Unary(Not(), Number(0))) must be(Right(-1))
+        model.evaluateExpression(Unary(Not(), Number(-3))) must be(Right(2))
+    }
+
     // TODO db dup - should ensure that the repeat value is a number or constant - need to know how big the storage
     // will be
 }

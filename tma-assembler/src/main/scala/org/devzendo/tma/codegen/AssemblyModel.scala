@@ -151,6 +151,7 @@ class AssemblyModel {
             case SymbolArg(name) => lookupValue(name)
             case Number(n) => n
             case Characters(_) => throw new AssemblyModelException("Cannot evaluate '" + expr + "' as an Int")
+            case Unary(op, expr) => evaluateUnary(op, expr)
         }
     }
 
@@ -178,6 +179,19 @@ class AssemblyModel {
             case Characters(_) => Set.empty
             case Unary(_, uExpr) => findUndefineds(uExpr)
             case Binary(_, lExpr, rExpr) => findUndefineds(lExpr) ++ findUndefineds(rExpr)
+        }
+    }
+
+    // precondition: expr has no undefineds
+    private def evaluateUnary(op: Operator, expr: Expression): Int = {
+        evaluateExpression(expr) match {
+            case Right(value) =>
+                op match {
+                    case Negate() => value * -1
+                    case Not() => ~ value
+                    case _ => throw new IllegalStateException("Parser has passed an operation of " + op + " to a Unary")
+                }
+            case Left(_) => throw new IllegalStateException("Precondition violation: " + expr + " contains undefined symbols")
         }
     }
 }
