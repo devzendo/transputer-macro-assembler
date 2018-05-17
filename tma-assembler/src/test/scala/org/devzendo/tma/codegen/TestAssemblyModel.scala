@@ -226,4 +226,16 @@ class TestAssemblyModel extends AssertionsForJUnit with MustMatchers {
         model.evaluateExpression(SymbolArg(fnord)) must be(Right(45))
     }
 
+    @Test
+    def evalCharactersFails(): Unit = {
+        // For db/dw/dd, we'll have to take care of character expressions as they occur in the parameter list -
+        // evaluateExpression only returns an Int.
+
+        thrown.expect(classOf[AssemblyModelException])
+        thrown.expectMessage("Cannot evaluate 'Characters(FNORD)' as an Int")
+        model.evaluateExpression(Characters(fnord))
+    }
+
+    // TODO db dup - should ensure that the repeat value is a number or constant - need to know how big the storage
+    // will be
 }

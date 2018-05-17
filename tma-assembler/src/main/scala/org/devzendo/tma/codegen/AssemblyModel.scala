@@ -150,7 +150,7 @@ class AssemblyModel {
         expr match {
             case SymbolArg(name) => lookupValue(name)
             case Number(n) => n
-
+            case Characters(_) => throw new AssemblyModelException("Cannot evaluate '" + expr + "' as an Int")
         }
     }
 
