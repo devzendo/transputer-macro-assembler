@@ -70,6 +70,9 @@ class CodeGenerator(debugCodegen: Boolean) {
     }
 
     private def processOrg(lineNumber: Int, expr: Expression) = {
+        if (expressionContainsCharacters(expr)) {
+            throw new CodeGenerationException(lineNumber, "Origin cannot be set to a Character expression '" + expr + "'")
+        }
         val either = model.evaluateExpression(expr)
         // TODO throw on undefineds
         either match {
@@ -81,6 +84,9 @@ class CodeGenerator(debugCodegen: Boolean) {
     }
 
     private def processConstantAssignment(lineNumber: Int, name: SymbolName, expr: Expression) = {
+        if (expressionContainsCharacters(expr)) {
+            throw new CodeGenerationException(lineNumber, "Constant cannot be set to a Character expression '" + expr + "'")
+        }
         val either = model.evaluateExpression(expr)
         // TODO throw on undefineds
         either match {
@@ -92,6 +98,9 @@ class CodeGenerator(debugCodegen: Boolean) {
     }
 
     private def processVariableAssignment(lineNumber: Int, name: SymbolName, expr: Expression) = {
+        if (expressionContainsCharacters(expr)) {
+            throw new CodeGenerationException(lineNumber, "Variable cannot be set to a Character expression '" + expr + "'")
+        }
         val either = model.evaluateExpression(expr)
         // TODO throw on undefineds
         either match {
@@ -100,6 +109,16 @@ class CodeGenerator(debugCodegen: Boolean) {
                 logger.debug("Variable " + name + " = " + value)
                 model.setVariable(name, value, lineNumber)
             }
+        }
+    }
+
+    private def expressionContainsCharacters(expr: Expression): Boolean = {
+        expr match {
+            case SymbolArg(name) => false
+            case Number(_) => false
+            case Characters(_) => true
+            case Unary(_, uExpr) => expressionContainsCharacters(uExpr)
+            case Binary(_, lExpr, rExpr) => expressionContainsCharacters(lExpr) || expressionContainsCharacters(rExpr)
         }
     }
 

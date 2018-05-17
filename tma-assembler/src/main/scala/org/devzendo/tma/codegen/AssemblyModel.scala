@@ -148,9 +148,9 @@ class AssemblyModel {
     // precondition: all SymbolArgs here are defined as a variable/constant/label
     private def evaluateExpressionWithNoUndefineds(expr: Expression): Int = {
         expr match {
+            case SymbolArg(name) => lookupValue(name)
             case Number(n) => n
 
-            case SymbolArg(name) => lookupValue(name)
         }
     }
 

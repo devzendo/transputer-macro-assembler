@@ -99,6 +99,14 @@ class TestCodeGenerator extends AssertionsForJUnit with MustMatchers {
     }
 
     @Test
+    def orgCharacterExpressionFails(): Unit = {
+        // Parser allows any expression, which could be characters. Disallow it at code gen.
+        thrown.expect(classOf[CodeGenerationException])
+        thrown.expectMessage("1: Origin cannot be set to a Character expression 'Characters(FNORD)'")
+        generateFromStatement(Org(Characters("FNORD")))
+    }
+
+    @Test
     def orgNumber(): Unit = {
         val model = generateFromStatement(Org(Number(42)))
         model.getDollar must be(42)
@@ -122,9 +130,25 @@ class TestCodeGenerator extends AssertionsForJUnit with MustMatchers {
     }
 
     @Test
+    def constantAssignmentToCharacterExpressionFails(): Unit = {
+        // Parser allows any expression, which could be characters. Disallow it at code gen.
+        thrown.expect(classOf[CodeGenerationException])
+        thrown.expectMessage("1: Constant cannot be set to a Character expression 'Characters(FNORD)'")
+        generateFromStatement(ConstantAssignment(new SymbolName(fnord),Characters("FNORD")))
+    }
+
+    @Test
     def variableAssignment(): Unit = {
         val model = generateFromStatement(VariableAssignment(new SymbolName(fnord), Number(42)))
         model.getVariable(fnord) must be(42)
+    }
+
+    @Test
+    def variableAssignmentToCharacterExpressionFails(): Unit = {
+        // Parser allows any expression, which could be characters. Disallow it at code gen.
+        thrown.expect(classOf[CodeGenerationException])
+        thrown.expectMessage("1: Variable cannot be set to a Character expression 'Characters(FNORD)'")
+        generateFromStatement(VariableAssignment(new SymbolName(fnord),Characters("FNORD")))
     }
 
     @Test
