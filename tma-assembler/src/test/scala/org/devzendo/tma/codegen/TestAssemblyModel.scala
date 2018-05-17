@@ -16,7 +16,7 @@
 
 package org.devzendo.tma.codegen
 
-import org.devzendo.tma.ast.{Number, SymbolArg}
+import org.devzendo.tma.ast._
 import org.junit.{Ignore, Rule, Test}
 import org.junit.rules.ExpectedException
 import org.log4s.Logger
@@ -203,6 +203,15 @@ class TestAssemblyModel extends AssertionsForJUnit with MustMatchers {
     @Test
     def evalSymbolArgOfUndefinedVariable(): Unit = {
         model.evaluateExpression(SymbolArg(fnord)) must be(Left(Set(fnord)))
+    }
+
+    @Test
+    def evalMultipleUndefinedVariable(): Unit = {
+        // A completely nonsense expression that could not be evaluated, but that contains all types of Expression
+        // subclass.
+        val expr = Binary(Add(), Binary(Add(), Unary(Negate(), SymbolArg(fnord)), SymbolArg("waaah")), Binary(Add(),
+            SymbolArg("foo"), Binary(Add(), Characters("xxx"), Binary(Add(), Number(5), SymbolArg("bar")))))
+        model.evaluateExpression(expr) must be(Left(Set("waaah", fnord, "bar", "foo")))
     }
 
     @Test

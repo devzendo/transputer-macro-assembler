@@ -16,7 +16,8 @@
 
 package org.devzendo.tma.codegen
 
-import org.devzendo.tma.ast.{Expression, Number, SymbolArg}
+import org.devzendo.tma.ast.AST.SymbolName
+import org.devzendo.tma.ast._
 import org.log4s.Logger
 
 import scala.collection.mutable
@@ -127,27 +128,60 @@ class AssemblyModel {
         }
     }
 
+
     /**
       * Evaluate an expression, returning Left(Set(undefined variable names)) or Right(value)
+      *
       * @param expr some expression, of any complexity
       * @return undefined variable names, or the evaluated value.
       */
     def evaluateExpression(expr: Expression): Either[Set[String], Int] = {
         logger.debug("Evaluating " + expr)
-        expr match {
-            case Number(n) => Right(n)
+        val undefineds = findUndefineds(expr)
+        if (undefineds.nonEmpty) {
+            Left(undefineds)
+        } else {
+            Right(evaluateExpressionWithNoUndefineds(expr))
+        }
+    }
 
-            case SymbolArg(name) =>
-                variable(name) match {
-                    case Some(n) => Right(n)
-                    case None => {
-                        constant(name) match {
-                            case Some(n) => Right(n)
-                            case None => Left(Set(name))
+    // precondition: all SymbolArgs here are defined as a variable/constant/label
+    private def evaluateExpressionWithNoUndefineds(expr: Expression): Int = {
+        expr match {
+            case Number(n) => n
+
+            case SymbolArg(name) => lookupValue(name)
+        }
+    }
+
+    // precondition: name is defined as a variable/constant/label
+    private def lookupValue(name: SymbolName): Int = {
+        // HMMM perhaps there's an easier way than this...
+        variable(name) match {
+            case Some(n) => n
+            case None =>
+                constant(name) match {
+                    case Some(n) => n
+                    case None =>
+                        label(name) match {
+                            case Some(n) => n
+                            case None => throw new IllegalStateException("Precondition violation: " + name + " is supposed to be present as a variable/constant/label")
                         }
-                    }
                 }
         }
     }
 
+    private def definedValue(name: SymbolName): Boolean = {
+        variables.contains(name) || constants.contains(name) || labels.contains(name)
+    }
+
+    private def findUndefineds(expr: Expression): Set[String] = {
+        expr match {
+            case SymbolArg(name) => if (definedValue(name)) Set.empty else Set(name)
+            case Number(_) => Set.empty
+            case Characters(_) => Set.empty
+            case Unary(_, uExpr) => findUndefineds(uExpr)
+            case Binary(_, lExpr, rExpr) => findUndefineds(lExpr) ++ findUndefineds(rExpr)
+        }
+    }
 }
