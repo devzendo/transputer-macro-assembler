@@ -296,6 +296,16 @@ class TestAssemblyModel extends AssertionsForJUnit with MustMatchers {
         model.evaluateExpression(Binary(Xor(), Number(7), Number(3))) must be(Right(4))
     }
 
+    @Test
+    def evalComplicated(): Unit = {
+        // -2 + 3 * (10 / (10 >> 1)) == 4
+        val shr = Binary(ShiftRight(), Number(10), Number(1))
+        val div = Binary(Div(), Number(10), shr)
+        val mult = Binary(Mult(), Number(3), div)
+        val add = Binary(Add(), Unary(Negate(), Number(2)), mult)
+        model.evaluateExpression(add) must be(Right(4))
+    }
+
     // TODO db dup - should ensure that the repeat value is a number or constant - need to know how big the storage
     // will be
 }

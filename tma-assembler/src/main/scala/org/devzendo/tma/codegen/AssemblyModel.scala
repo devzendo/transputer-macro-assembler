@@ -139,9 +139,12 @@ class AssemblyModel {
         logger.debug("Evaluating " + expr)
         val undefineds = findUndefineds(expr)
         if (undefineds.nonEmpty) {
+            logger.debug("Undefined symbols: " + undefineds)
             Left(undefineds)
         } else {
-            Right(evaluateExpressionWithNoUndefineds(expr))
+            val value = evaluateExpressionWithNoUndefineds(expr)
+            logger.debug("Evaluation of " + expr + " = " + value)
+            Right(value)
         }
     }
 
