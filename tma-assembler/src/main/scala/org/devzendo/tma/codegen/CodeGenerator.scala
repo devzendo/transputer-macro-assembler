@@ -66,6 +66,10 @@ class CodeGenerator(debugCodegen: Boolean) {
             case ConstantAssignment(name, expr) => processConstantAssignment(lineNumber, name, expr)
             case VariableAssignment(name, expr) => processVariableAssignment(lineNumber, name, expr)
             case Ignored() => // Do nothing
+            case MacroStart(_, _) =>  // All macro AST statements are handled by the parser; the expansions are handled
+            case MacroBody(_) =>      // by the rest of the AST statement handlers, here..
+            case MacroEnd() =>        // So, do nothing...
+            case MacroInvocation(_, _) => // Non-macro statements would follow after an invocation, unless it's an empty macro.
         }
     }
 
@@ -74,12 +78,11 @@ class CodeGenerator(debugCodegen: Boolean) {
             throw new CodeGenerationException(lineNumber, "Origin cannot be set to a Character expression '" + expr + "'")
         }
         val either = model.evaluateExpression(expr)
-        // TODO throw on undefineds
         either match {
             case Left(undefineds) => throw new CodeGenerationException(lineNumber, "Undefined symbol(s) '" + undefineds.mkString(",") + "'")
-            case Right(n) =>
-                logger.debug("Org: " + n)
-                model.setDollar(n, lineNumber)
+            case Right(org) =>
+                logger.debug("Org: " + org)
+                model.setDollar(org, lineNumber)
         }
     }
 

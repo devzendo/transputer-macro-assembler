@@ -16,7 +16,7 @@
 
 package org.devzendo.tma.codegen
 
-import org.devzendo.tma.ast.AST.{Label, SymbolName}
+import org.devzendo.tma.ast.AST.{Label, MacroName, SymbolName}
 import org.devzendo.tma.ast._
 import org.junit.rules.ExpectedException
 import org.junit.{Rule, Test}
@@ -181,4 +181,28 @@ class TestCodeGenerator extends AssertionsForJUnit with MustMatchers {
             ConstantAssignment(new SymbolName(fnord), Number(12))
         ))
     }
+
+    // The code generator does nothing with macros - they're expanded into other statements; ignore all macro
+    // statements. Can't sense anything, but these won't throw, and these tests force the match on the macro AST
+    // types to be introduced.
+    @Test
+    def macroStartIgnored(): Unit = {
+        generateFromStatement(MacroStart(new MacroName(fnord), List.empty))
+    }
+
+    @Test
+    def macroBodyIgnored(): Unit = {
+        generateFromStatement(MacroBody("whatever"))
+    }
+
+    @Test
+    def macroEndIgnored(): Unit = {
+        generateFromStatement(MacroEnd())
+    }
+
+    @Test
+    def macroInvocationIgnored(): Unit = {
+        generateFromStatement(MacroInvocation(new MacroName(fnord), List.empty))
+    }
+
 }
