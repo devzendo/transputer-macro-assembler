@@ -42,11 +42,13 @@ class AssemblyModel {
     private val labels = mutable.HashMap[String, Value]()
 
     // Macro expansions have the same line number as their invocation; hence line number -> list[storage+]
-    case class Storage(address: Int, cellWidth: Int, data: Array[Int], line: Line)
+    case class Storage(address: Int, cellWidth: Int, data: Array[Int], line: Line, exprs: List[Expression])
     // Storage has a reference to its Line, so when the map of Undefined forward references -> Set[Storage]
     // is scanned at the end of the codegen phase, each Storage can show the Line on which the forward reference is.
     private val storagesForLines = mutable.HashMap[Int, mutable.ArrayBuffer[Storage]]() // indexed by line number
     // And it's a map, since it's likely to be sparsely populated (not every line generates Storage)
+
+    private val forwardReferenceFixups = mutable.HashMap[String, mutable.HashSet[Storage]]()
 
     setVariable(dollar, 0, 0)
 
@@ -77,6 +79,7 @@ class AssemblyModel {
         }
         variables.put(name, Value(n, lineNumber))
         logger.debug("Variable " + name + " = " + n)
+        resolveForwardReferences(name, n)
     }
 
     def getConstant(name: String): Int = {
@@ -103,6 +106,7 @@ class AssemblyModel {
             case None =>
                 constants.put(name, Value(n, lineNumber))
                 logger.debug("Constant " + name + " = " + n)
+                resolveForwardReferences(name, n)
         }
     }
 
@@ -130,6 +134,7 @@ class AssemblyModel {
             case None =>
                 labels.put(name, Value(n, lineNumber))
                 logger.debug("Label " + name + " = " + n)
+                resolveForwardReferences(name, n)
         }
     }
 
@@ -231,6 +236,7 @@ class AssemblyModel {
     }
 
     def allocateStorageForLine(line: Line, cellWidth: Int, exprs: List[Expression]): Storage = {
+        // TODO Orcish manoevre?
         val storages = if (storagesForLines.contains(line.number)) {
             storagesForLines(line.number)
         } else {
@@ -238,18 +244,54 @@ class AssemblyModel {
             storagesForLines.put(line.number, newLines)
             newLines
         }
-        val storage = Storage(getDollar, cellWidth, Array.ofDim[Int](exprs.size), line)
+        val storage = Storage(getDollar, cellWidth, Array.ofDim[Int](exprs.size), line, exprs)
         storages += storage
 
+        // Evaluate expressions, storing, or record forward references if symbols are undefined at the moment.
         exprs.zipWithIndex.foreach((tuple: (Expression, Int)) => {
-            evaluateExpression(tuple._1) match {
-                case Right(value) => storage.data(tuple._2) = value
-                case Left(undefineds) => // do nothing yet TODO undefineds
+            val storeValue = evaluateExpression(tuple._1) match {
+                case Right(value) => value
+                case Left(undefineds) =>
+                    logger.debug("Symbol(s) (" + undefineds + ") are not yet defined on line " + line.number)
+                    recordForwardReferences(undefineds, storage)
+                    0
             }
+            storage.data(tuple._2) = storeValue
         })
 
         setDollar(getDollar + (cellWidth * exprs.size), line.number)
 
         storage
+    }
+
+    private def recordForwardReferences(undefinedSymbols: Set[String], storageToReEvaluate: Storage): Unit = {
+        for (undefinedSymbol <- undefinedSymbols) {
+            forwardReferenceFixups.getOrElseUpdate(undefinedSymbol, mutable.HashSet[Storage]()) += storageToReEvaluate
+        }
+    }
+
+    private def resolveForwardReferences(symbolName: String, value: Int): Unit = {
+        val storages = forwardReferences(symbolName)
+        if (storages.nonEmpty) {
+            logger.debug("Resolving references to symbol '" + symbolName + "' with value " + value)
+            for (storage <- storages) {
+                logger.debug("Resolving on line " + storage.line.number)
+
+                // Re-evaluate expressions, storing, and removing the forward reference.
+                storage.exprs.zipWithIndex.foreach((tuple: (Expression, Int)) => {
+                    val storeValue = evaluateExpression(tuple._1) match {
+                        case Right(result) => result
+                        case Left(_) => 0 // Still undefined. More re-resolution to do.. or not..
+                    }
+                    storage.data(tuple._2) = storeValue
+                })
+
+            }
+            forwardReferenceFixups.remove(symbolName)
+        }
+    }
+
+    def forwardReferences(symbol: String): Set[Storage] = {
+        forwardReferenceFixups.getOrElse(symbol, Set.empty).toSet
     }
 }

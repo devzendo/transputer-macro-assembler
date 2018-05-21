@@ -378,15 +378,72 @@ class TestAssemblyModel extends AssertionsForJUnit with MustMatchers {
 
     @Test
     def storageIncrementsDollarByCellWidthTimesLength(): Unit = {
-        val address = 20
+        val startAddress = 20
         val cellWidth = 1
-        model.setDollar(address, 0)
+        model.setDollar(startAddress, 0)
 
-        val exprs1 = List(Number(42), Number(69))
-        val line1 = Line(3, "irrelevant", None, Some(DB(exprs1)))
-        val storage1 = model.allocateStorageForLine(line1, cellWidth, exprs1)
+        val exprs = List(Number(42), Number(69))
+        val line = Line(3, "irrelevant", None, Some(DB(exprs)))
+        model.allocateStorageForLine(line, cellWidth, exprs)
 
-        model.getDollar must be(address + (cellWidth * exprs1.size))
+        model.getDollar must be(startAddress + (cellWidth * exprs.size))
+    }
+
+    @Test
+    def storageWithForwardReferenceHasZeroesInItsData(): Unit = {
+        val exprs = List(Number(42), SymbolArg(fnord), SymbolArg("foo"), Number(96))
+        val storage = model.allocateStorageForLine(Line(3, "irrelevant", None, Some(DB(exprs))), 1, exprs)
+
+        storage.data must be(Array[Int](42, 0, 0, 96))
+    }
+
+    @Test
+    def storageWithForwardReferenceIsRecordedForLaterFixup(): Unit = {
+        val exprs = List(SymbolArg(fnord), SymbolArg("foo"))
+        val storage = model.allocateStorageForLine(Line(3, "irrelevant", None, Some(DB(exprs))), 1, exprs)
+
+        model.forwardReferences(fnord) must be (Set(storage))
+        model.forwardReferences("foo") must be (Set(storage))
+    }
+
+    @Test
+    def storageWithForwardReferenceIsRemovedOnVariableDefinitionButOtherForwardReferencesRemain(): Unit = {
+        val exprs = List(SymbolArg(fnord), SymbolArg("foo"))
+        val storage = model.allocateStorageForLine(Line(3, "irrelevant", None, Some(DB(exprs))), 1, exprs)
+        model.setVariable(fnord, 73, 4)
+
+        model.forwardReferences(fnord) must be (Set.empty)
+        model.forwardReferences("foo") must be (Set(storage))
+    }
+
+    @Test
+    def storageWithForwardReferenceIsFixedUpAndForwardReferenceRemovedOnVariableDefinition(): Unit = {
+        val exprs = List(SymbolArg(fnord))
+        val storage = model.allocateStorageForLine(Line(3, "irrelevant", None, Some(DB(exprs))), 1, exprs)
+        model.setVariable(fnord, 73, 4)
+
+        storage.data must be(Array[Int](73))
+        model.forwardReferences(fnord) must be (Set.empty)
+    }
+
+    @Test
+    def storageWithForwardReferenceIsFixedUpAndForwardReferenceRemovedOnConstantDefinition(): Unit = {
+        val exprs = List(SymbolArg(fnord))
+        val storage = model.allocateStorageForLine(Line(3, "irrelevant", None, Some(DB(exprs))), 1, exprs)
+        model.setConstant(fnord, 73, 4)
+
+        storage.data must be(Array[Int](73))
+        model.forwardReferences(fnord) must be (Set.empty)
+    }
+
+    @Test
+    def storageWithForwardReferenceIsFixedUpAndForwardReferenceRemovedOnLabelDefinition(): Unit = {
+        val exprs = List(SymbolArg(fnord))
+        val storage = model.allocateStorageForLine(Line(3, "irrelevant", None, Some(DB(exprs))), 1, exprs)
+        model.setLabel(fnord, 73, 4)
+
+        storage.data must be(Array[Int](73))
+        model.forwardReferences(fnord) must be (Set.empty)
     }
 
     // TODO db overflow number > 255
