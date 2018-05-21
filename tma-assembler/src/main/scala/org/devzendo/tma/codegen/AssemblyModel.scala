@@ -21,7 +21,6 @@ import org.devzendo.tma.ast._
 import org.log4s.Logger
 
 import scala.collection.mutable
-import scala.collection.mutable.ArrayBuffer
 
 /*
  * A mutable structure holding the output of the CodeGenerator.
@@ -102,10 +101,9 @@ class AssemblyModel {
         }
         constants.get(name) match {
             case Some(con) => throw new AssemblyModelException("Constant '" + name + "' cannot be redefined; initially defined on line " + con.definitionLine)
-            case None => {
+            case None =>
                 constants.put(name, Value(n, lineNumber))
                 logger.debug("Constant " + name + " = " + n)
-            }
         }
     }
 
@@ -130,10 +128,9 @@ class AssemblyModel {
         }
         labels.get(name) match {
             case Some(label) => throw new AssemblyModelException("Label '" + name + "' cannot be redefined; initially defined on line " + label.definitionLine)
-            case None => {
+            case None =>
                 labels.put(name, Value(n, lineNumber))
                 logger.debug("Label " + name + " = " + n)
-            }
         }
     }
 

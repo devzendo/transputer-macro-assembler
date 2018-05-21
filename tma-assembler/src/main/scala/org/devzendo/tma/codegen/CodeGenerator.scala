@@ -35,34 +35,31 @@ class CodeGenerator(debugCodegen: Boolean) {
         }
     }
 
-    private def createLabel(line: Line) = {
+    private def createLabel(line: Line): Unit = {
         line.label.foreach((label: Label) =>
             model.setLabel(label, model.getDollar, line.number)
         )
     }
 
-    private def processLineStatement(line: Line) = {
+    private def processLineStatement(line: Line): Unit = {
         line.stmt.foreach((stmt: Statement) =>
             processStatement(line, stmt)
         )
     }
 
-    private def processStatement(line: Line, stmt: Statement) = {
+    private def processStatement(line: Line, stmt: Statement): Unit = {
         val lineNumber = line.number
         stmt match {
-            case Title(text) => {
+            case Title(text) =>
                 model.title = text
                 logger.debug("Title is '" + text + "'")
-            }
-            case Page(rows, columns) => {
+            case Page(rows, columns) =>
                 model.rows = rows
                 model.columns = columns
                 logger.debug("Rows: " + rows + " Columns: " + columns)
-            }
-            case Processor(name) => {
+            case Processor(name) =>
                 model.processor = Some(name)
                 logger.debug("Processor is '" + name + "'")
-            }
             case Org(expr) => processOrg(lineNumber, expr)
             case ConstantAssignment(name, expr) => processConstantAssignment(lineNumber, name, expr)
             case VariableAssignment(name, expr) => processVariableAssignment(lineNumber, name, expr)
@@ -75,7 +72,7 @@ class CodeGenerator(debugCodegen: Boolean) {
         }
     }
 
-    private def processOrg(lineNumber: Int, expr: Expression) = {
+    private def processOrg(lineNumber: Int, expr: Expression): Unit = {
         if (expressionContainsCharacters(expr)) {
             throw new CodeGenerationException(lineNumber, "Origin cannot be set to a Character expression '" + expr + "'")
         }
@@ -88,7 +85,7 @@ class CodeGenerator(debugCodegen: Boolean) {
         }
     }
 
-    private def processConstantAssignment(lineNumber: Int, name: SymbolName, expr: Expression) = {
+    private def processConstantAssignment(lineNumber: Int, name: SymbolName, expr: Expression): Unit = {
         if (expressionContainsCharacters(expr)) {
             throw new CodeGenerationException(lineNumber, "Constant cannot be set to a Character expression '" + expr + "'")
         }
@@ -102,7 +99,7 @@ class CodeGenerator(debugCodegen: Boolean) {
         }
     }
 
-    private def processVariableAssignment(lineNumber: Int, name: SymbolName, expr: Expression) = {
+    private def processVariableAssignment(lineNumber: Int, name: SymbolName, expr: Expression): Unit = {
         if (expressionContainsCharacters(expr)) {
             throw new CodeGenerationException(lineNumber, "Variable cannot be set to a Character expression '" + expr + "'")
         }
@@ -110,10 +107,9 @@ class CodeGenerator(debugCodegen: Boolean) {
         // TODO throw on undefineds
         either match {
             case Left(undefineds) =>
-            case Right(value) => {
+            case Right(value) =>
                 logger.debug("Variable " + name + " = " + value)
                 model.setVariable(name, value, lineNumber)
-            }
         }
     }
 

@@ -18,8 +18,8 @@ package org.devzendo.tma.codegen
 
 import org.devzendo.tma.ast.AST.SymbolName
 import org.devzendo.tma.ast._
-import org.junit.{Ignore, Rule, Test}
 import org.junit.rules.ExpectedException
+import org.junit.{Rule, Test}
 import org.log4s.Logger
 import org.scalatest.MustMatchers
 import org.scalatest.junit.AssertionsForJUnit
