@@ -68,7 +68,9 @@ class CodeGenerator(debugCodegen: Boolean) {
             case MacroBody(_) =>      // by the rest of the AST statement handlers, here..
             case MacroEnd() =>        // So, do nothing...
             case MacroInvocation(_, _) => // Non-macro statements would follow after an invocation, unless it's an empty macro.
-            case DB(exprs) => processDB(line, exprs)
+            case DB(exprs) => model.allocateStorageForLine(line, 1, exprs)
+            case DW(exprs) => model.allocateStorageForLine(line, 2, exprs)
+            case DD(exprs) => model.allocateStorageForLine(line, 4, exprs)
         }
     }
 
@@ -121,10 +123,6 @@ class CodeGenerator(debugCodegen: Boolean) {
             case Unary(_, uExpr) => expressionContainsCharacters(uExpr)
             case Binary(_, lExpr, rExpr) => expressionContainsCharacters(lExpr) || expressionContainsCharacters(rExpr)
         }
-    }
-
-    private def processDB(line: Line, exprs: List[Expression]): Unit = {
-        val storage = model.allocateStorageForLine(line, 1, exprs)
     }
 
     def createModel(lines: List[Line]): AssemblyModel = {

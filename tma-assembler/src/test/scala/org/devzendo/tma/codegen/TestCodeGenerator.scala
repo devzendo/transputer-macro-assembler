@@ -208,6 +208,7 @@ class TestCodeGenerator extends AssertionsForJUnit with MustMatchers {
     // Precondition for the DB/DD/DW, checked for by the parser: the expressions are non-empty lists.
     @Test
     def dbNumbers(): Unit = {
+        val cellWidth = 1
         val dbStatement = DB(List(Number(42), Number(69)))
         val line = Line(1, "", None, Some(dbStatement))
         val model = generateFromLine(line)
@@ -219,6 +220,41 @@ class TestCodeGenerator extends AssertionsForJUnit with MustMatchers {
         storage.cellWidth must be(1)
         storage.data.toList must be(List(42, 69))
         storage.line must be(line)
+        model.getDollar must be(0 + (cellWidth * 2))
+    }
+
+    @Test
+    def dwNumbers(): Unit = {
+        val cellWidth = 2
+        val dwStatement = DW(List(Number(42), Number(69)))
+        val line = Line(1, "", None, Some(dwStatement))
+        val model = generateFromLine(line)
+
+        val storages = model.getStoragesForLine(1)
+        storages must have size 1
+        val storage = storages.head
+        storage.address must be(0)
+        storage.cellWidth must be(2)
+        storage.data.toList must be(List(42, 69))
+        storage.line must be(line)
+        model.getDollar must be(0 + (cellWidth * 2))
+    }
+
+    @Test
+    def ddNumbers(): Unit = {
+        val cellWidth = 4
+        val ddStatement = DD(List(Number(42), Number(69)))
+        val line = Line(1, "", None, Some(ddStatement))
+        val model = generateFromLine(line)
+
+        val storages = model.getStoragesForLine(1)
+        storages must have size 1
+        val storage = storages.head
+        storage.address must be(0)
+        storage.cellWidth must be(4)
+        storage.data.toList must be(List(42, 69))
+        storage.line must be(line)
+        model.getDollar must be(0 + (cellWidth * 2))
     }
 
     // TODO it's allowed to have a dbdup with 0 length (as a constant or number) - you wouldn't do this, but no reason
