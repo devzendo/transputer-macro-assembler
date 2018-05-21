@@ -45,8 +45,7 @@ class AssemblyModel {
     case class Storage(address: Int, cellWidth: Int, data: Array[Int], line: Line)
     // Storage has a reference to its Line, so when the map of Undefined forward references -> Set[Storage]
     // is scanned at the end of the codegen phase, each Storage can show the Line on which the forward reference is.
-    case class LineStorage(line: Line, storage: Option[Storage])
-    private val storageForLines = mutable.HashMap[Int, mutable.ArrayBuffer[LineStorage]]() // indexed by line number
+    private val storagesForLines = mutable.HashMap[Int, mutable.ArrayBuffer[Storage]]() // indexed by line number
     // And it's a map, since it's likely to be sparsely populated (not every line generates Storage)
 
     setVariable(dollar, 0, 0)
@@ -227,20 +226,20 @@ class AssemblyModel {
         }
     }
 
-    def getStoragesForLine(lineNumber: Int): List[LineStorage] = {
-        storageForLines(lineNumber).toList
+    def getStoragesForLine(lineNumber: Int): List[Storage] = {
+        storagesForLines(lineNumber).toList
     }
 
     def allocateStorageForLine(line: Line, cellWidth: Int, exprs: List[Expression]): Storage = {
-        val linesList = if (storageForLines.contains(line.number)) {
-            storageForLines(line.number)
+        val storages = if (storagesForLines.contains(line.number)) {
+            storagesForLines(line.number)
         } else {
-            val newLines = mutable.ArrayBuffer[LineStorage]()
-            storageForLines.put(line.number, newLines)
+            val newLines = mutable.ArrayBuffer[Storage]()
+            storagesForLines.put(line.number, newLines)
             newLines
         }
         val storage = Storage(getDollar, cellWidth, Array.ofDim[Int](exprs.size), line)
-        linesList += LineStorage(line, Some(storage))
+        storages += storage
 
         exprs.zipWithIndex.foreach((tuple: (Expression, Int)) => {
             evaluateExpression(tuple._1) match {

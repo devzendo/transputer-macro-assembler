@@ -212,12 +212,9 @@ class TestCodeGenerator extends AssertionsForJUnit with MustMatchers {
         val line = Line(1, "", None, Some(dbStatement))
         val model = generateFromLine(line)
 
-        val lineStorages = model.getStoragesForLine(1)
-        lineStorages must have size 1
-        val cell = lineStorages.head
-        cell.line must be(line)
-        cell.storage must be('defined)
-        val storage = cell.storage.get
+        val storages = model.getStoragesForLine(1)
+        storages must have size 1
+        val storage = storages.head
         storage.address must be(0)
         storage.cellWidth must be(1)
         storage.data.toList must be(List(42, 69))
