@@ -41,7 +41,7 @@ class AssemblyModel {
     private val constants = mutable.HashMap[String, Value]()
     private val labels = mutable.HashMap[String, Value]()
 
-    // Macro expansions have the same line number as their invocation; hence line number -> list[line,storage?]
+    // Macro expansions have the same line number as their invocation; hence line number -> list[storage+]
     case class Storage(address: Int, cellWidth: Int, data: Array[Int], line: Line)
     // Storage has a reference to its Line, so when the map of Undefined forward references -> Set[Storage]
     // is scanned at the end of the codegen phase, each Storage can show the Line on which the forward reference is.
@@ -247,6 +247,8 @@ class AssemblyModel {
                 case Left(undefineds) => // do nothing yet TODO undefineds
             }
         })
+
+        setDollar(getDollar + (cellWidth * exprs.size), line.number)
 
         storage
     }

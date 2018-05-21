@@ -365,11 +365,10 @@ class TestAssemblyModel extends AssertionsForJUnit with MustMatchers {
 
     @Test
     def storageRetrieval(): Unit = {
-        val lineNumber = 3
         val address = 69
         model.setDollar(address, 0)
         val exprs = List(Number(42), Number(69), Number(0), Number(1))
-        val line = Line(lineNumber, "irrelevant", None, Some(DB(exprs)))
+        val line = Line(3, "irrelevant", None, Some(DB(exprs)))
         val storage = model.allocateStorageForLine(line, 1, exprs)
         storage.data must be(Array(42, 69, 0, 1))
         storage.cellWidth must be(1)
@@ -377,7 +376,18 @@ class TestAssemblyModel extends AssertionsForJUnit with MustMatchers {
         storage.line must be(line)
     }
 
-    // TODO $ increments by cell width * length
+    @Test
+    def storageIncrementsDollarByCellWidthTimesLength(): Unit = {
+        val address = 20
+        val cellWidth = 1
+        model.setDollar(address, 0)
+
+        val exprs1 = List(Number(42), Number(69))
+        val line1 = Line(3, "irrelevant", None, Some(DB(exprs1)))
+        val storage1 = model.allocateStorageForLine(line1, cellWidth, exprs1)
+
+        model.getDollar must be(address + (cellWidth * exprs1.size))
+    }
 
     // TODO db overflow number > 255
     // TODO db dup - should ensure that the repeat value is a number or constant - need to know how big the storage
