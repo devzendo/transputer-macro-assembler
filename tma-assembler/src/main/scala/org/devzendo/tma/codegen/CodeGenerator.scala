@@ -43,11 +43,12 @@ class CodeGenerator(debugCodegen: Boolean) {
 
     private def processLineStatement(line: Line) = {
         line.stmt.foreach((stmt: Statement) =>
-            processStatement(line.number, stmt)
+            processStatement(line, stmt)
         )
     }
 
-    private def processStatement(lineNumber: Int, stmt: Statement) = {
+    private def processStatement(line: Line, stmt: Statement) = {
+        val lineNumber = line.number
         stmt match {
             case Title(text) => {
                 model.title = text
@@ -70,6 +71,7 @@ class CodeGenerator(debugCodegen: Boolean) {
             case MacroBody(_) =>      // by the rest of the AST statement handlers, here..
             case MacroEnd() =>        // So, do nothing...
             case MacroInvocation(_, _) => // Non-macro statements would follow after an invocation, unless it's an empty macro.
+            case DB(exprs) => processDB(line, exprs)
         }
     }
 
@@ -123,6 +125,10 @@ class CodeGenerator(debugCodegen: Boolean) {
             case Unary(_, uExpr) => expressionContainsCharacters(uExpr)
             case Binary(_, lExpr, rExpr) => expressionContainsCharacters(lExpr) || expressionContainsCharacters(rExpr)
         }
+    }
+
+    private def processDB(line: Line, exprs: List[Expression]): Unit = {
+        val storage = model.allocateStorageForLine(line, 1, exprs)
     }
 
     def createModel(lines: List[Line]): AssemblyModel = {

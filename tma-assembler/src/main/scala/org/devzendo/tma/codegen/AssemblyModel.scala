@@ -21,6 +21,7 @@ import org.devzendo.tma.ast._
 import org.log4s.Logger
 
 import scala.collection.mutable
+import scala.collection.mutable.ArrayBuffer
 
 /*
  * A mutable structure holding the output of the CodeGenerator.
@@ -40,6 +41,14 @@ class AssemblyModel {
     private val variables = mutable.HashMap[String, Value]()
     private val constants = mutable.HashMap[String, Value]()
     private val labels = mutable.HashMap[String, Value]()
+
+    // Macro expansions have the same line number as their invocation; hence line number -> list[line,storage?]
+    case class Storage(address: Int, cellWidth: Int, data: Array[Int], line: Line)
+    // Storage has a reference to its Line, so when the map of Undefined forward references -> Set[Storage]
+    // is scanned at the end of the codegen phase, each Storage can show the Line on which the forward reference is.
+    case class LineStorage(line: Line, storage: Option[Storage])
+    private val storageForLines = mutable.HashMap[Int, mutable.ArrayBuffer[LineStorage]]() // indexed by line number
+    // And it's a map, since it's likely to be sparsely populated (not every line generates Storage)
 
     setVariable(dollar, 0, 0)
 
@@ -172,11 +181,11 @@ class AssemblyModel {
         })))
     }
 
-    private def definedValue(name: SymbolName): Boolean = {
+    def definedValue(name: SymbolName): Boolean = {
         variables.contains(name) || constants.contains(name) || labels.contains(name)
     }
 
-    private def findUndefineds(expr: Expression): Set[String] = {
+    def findUndefineds(expr: Expression): Set[String] = {
         expr match {
             case SymbolArg(name) => if (definedValue(name)) Set.empty else Set(name)
             case Number(_) => Set.empty
@@ -219,5 +228,30 @@ class AssemblyModel {
             case Xor() => lValue ^ rValue
             case _ => throw new IllegalStateException("Parser has passed an operation of " + op + " to a Binary")
         }
+    }
+
+    def getStoragesForLine(lineNumber: Int): List[LineStorage] = {
+        storageForLines(lineNumber).toList
+    }
+
+    def allocateStorageForLine(line: Line, cellWidth: Int, exprs: List[Expression]): Storage = {
+        val linesList = if (storageForLines.contains(line.number)) {
+            storageForLines(line.number)
+        } else {
+            val newLines = mutable.ArrayBuffer[LineStorage]()
+            storageForLines.put(line.number, newLines)
+            newLines
+        }
+        val storage = Storage(getDollar, cellWidth, Array.ofDim[Int](exprs.size), line)
+        linesList += LineStorage(line, Some(storage))
+
+        exprs.zipWithIndex.foreach((tuple: (Expression, Int)) => {
+            evaluateExpression(tuple._1) match {
+                case Right(value) => storage.data(tuple._2) = value
+                case Left(undefineds) => // do nothing yet TODO undefineds
+            }
+        })
+
+        storage
     }
 }

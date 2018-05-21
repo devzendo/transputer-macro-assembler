@@ -205,4 +205,25 @@ class TestCodeGenerator extends AssertionsForJUnit with MustMatchers {
         generateFromStatement(MacroInvocation(new MacroName(fnord), List.empty))
     }
 
+    // Precondition for the DB/DD/DW, checked for by the parser: the expressions are non-empty lists.
+    @Test
+    def dbNumbers(): Unit = {
+        val dbStatement = DB(List(Number(42), Number(69)))
+        val line = Line(1, "", None, Some(dbStatement))
+        val model = generateFromLine(line)
+
+        val lineStorages = model.getStoragesForLine(1)
+        lineStorages must have size 1
+        val cell = lineStorages.head
+        cell.line must be(line)
+        cell.storage must be('defined)
+        val storage = cell.storage.get
+        storage.address must be(0)
+        storage.cellWidth must be(1)
+        storage.data.toList must be(List(42, 69))
+        storage.line must be(line)
+    }
+
+    // TODO it's allowed to have a dbdup with 0 length (as a constant or number) - you wouldn't do this, but no reason
+    // to disallow it.
 }

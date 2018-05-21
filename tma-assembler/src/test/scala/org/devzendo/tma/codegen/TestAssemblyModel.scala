@@ -16,6 +16,7 @@
 
 package org.devzendo.tma.codegen
 
+import org.devzendo.tma.ast.AST.SymbolName
 import org.devzendo.tma.ast._
 import org.junit.{Ignore, Rule, Test}
 import org.junit.rules.ExpectedException
@@ -306,6 +307,79 @@ class TestAssemblyModel extends AssertionsForJUnit with MustMatchers {
         model.evaluateExpression(add) must be(Right(4))
     }
 
+    // Undefined Symbols -----------------------------------------------------------------------------------------------
+
+    @Test
+    def undefinedSymbol(): Unit = {
+        model.definedValue(new SymbolName(fnord)) must be(false)
+    }
+
+    @Test
+    def definedVariable(): Unit = {
+        model.setVariable(fnord, 1, 1)
+        model.definedValue(new SymbolName(fnord)) must be(true)
+    }
+
+    @Test
+    def definedConstant(): Unit = {
+        model.setConstant(fnord, 1, 1)
+        model.definedValue(new SymbolName(fnord)) must be(true)
+    }
+
+    @Test
+    def definedLabel(): Unit = {
+        model.setLabel(fnord, 1, 1)
+        model.definedValue(new SymbolName(fnord)) must be(true)
+    }
+
+    @Test
+    def findUndefinedSymbolInSymbolArg(): Unit = {
+        model.findUndefineds(SymbolArg(fnord)) must be(Set(fnord))
+        model.setConstant(fnord, 1, 1)
+        model.findUndefineds(SymbolArg(fnord)) must be(empty)
+    }
+
+    @Test
+    def findUndefinedSymbolInObviousEmpties(): Unit = {
+        model.findUndefineds(Number(3)) must be(empty)
+        model.findUndefineds(Characters("boo")) must be(empty)
+    }
+
+    @Test
+    def findUndefinedSymbolInUnary(): Unit = {
+        model.findUndefineds(Unary(Negate(), SymbolArg(fnord))) must be(Set(fnord))
+        model.setConstant(fnord, 1, 1)
+        model.findUndefineds(Unary(Negate(), SymbolArg(fnord))) must be(empty)
+    }
+
+    @Test
+    def findUndefinedSymbolInBinary(): Unit = {
+        model.findUndefineds(Binary(Add(), SymbolArg(fnord), SymbolArg("foo"))) must be(Set(fnord, "foo"))
+        model.setConstant(fnord, 1, 1)
+        model.findUndefineds(Binary(Add(), SymbolArg(fnord), SymbolArg("foo"))) must be(Set("foo"))
+        model.setConstant("foo", 1, 1)
+        model.findUndefineds(Binary(Add(), SymbolArg(fnord), SymbolArg("foo"))) must be(empty)
+    }
+
+    // Storage ---------------------------------------------------------------------------------------------------------
+
+    @Test
+    def storageRetrieval(): Unit = {
+        val lineNumber = 3
+        val address = 69
+        model.setDollar(address, 0)
+        val exprs = List(Number(42), Number(69), Number(0), Number(1))
+        val line = Line(lineNumber, "irrelevant", None, Some(DB(exprs)))
+        val storage = model.allocateStorageForLine(line, 1, exprs)
+        storage.data must be(Array(42, 69, 0, 1))
+        storage.cellWidth must be(1)
+        storage.address must be(address)
+        storage.line must be(line)
+    }
+
+    // TODO $ increments by cell width * length
+
+    // TODO db overflow number > 255
     // TODO db dup - should ensure that the repeat value is a number or constant - need to know how big the storage
     // will be
 }
