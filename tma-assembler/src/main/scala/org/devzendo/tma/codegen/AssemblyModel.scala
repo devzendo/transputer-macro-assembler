@@ -196,6 +196,10 @@ class AssemblyModel {
         }
     }
 
+    def containsUndefineds(expr: Expression): Boolean = {
+        findUndefineds(expr).nonEmpty
+    }
+
     // precondition: expr has no undefineds
     private def evaluateUnary(op: Operator, expr: Expression): Int = {
         val value = evaluateDefinedExpression(expr)
@@ -262,6 +266,18 @@ class AssemblyModel {
         setDollar(getDollar + (cellWidth * exprs.size), line.number)
 
         storage
+    }
+
+    def allocateStorageForLine(line: Line, cellWidth: Int, count: Expression, repeatedExpr: Expression): Storage = {
+        // TODO count is undefined - throw
+        if (containsUndefineds(count)) {
+            throw new AssemblyModelException("Count of '" + count + "' is undefined on line " + line.number)
+        }
+        val exprs = mutable.ArrayBuffer[Expression]()
+        for (i <- 0 until evaluateExpressionWithNoUndefineds(count)) {
+            exprs += repeatedExpr
+        }
+        allocateStorageForLine(line, cellWidth, exprs.toList)
     }
 
     private def recordForwardReferences(undefinedSymbols: Set[String], storageToReEvaluate: Storage): Unit = {

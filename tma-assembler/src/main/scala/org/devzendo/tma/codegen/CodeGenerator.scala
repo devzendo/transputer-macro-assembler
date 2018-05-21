@@ -71,6 +71,9 @@ class CodeGenerator(debugCodegen: Boolean) {
             case DB(exprs) => model.allocateStorageForLine(line, 1, exprs)
             case DW(exprs) => model.allocateStorageForLine(line, 2, exprs)
             case DD(exprs) => model.allocateStorageForLine(line, 4, exprs)
+            case DBDup(count, repeatedExpr) => model.allocateStorageForLine(line, 1, count, repeatedExpr)
+            case DWDup(count, repeatedExpr) => model.allocateStorageForLine(line, 2, count, repeatedExpr)
+            case DDDup(count, repeatedExpr) => model.allocateStorageForLine(line, 4, count, repeatedExpr)
         }
     }
 
