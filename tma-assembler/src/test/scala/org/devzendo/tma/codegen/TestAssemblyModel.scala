@@ -19,7 +19,7 @@ package org.devzendo.tma.codegen
 import org.devzendo.tma.ast.AST.SymbolName
 import org.devzendo.tma.ast._
 import org.junit.rules.ExpectedException
-import org.junit.{Rule, Test}
+import org.junit.{Ignore, Rule, Test}
 import org.log4s.Logger
 import org.scalatest.MustMatchers
 import org.scalatest.junit.AssertionsForJUnit
@@ -494,6 +494,93 @@ class TestAssemblyModel extends AssertionsForJUnit with MustMatchers {
         model.forwardReferences(fnord) must be (Set.empty)
     }
 
+    @Test
+    def dbBounds(): Unit = {
+        val exprs = List(Number(0), Number(255))
+        val line = Line(3, "irrelevant", None, Some(DB(exprs)))
+        val storage = model.allocateStorageForLine(line, 1, exprs)
+
+        storage.data must be(Array(0, 255))
+    }
+
+    @Test
+    def dbOverflow(): Unit = {
+        thrown.expect(classOf[AssemblyModelException])
+        thrown.expectMessage("Value of 256 cannot be expressed in a BYTE on line 7")
+
+        val exprs = List(Number(256))
+        val line = Line(7, "irrelevant", None, Some(DB(exprs)))
+
+        model.allocateStorageForLine(line, 1, exprs)
+    }
+
+    @Ignore
+    @Test
+    def dbUnderflow(): Unit = {
+        thrown.expect(classOf[AssemblyModelException])
+        thrown.expectMessage("Value of -1 cannot be expressed in a BYTE on line 7")
+
+        val exprs = List(Number(-1))
+        val line = Line(7, "irrelevant", None, Some(DB(exprs)))
+
+        model.allocateStorageForLine(line, 1, exprs)
+    }
+
+
+    @Test
+    def dwBounds(): Unit = {
+        val exprs = List(Number(0), Number(65535))
+        val line = Line(3, "irrelevant", None, Some(DW(exprs)))
+        val storage = model.allocateStorageForLine(line, 2, exprs)
+
+        storage.data must be(Array(0, 65535))
+    }
+
+    @Test
+    def dwOverflow(): Unit = {
+        thrown.expect(classOf[AssemblyModelException])
+        thrown.expectMessage("Value of 65536 cannot be expressed in a WORD on line 7")
+
+        val exprs = List(Number(65536))
+        val line = Line(7, "irrelevant", None, Some(DW(exprs)))
+
+        model.allocateStorageForLine(line, 2, exprs)
+    }
+
+    @Ignore
+    @Test
+    def dwUnderflow(): Unit = {
+        thrown.expect(classOf[AssemblyModelException])
+        thrown.expectMessage("Value of -1 cannot be expressed in a WORD on line 7")
+
+        val exprs = List(Number(-1))
+        val line = Line(7, "irrelevant", None, Some(DW(exprs)))
+
+        model.allocateStorageForLine(line, 2, exprs)
+    }
+
+    @Test
+    def ddBounds(): Unit = {
+        val exprs = List(Number(0), Number(0xffffffff))
+        val line = Line(3, "irrelevant", None, Some(DD(exprs)))
+        val storage = model.allocateStorageForLine(line, 4, exprs)
+
+        storage.data must be(Array(0, 0xffffffff))
+    }
+
+    // DD overflow cannot be expressed in the type system, since Storage uses Ints, and 0x100000000 overflows that.
+
+    @Ignore
+    @Test
+    def ddUnderflow(): Unit = {
+        thrown.expect(classOf[AssemblyModelException])
+        thrown.expectMessage("Value of -1 cannot be expressed in a DWORD on line 7")
+
+        val exprs = List(Number(-1))
+        val line = Line(7, "irrelevant", None, Some(DD(exprs)))
+
+        model.allocateStorageForLine(line, 4, exprs)
+    }
+
     // TODO remaining forward references at end of first pass should cause failure.
-    // TODO db overflow number > 255
 }

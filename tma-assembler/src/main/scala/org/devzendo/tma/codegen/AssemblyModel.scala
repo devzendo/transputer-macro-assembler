@@ -239,6 +239,23 @@ class AssemblyModel {
         storagesForLines(lineNumber).toList
     }
 
+    private def getUnsignedInt(x: Int): Long = x & 0x00000000ffffffffL
+
+    private def validateDataSizes(lineNumber: Int, data: Array[Int], cellWidth: Int) = {
+        val (max, name) = cellWidth match {
+            case 1 => (0xffL, "BYTE")
+            case 2 => (0xffffL, "WORD")
+            case 4 => (0xffffffffL, "DWORD")
+        }
+        for (d <- data) {
+            val dUnsigned = getUnsignedInt(d)
+            logger.debug("cellWidth " + cellWidth + "; max " + max + "; name " + name + "; data " + dUnsigned)
+            if (dUnsigned < 0 || dUnsigned > max) {
+                throw new AssemblyModelException("Value of " + dUnsigned + " cannot be expressed in a " + name + " on line " + lineNumber)
+            }
+        }
+    }
+
     def allocateStorageForLine(line: Line, cellWidth: Int, exprs: List[Expression]): Storage = {
         // TODO Orcish manoevre?
         val storages = if (storagesForLines.contains(line.number)) {
@@ -263,6 +280,7 @@ class AssemblyModel {
             storage.data(tuple._2) = storeValue
         })
 
+        validateDataSizes(line.number, storage.data, cellWidth)
         setDollar(getDollar + (cellWidth * exprs.size), line.number)
 
         storage
