@@ -477,9 +477,23 @@ class TestAssemblyModel extends AssertionsForJUnit with MustMatchers {
         model.getDollar must be (address + (count * cellWidth))
     }
 
-    // TODO dbdup with forward references
+    @Test
+    def storageOfDbDupWithForwardReferenceIsRecordedForLaterFixup(): Unit = {
+        val line = Line(3, "irrelevant", None, Some(DBDup(Number(5), SymbolArg(fnord))))
+        val storage = model.allocateStorageForLine(line, 1, Number(5), SymbolArg(fnord))
+        model.forwardReferences(fnord) must be (Set(storage))
+    }
+
+    @Test
+    def storageOfDbDupWithForwardReferenceIsFixedUpAndForwardReferenceRemovedOnVariableDefinition(): Unit = {
+        val line = Line(3, "irrelevant", None, Some(DBDup(Number(5), SymbolArg(fnord))))
+        val storage = model.allocateStorageForLine(line, 1, Number(5), SymbolArg(fnord))
+        model.setVariable(fnord, 73, 4)
+
+        storage.data must be(Array[Int](73, 73, 73, 73, 73))
+        model.forwardReferences(fnord) must be (Set.empty)
+    }
+
     // TODO remaining forward references at end of first pass should cause failure.
     // TODO db overflow number > 255
-    // TODO db dup - should ensure that the repeat value is a number or constant - need to know how big the storage
-    // will be
 }

@@ -275,6 +275,24 @@ class TestCodeGenerator extends AssertionsForJUnit with MustMatchers {
         model.getDollar must be(0 + (cellWidth * count))
     }
 
-    // TODO it's allowed to have a dbdup with 0 length (as a constant or number) - you wouldn't do this, but no reason
-    // to disallow it.
+    @Test
+    def dbDupZeroCount(): Unit = {
+        // It's allowed to have a dbdup with 0 length (as a constant or number) - you wouldn't do this, but no reason
+        // to disallow it.
+        val cellWidth = 1
+        val count = 0
+        val dbDupStatement = DBDup(Number(count), Number(69))
+        val line = Line(1, "", None, Some(dbDupStatement))
+        val model = generateFromLine(line)
+
+        val storages = model.getStoragesForLine(1)
+        storages must have size 1
+        val storage = storages.head
+        storage.address must be(0)
+        storage.cellWidth must be(1)
+        storage.data.toList must be(List.empty)
+        storage.line must be(line)
+        model.getDollar must be(0)
+    }
+
 }
