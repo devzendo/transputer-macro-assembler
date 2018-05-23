@@ -20,10 +20,15 @@ import org.devzendo.tma.ast.AST.{Label, SymbolName}
 import org.devzendo.tma.ast._
 import org.log4s.Logger
 
+import scala.collection.mutable
+
 class CodeGenerator(debugCodegen: Boolean) {
     val logger: Logger = org.log4s.getLogger
 
     private val model = new AssemblyModel
+
+    private val p2Structures = mutable.ArrayBuffer[Pass2Structure]()
+    private var currentP2Structure = new Pass2Structure()
 
     def processLine(line: Line): Unit = {
         // TODO what about collecting exceptions?
@@ -74,6 +79,9 @@ class CodeGenerator(debugCodegen: Boolean) {
             case DBDup(count, repeatedExpr) => model.allocateStorageForLine(line, 1, count, repeatedExpr)
             case DWDup(count, repeatedExpr) => model.allocateStorageForLine(line, 2, count, repeatedExpr)
             case DDDup(count, repeatedExpr) => model.allocateStorageForLine(line, 4, count, repeatedExpr)
+            case If1() => processIf1()
+            case Else() => processElse()
+            case Endif() => processEndif()
         }
     }
 
@@ -120,12 +128,38 @@ class CodeGenerator(debugCodegen: Boolean) {
 
     private def expressionContainsCharacters(expr: Expression): Boolean = {
         expr match {
-            case SymbolArg(name) => false
+            case SymbolArg(_) => false
             case Number(_) => false
             case Characters(_) => true
             case Unary(_, uExpr) => expressionContainsCharacters(uExpr)
             case Binary(_, lExpr, rExpr) => expressionContainsCharacters(lExpr) || expressionContainsCharacters(rExpr)
         }
+    }
+
+    private def processIf1(): Unit = {
+        // store address for buildup in the current pass 2 structure
+        // assembly of statements continues normally
+    }
+
+    private def processElse(): Unit = {
+        // store pass 1 block size in current pass 2 structure
+        // switch to collect statements/lines for pass 2
+    }
+
+    private def processEndif(): Unit = {
+        // collect the built pass 2 structure in a list for pass 2 processing
+        // switch back to assemble statements straight in pass 1
+        // create new current pass 2 structure
+    }
+
+    def endPass1: Unit = {
+        // call model endPass1 to check for unresolved forward references, which will throw
+        // iterate over list of pass 2 structures:
+        //   set $ to the start address
+        //   iterate over each stored line/statement
+        //     pass it through processStatement to possibly append Storages at existing addresses (these'll be resolved
+        //     sequentially, overwriting earlier memory, in the writers).
+        //   get $; is it at the same place it was after assembling the pass 1 block? throw if not
     }
 
     def createModel(lines: List[Line]): AssemblyModel = {

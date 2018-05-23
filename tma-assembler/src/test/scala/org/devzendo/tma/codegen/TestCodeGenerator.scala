@@ -295,4 +295,5 @@ class TestCodeGenerator extends AssertionsForJUnit with MustMatchers {
         model.getDollar must be(0)
     }
 
+    // TODO end pass 1 calls endPass1 in the assembly model, to check for unresolved forward references
 }

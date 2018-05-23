@@ -48,16 +48,9 @@ class AssemblyModel {
     private val storagesForLines = mutable.HashMap[Int, mutable.ArrayBuffer[Storage]]() // indexed by line number
     // And it's a map, since it's likely to be sparsely populated (not every line generates Storage)
 
+    // Any forward references are noted here, and resolution done on definition of the forwardly-referenced symbol
+    // (either a variable, constant, or label).
     private val forwardReferenceFixups = mutable.HashMap[String, mutable.HashSet[Storage]]()
-
-
-    // Build-up for pass 2 structures, created in If1/Else
-    private var p2StartAddress: Option[Int] = None
-    private val p2Statements = mutable.ArrayBuffer[Statement]()
-    // Recorded pass 2 structures for re-evaluating in pass 2
-    case class Pass2Structure(startAddress: Int, stmts: List[Statement])
-    private val p2Structures = mutable.ArrayBuffer[Pass2Structure]()
-
 
     setVariable(dollar, 0, 0)
 
@@ -250,7 +243,7 @@ class AssemblyModel {
 
     private def getUnsignedInt(x: Int): Long = x & 0x00000000ffffffffL
 
-    private def validateDataSizes(lineNumber: Int, data: Array[Int], cellWidth: Int) = {
+    private def validateDataSizes(lineNumber: Int, data: Array[Int], cellWidth: Int): Unit = {
         val (max, name) = cellWidth match {
             case 1 => (0xffL, "BYTE")
             case 2 => (0xffffL, "WORD")
@@ -296,12 +289,11 @@ class AssemblyModel {
     }
 
     def allocateStorageForLine(line: Line, cellWidth: Int, count: Expression, repeatedExpr: Expression): Storage = {
-        // TODO count is undefined - throw
         if (containsUndefineds(count)) {
             throw new AssemblyModelException("Count of '" + count + "' is undefined on line " + line.number)
         }
         val exprs = mutable.ArrayBuffer[Expression]()
-        for (i <- 0 until evaluateExpressionWithNoUndefineds(count)) {
+        for (_ <- 0 until evaluateExpressionWithNoUndefineds(count)) {
             exprs += repeatedExpr
         }
         allocateStorageForLine(line, cellWidth, exprs.toList)
