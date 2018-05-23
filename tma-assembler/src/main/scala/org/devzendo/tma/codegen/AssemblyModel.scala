@@ -50,6 +50,15 @@ class AssemblyModel {
 
     private val forwardReferenceFixups = mutable.HashMap[String, mutable.HashSet[Storage]]()
 
+
+    // Build-up for pass 2 structures, created in If1/Else
+    private var p2StartAddress: Option[Int] = None
+    private val p2Statements = mutable.ArrayBuffer[Statement]()
+    // Recorded pass 2 structures for re-evaluating in pass 2
+    case class Pass2Structure(startAddress: Int, stmts: List[Statement])
+    private val p2Structures = mutable.ArrayBuffer[Pass2Structure]()
+
+
     setVariable(dollar, 0, 0)
 
     def getDollar: Int = getVariable(dollar)
@@ -327,5 +336,26 @@ class AssemblyModel {
 
     def forwardReferences(symbol: String): Set[Storage] = {
         forwardReferenceFixups.getOrElse(symbol, Set.empty).toSet
+    }
+
+    def endPass1(): Unit = {
+
+        if (forwardReferenceFixups.nonEmpty) {
+            // If there are any undefined symbols, sort them alphabetically, and list them with the line numbers they're
+            // referenced on (sorted numerically). e.g. (aardvark: #1; FNORD: #3, #4; foo: #5; zygote: #1)
+            val undefinedSymbolNamesSorted = forwardReferenceFixups.keySet.toList.sortWith((a: String, b: String) => {
+                a.compareToIgnoreCase(b) < 0
+            })
+            val allStorageNamesAndLineReferences = undefinedSymbolNamesSorted.map((usn: String) => {
+                val storageSet = forwardReferenceFixups(usn)
+                val storageLinesSorted = storageSet.map(_.line.number).toList.sorted
+                val storageLineReferences = storageLinesSorted.map("#" + _).mkString(", ")
+                val storageNameAndLineReferences = usn + ": " + storageLineReferences
+
+                storageNameAndLineReferences
+            })
+            throw new AssemblyModelException("Forward references remain unresolved at end of Pass 1: (" +
+              allStorageNamesAndLineReferences.mkString("; ") + ")")
+        }
     }
 }

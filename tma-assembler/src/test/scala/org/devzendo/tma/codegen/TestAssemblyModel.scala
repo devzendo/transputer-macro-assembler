@@ -582,5 +582,35 @@ class TestAssemblyModel extends AssertionsForJUnit with MustMatchers {
         model.allocateStorageForLine(line, 4, exprs)
     }
 
-    // TODO remaining forward references at end of first pass should cause failure.
+    @Test
+    def remainingForwardReferencesAtEndOfFirstPassCausesFailure(): Unit = {
+        thrown.expect(classOf[AssemblyModelException])
+        thrown.expectMessage("Forward references remain unresolved at end of Pass 1: (aardvark: #1; FNORD: #3, #4; foo: #5; zygote: #1)")
+
+        val line1 = Line(1, "irrelevant", None, Some(DB(List(SymbolArg("aardvark"), SymbolArg("zygote")))))
+        model.allocateStorageForLine(line1, 1, List(SymbolArg("aardvark"), SymbolArg("zygote")))
+
+        val line3 = Line(3, "irrelevant", None, Some(DBDup(Number(5), SymbolArg(fnord))))
+        model.allocateStorageForLine(line3, 1, Number(5), SymbolArg(fnord))
+
+        val line4 = Line(4, "irrelevant", None, Some(DB(List(SymbolArg(fnord)))))
+        model.allocateStorageForLine(line4, 1, List(SymbolArg(fnord)))
+
+        val line5 = Line(5, "irrelevant", None, Some(DB(List(SymbolArg("foo")))))
+        model.allocateStorageForLine(line5, 1, List(SymbolArg("foo")))
+
+        model.endPass1()
+    }
+
+    @Test
+    def noForwardReferencesAtEndOfFirstPassIsGood(): Unit = {
+        val line = Line(3, "irrelevant", None, Some(DBDup(Number(5), SymbolArg(fnord))))
+        val storage = model.allocateStorageForLine(line, 1, Number(5), SymbolArg(fnord))
+        model.setVariable(fnord, 34, 9)
+
+        model.endPass1()
+    }
+
+    // Assembly phases -------------------------------------------------------------------------------------------------
+
 }
