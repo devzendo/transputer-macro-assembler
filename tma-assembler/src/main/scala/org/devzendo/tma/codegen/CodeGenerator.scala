@@ -162,12 +162,14 @@ class CodeGenerator(debugCodegen: Boolean) {
     }
 
     def createModel(lines: List[Line]): AssemblyModel = {
-        // call model endPass1 to check for unresolved forward references, which will throw
-        // model.checkUnresolvedForwardReferences()
-        // pass2();
         logger.debug("Creating model from " + lines.size + " line(s)")
 
         lines.foreach( (l: Line) => processLine(l) )
+
+        logger.debug("Checking for unresolved forward references")
+        model.checkUnresolvedForwardReferences() // will throw if there are any
+        // pass2();
+
         model
     }
 }
