@@ -330,7 +330,7 @@ class AssemblyModel {
         forwardReferenceFixups.getOrElse(symbol, Set.empty).toSet
     }
 
-    def endPass1(): Unit = {
+    def checkUnresolvedForwardReferences(): Unit = {
 
         if (forwardReferenceFixups.nonEmpty) {
             // If there are any undefined symbols, sort them alphabetically, and list them with the line numbers they're

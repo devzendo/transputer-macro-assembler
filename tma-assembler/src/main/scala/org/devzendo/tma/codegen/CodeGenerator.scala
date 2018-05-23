@@ -163,7 +163,7 @@ class CodeGenerator(debugCodegen: Boolean) {
 
     def createModel(lines: List[Line]): AssemblyModel = {
         // call model endPass1 to check for unresolved forward references, which will throw
-        // model.endPass1() // TODO rename checkUnresolvedForwardReferences
+        // model.checkUnresolvedForwardReferences()
         // pass2();
         logger.debug("Creating model from " + lines.size + " line(s)")
 

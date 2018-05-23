@@ -599,7 +599,7 @@ class TestAssemblyModel extends AssertionsForJUnit with MustMatchers {
         val line5 = Line(5, "irrelevant", None, Some(DB(List(SymbolArg("foo")))))
         model.allocateStorageForLine(line5, 1, List(SymbolArg("foo")))
 
-        model.endPass1()
+        model.checkUnresolvedForwardReferences()
     }
 
     @Test
@@ -608,7 +608,7 @@ class TestAssemblyModel extends AssertionsForJUnit with MustMatchers {
         val storage = model.allocateStorageForLine(line, 1, Number(5), SymbolArg(fnord))
         model.setVariable(fnord, 34, 9)
 
-        model.endPass1()
+        model.checkUnresolvedForwardReferences()
     }
 
     // Assembly phases -------------------------------------------------------------------------------------------------
