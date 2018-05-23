@@ -42,8 +42,8 @@ class AssemblerController(macroManager: MacroManager, parser: AssemblyParser, co
 
     def parseTextLine(lineNumber: Int, text: String): Unit = {
         try {
-            val out = parser.parse(text, lineNumber)
-            parsedLinesSoFar ++= out
+            val lineList = parser.parse(text, lineNumber)
+            parsedLinesSoFar ++= lineList
         } catch {
             case ape: AssemblyParserException =>
                 parseErrors += ape

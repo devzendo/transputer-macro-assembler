@@ -152,8 +152,7 @@ class CodeGenerator(debugCodegen: Boolean) {
         // create new current pass 2 structure
     }
 
-    def endPass1: Unit = {
-        // call model endPass1 to check for unresolved forward references, which will throw
+    private def pass2: Unit = {
         // iterate over list of pass 2 structures:
         //   set $ to the start address
         //   iterate over each stored line/statement
@@ -163,6 +162,9 @@ class CodeGenerator(debugCodegen: Boolean) {
     }
 
     def createModel(lines: List[Line]): AssemblyModel = {
+        // call model endPass1 to check for unresolved forward references, which will throw
+        // model.endPass1() // TODO rename checkUnresolvedForwardReferences
+        // pass2();
         logger.debug("Creating model from " + lines.size + " line(s)")
 
         lines.foreach( (l: Line) => processLine(l) )
