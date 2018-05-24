@@ -28,17 +28,22 @@ class Pass2Structure {
 
     private var startAddress: Int = 0
     private var endAddress: Int = 0
-    private val statements = mutable.ArrayBuffer[Statement]() // might have to be Line?
+    private val lines = mutable.ArrayBuffer[Line]()
 
     def setStartAddress(startAddress: Int): Unit = {
         this.startAddress = startAddress
     }
+    def getStartAddress = startAddress
 
     def setEndAddress(endAddress: Int): Unit = {
         this.endAddress = endAddress
     }
+    def getEndAddress = endAddress
+
+    def getPass1BlockSize = endAddress - startAddress
 
     def addPass2Line(line: Line): Unit = {
-
+        lines += line
     }
+    def getPass2Lines: List[Line] = lines.toList
 }

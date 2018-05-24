@@ -17,7 +17,7 @@
 package org.devzendo.tma.codegen
 
 import org.devzendo.tma.ast.AST.{Label, MacroName, SymbolName}
-import org.devzendo.tma.ast._
+import org.devzendo.tma.ast.{Line, _}
 import org.junit.rules.ExpectedException
 import org.junit.{Rule, Test}
 import org.log4s.Logger
@@ -306,5 +306,112 @@ class TestCodeGenerator extends AssertionsForJUnit with MustMatchers {
         val line = Line(1, "", None, Some(dbStatement))
 
         generateFromLine(line)
+    }
+
+    @Test
+    def addressOfPass1BlockStoredOnIf1(): Unit = {
+        val model = generateFromLines(List(
+            Line(1, "", None, Some(Org(Number(42)))),
+            Line(2, "", None, Some(If1()))
+        ))
+
+        codegen.currentP2Structure.getStartAddress must be(42)
+    }
+
+    @Test
+    def sizeOfPass1BlockStoredOnElse(): Unit = {
+        val model = generateFromLines(List(
+            Line(1, "", None, Some(If1())),
+            Line(2, "", None, Some(DB(List(Number(1), Number(2), Number(3))))), // 3 bytes in the block
+            Line(3, "", None, Some(Else()))
+        ))
+
+        codegen.currentP2Structure.getPass1BlockSize must be(3)
+    }
+
+    @Test
+    def pass2LinesStoredInTheCurrentP2Structure(): Unit = {
+        val lines = List(
+            Line(1, "", None, Some(If1())), // No lines in pass 1 - but there will be in pass 2.
+            Line(2, "", None, Some(Else())), // That will throw on Endif, but I just need to sense storage of pass 2 lines.
+            Line(3, "", None, Some(DB(List(Number(6), Number(7), Number(8))))), // updated values in pass 2
+            Line(4, "", None, Some(DW(List(Number(9), Number(10)))))
+        )
+        val model = generateFromLines(lines)
+
+        // The Pass 2 lines are stored in the current P2 structure....
+        codegen.currentP2Structure.getPass2Lines must be(List(lines(2), lines(3)))
+
+        // ...and not yet stored in the list for Pass 2
+        codegen.p2Structures must be(empty)
+
+        // ...and the pass 2 lines haven't been stored normally.
+        val storages = model.getStoragesForLine(3)
+        storages must be(empty)
+    }
+
+    @Test
+    def builtPass2LinesRecordedOnEndif(): Unit = {
+        val model = generateFromLines(List(
+            Line(1, "", None, Some(Org(Number(42)))),
+            Line(2, "", None, Some(If1())),
+            Line(3, "", None, Some(DB(List(Number(1), Number(2), Number(3))))),
+            Line(4, "", None, Some(DW(List(Number(4), Number(5))))),
+            Line(5, "", None, Some(DD(List(Number(0))))),
+            Line(6, "", None, Some(Else())),
+            Line(7, "", None, Some(DB(List(Number(6), Number(7), Number(8))))),
+            Line(8, "", None, Some(DW(List(Number(9), Number(10))))),
+            Line(9, "", None, Some(DD(List(Number(11))))),
+            Line(10, "", None, Some(Endif()))
+        ))
+
+        // Structure is recorded for processing in pass 2....
+        val p2stored = codegen.p2Structures.head
+        p2stored.getStartAddress must be(42)
+        p2stored.getPass1BlockSize must be(11)
+
+        // We have a new structure for building up....
+        codegen.currentP2Structure.getPass1BlockSize must be(0)
+        codegen.currentP2Structure.getPass2Lines must be(empty)
+    }
+
+    @Test
+    def returnToPass1AssemblyAfterEndif(): Unit = {
+        val model = generateFromLines(List(
+            Line(1, "", None, Some(Org(Number(42)))),
+            Line(2, "", None, Some(If1())),
+            Line(3, "", None, Some(Else())),
+            Line(4, "", None, Some(Endif())),
+            Line(5, "", None, Some(DD(List(Number(11)))))
+        ))
+
+        // Line 5 is stored... since we're back in Assembly (conversion to Storage) mode after Endif
+        val storages = model.getStoragesForLine(5)
+        storages must have size 1
+        val line5Storage = storages.head
+        line5Storage.line.number must be(5)
+        line5Storage.data must have size 1
+        line5Storage.data(0) must be(11)
+    }
+
+    // TODO else without if1?
+    // TODO endif without if1/else?
+
+    @Test
+    def fullIf1ElseEndifTest(): Unit = {
+        val model = generateFromLines(List(
+            Line(1, "", None, Some(Org(Number(42)))),
+            Line(2, "", Some(new Label(fnord)), Some(DB(List(Number(77))))), // label fnord = 42
+            Line(3, "", None, Some(If1())),
+            Line(4, "", None, Some(DB(List(Number(1), Number(2), Number(3))))),
+            Line(5, "", None, Some(DW(List(Number(4), Number(5))))),
+            Line(6, "", None, Some(DD(List(Number(0))))),
+            Line(6, "", None, Some(Else())),
+            Line(7, "", None, Some(DB(List(Number(6), Number(7), Number(8))))), // updated values in pass 2
+            Line(8, "", None, Some(DW(List(Number(9), Number(10))))),
+            Line(9, "", None, Some(DD(List(SymbolArg(fnord))))), // should get fixed up in pass 2
+            Line(10, "", None, Some(Endif()))
+        ))
+        // TODO test everything
     }
 }

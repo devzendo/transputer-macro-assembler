@@ -21,6 +21,7 @@ import org.devzendo.tma.ast._
 import org.log4s.Logger
 
 import scala.collection.mutable
+import scala.collection.mutable.ArrayBuffer
 
 /*
  * A mutable structure holding the output of the CodeGenerator.
@@ -238,7 +239,7 @@ class AssemblyModel {
     }
 
     def getStoragesForLine(lineNumber: Int): List[Storage] = {
-        storagesForLines(lineNumber).toList
+        storagesForLines.getOrElse(lineNumber, ArrayBuffer[Storage]()).toList
     }
 
     private def getUnsignedInt(x: Int): Long = x & 0x00000000ffffffffL

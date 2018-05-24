@@ -27,16 +27,30 @@ class CodeGenerator(debugCodegen: Boolean) {
 
     private val model = new AssemblyModel
 
-    private val p2Structures = mutable.ArrayBuffer[Pass2Structure]()
-    private var currentP2Structure = new Pass2Structure()
+    private var collectingPass2 = false
+
+    private[codegen] val p2Structures = mutable.ArrayBuffer[Pass2Structure]()
+    private[codegen] var currentP2Structure = new Pass2Structure()
 
     def processLine(line: Line): Unit = {
         // TODO what about collecting exceptions?
         try {
-            createLabel(line)
-            processLineStatement(line)
+            if (collectingPass2 && notEndif(line)) {
+                logger.debug("Adding line to Pass 2 Collection: " + line)
+                currentP2Structure.addPass2Line(line)
+            } else {
+                createLabel(line)
+                processLineStatement(line)
+            }
         } catch {
             case ame: AssemblyModelException => throw new CodeGenerationException(line.number, ame.getMessage)
+        }
+    }
+
+    private def notEndif(line: Line): Boolean = {
+        line.stmt match {
+            case Some(Endif()) => false
+            case _ => true
         }
     }
 
@@ -54,6 +68,7 @@ class CodeGenerator(debugCodegen: Boolean) {
 
     private def processStatement(line: Line, stmt: Statement): Unit = {
         val lineNumber = line.number
+        logger.debug("Line " + lineNumber + " Statement: " + stmt)
         stmt match {
             case Title(text) =>
                 model.title = text
@@ -137,19 +152,31 @@ class CodeGenerator(debugCodegen: Boolean) {
     }
 
     private def processIf1(): Unit = {
-        // store address for buildup in the current pass 2 structure
-        // assembly of statements continues normally
+        val dollar = model.getDollar
+        logger.debug("Setting Pass 2 start address of " + dollar + " in If1")
+        // We'll need the pass 1 current address, when processing the pass 2 lines.
+        currentP2Structure.setStartAddress(dollar)
+        // Assembly of statements continues normally...
     }
 
     private def processElse(): Unit = {
-        // store pass 1 block size in current pass 2 structure
-        // switch to collect statements/lines for pass 2
+        val dollar = model.getDollar
+        logger.debug("Setting Pass 2 end address of " + dollar + " in Else; switching to Pass 2 Line Collection")
+        // How large is the pass 1 block? Store end address (current address after its contents have been assembled)
+        // in current pass 2 structure..
+        currentP2Structure.setEndAddress(dollar)
+        // Switch to collect statements/lines for pass 2
+        collectingPass2 = true
     }
 
     private def processEndif(): Unit = {
-        // collect the built pass 2 structure in a list for pass 2 processing
-        // switch back to assemble statements straight in pass 1
-        // create new current pass 2 structure
+        logger.debug("Storing collected Pass 2 Lines in Endif; switching to Pass 1 Line Assembly")
+        // Collect the built pass 2 structure in a list for pass 2 processing..
+        p2Structures += currentP2Structure
+        // Create new current pass 2 structure
+        currentP2Structure = new Pass2Structure
+        // Switch back to assemble statements to storage/model updates in pass 1
+        collectingPass2 = false
     }
 
     private def pass2: Unit = {

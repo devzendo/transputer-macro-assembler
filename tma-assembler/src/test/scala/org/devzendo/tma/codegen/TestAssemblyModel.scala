@@ -377,6 +377,11 @@ class TestAssemblyModel extends AssertionsForJUnit with MustMatchers {
     }
 
     @Test
+    def noStorageForLineGivesEmptyList(): Unit = {
+        model.getStoragesForLine(17) must be(empty)
+    }
+
+    @Test
     def storageIncrementsDollarByCellWidthTimesLength(): Unit = {
         val startAddress = 20
         val cellWidth = 1
