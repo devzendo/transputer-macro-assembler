@@ -421,8 +421,45 @@ class TestCodeGenerator extends AssertionsForJUnit with MustMatchers {
             Line(7, "", None, Some(DB(List(Number(6), Number(7), Number(8))))), // updated values in pass 2
             Line(8, "", None, Some(DW(List(Number(9), Number(10))))),
             Line(9, "", None, Some(DD(List(SymbolArg(fnord))))), // should get fixed up in pass 2
-            Line(10, "", None, Some(Endif()))
+            Line(10, "", None, Some(Endif())),
+            Line(11, "", None, Some(DB(List(Number(11)))))
         ))
-        // TODO test everything
+
+        model.getLabel(fnord) must be(42)
+
+        val line2Storages = model.getStoragesForLine(2)
+        line2Storages must have size 1
+        val line2Storage = line2Storages.head
+        line2Storage.address must be(42)
+        line2Storage.data must be(Array(77))
+        line2Storage.cellWidth must be(1)
+
+        val line4Storages = model.getStoragesForLine(4)
+        line4Storages must have size 1
+        val line4Storage = line4Storages.head
+        line4Storage.address must be(43)
+        line4Storage.data must be(Array(1, 2, 3))
+        line4Storage.cellWidth must be(1)
+
+        val line7Storages = model.getStoragesForLine(7)
+        line7Storages must have size 1
+        val line7Storage = line7Storages.head
+        line7Storage.address must be(43)
+        line7Storage.data must be(Array(6, 7, 8))
+        line7Storage.cellWidth must be(1)
+
+        val line9Storages = model.getStoragesForLine(9)
+        line9Storages must have size 1
+        val line9Storage = line9Storages.head
+        line9Storage.address must be(50)
+        line9Storage.data must be(Array(42)) // fnord is resolved
+        line9Storage.cellWidth must be(4)
+
+        val line11Storages = model.getStoragesForLine(11)
+        line11Storages must have size 1
+        val line11Storage = line11Storages.head
+        line11Storage.address must be(54)
+        line11Storage.data must be(Array(11))
+        line11Storage.cellWidth must be(1)
     }
 }

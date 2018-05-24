@@ -190,22 +190,32 @@ class CodeGenerator(debugCodegen: Boolean) {
     }
 
     private def pass2: Unit = {
-        // iterate over list of pass 2 structures:
-        //   set $ to the start address
-        //   iterate over each stored line/statement
-        //     pass it through processStatement to possibly append Storages at existing addresses (these'll be resolved
-        //     sequentially, overwriting earlier memory, in the writers).
+        for (p2 <- p2Structures) {
+            val p2Lines = p2.getPass2Lines
+            // Only bother processing lines, and setting $ if there are any lines - can't set $ without a line number
+            // for diagnostics..
+            if (p2Lines.nonEmpty) {
+                model.setDollar(p2.getStartAddress, p2Lines.head.number)
+                for (line <- p2Lines) {
+                    // This will possibly append Storages at existing addresses - these will be resolved sequentially
+                    // overwriting earlier memory, in the writers.
+                    processLine(line)
+                }
         //   get $; is it at the same place it was after assembling the pass 1 block? throw if not
+            }
+        }
     }
 
     def createModel(lines: List[Line]): AssemblyModel = {
-        logger.debug("Creating model from " + lines.size + " line(s)")
-
+        logger.info("Pass 1: Creating model from " + lines.size + " line(s)")
         lines.foreach( (l: Line) => processLine(l) )
 
-        logger.debug("Checking for unresolved forward references")
+        logger.info("End of Pass 1: Checking for unresolved forward references")
         model.checkUnresolvedForwardReferences() // will throw if there are any
-        // pass2();
+
+        logger.info("Pass 2: Updating model from " + p2Structures.size + " pass 2 fixup(s)")
+        pass2
+        logger.info("End of Pass 2")
 
         model
     }
