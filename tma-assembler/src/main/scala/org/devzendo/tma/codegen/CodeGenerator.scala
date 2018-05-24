@@ -27,7 +27,10 @@ class CodeGenerator(debugCodegen: Boolean) {
 
     private val model = new AssemblyModel
 
-    private var collectingPass2 = false
+    object GenerationMode extends Enumeration {
+        val Assembly, If1Seen, ElseSeen = Value
+    }
+    private var generationMode = GenerationMode.Assembly
 
     private[codegen] val p2Structures = mutable.ArrayBuffer[Pass2Structure]()
     private[codegen] var currentP2Structure = new Pass2Structure()
@@ -35,7 +38,7 @@ class CodeGenerator(debugCodegen: Boolean) {
     def processLine(line: Line): Unit = {
         // TODO what about collecting exceptions?
         try {
-            if (collectingPass2 && notEndif(line)) {
+            if (generationMode == GenerationMode.ElseSeen && notEndif(line)) {
                 logger.debug("Adding line to Pass 2 Collection: " + line)
                 currentP2Structure.addPass2Line(line)
             } else {
@@ -157,6 +160,7 @@ class CodeGenerator(debugCodegen: Boolean) {
         // We'll need the pass 1 current address, when processing the pass 2 lines.
         currentP2Structure.setStartAddress(dollar)
         // Assembly of statements continues normally...
+        generationMode = GenerationMode.If1Seen
     }
 
     private def processElse(): Unit = {
@@ -166,7 +170,7 @@ class CodeGenerator(debugCodegen: Boolean) {
         // in current pass 2 structure..
         currentP2Structure.setEndAddress(dollar)
         // Switch to collect statements/lines for pass 2
-        collectingPass2 = true
+        generationMode = GenerationMode.ElseSeen
     }
 
     private def processEndif(): Unit = {
@@ -176,7 +180,7 @@ class CodeGenerator(debugCodegen: Boolean) {
         // Create new current pass 2 structure
         currentP2Structure = new Pass2Structure
         // Switch back to assemble statements to storage/model updates in pass 1
-        collectingPass2 = false
+        generationMode = GenerationMode.Assembly
     }
 
     private def pass2: Unit = {
