@@ -462,4 +462,18 @@ class TestCodeGenerator extends AssertionsForJUnit with MustMatchers {
         line11Storage.data must be(Array(11))
         line11Storage.cellWidth must be(1)
     }
+
+    @Test
+    def differentPass1AndPass2BlockSizes(): Unit = {
+        thrown.expect(classOf[CodeGenerationException])
+        thrown.expectMessage("4: Differently-sized blocks in Passes 1 and 2: Pass 1=3 byte(s); Pass 2=4 byte(s)")
+
+        generateFromLines(List(
+            Line(1, "", None, Some(If1())),
+            Line(2, "", None, Some(DB(List(Number(1), Number(2), Number(3))))),
+            Line(3, "", None, Some(Else())),
+            Line(4, "", None, Some(DW(List(Number(9), Number(10))))),
+            Line(5, "", None, Some(Endif()))
+        ))
+    }
 }

@@ -189,7 +189,7 @@ class CodeGenerator(debugCodegen: Boolean) {
         generationMode = GenerationMode.Assembly
     }
 
-    private def pass2: Unit = {
+    private def pass2(): Unit = {
         for (p2 <- p2Structures) {
             val p2Lines = p2.getPass2Lines
             // Only bother processing lines, and setting $ if there are any lines - can't set $ without a line number
@@ -201,7 +201,14 @@ class CodeGenerator(debugCodegen: Boolean) {
                     // overwriting earlier memory, in the writers.
                     processLine(line)
                 }
-        //   get $; is it at the same place it was after assembling the pass 1 block? throw if not
+
+                // Current address must match end address of pass 1. If not, the blocks are different sizes.
+                val endAddressPass2 = model.getDollar
+                if (endAddressPass2 != p2.getEndAddress) {
+                    throw new CodeGenerationException(p2Lines.head.number, "Differently-sized blocks in Passes 1 and 2: Pass 1=" +
+                      (p2.getEndAddress - p2.getStartAddress) + " byte(s); Pass 2=" +
+                      (endAddressPass2 - p2.getStartAddress) + " byte(s)")
+                }
             }
         }
     }
