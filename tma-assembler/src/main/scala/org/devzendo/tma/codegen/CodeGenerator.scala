@@ -98,8 +98,8 @@ class CodeGenerator(debugCodegen: Boolean) {
             case DWDup(count, repeatedExpr) => model.allocateStorageForLine(line, 2, count, repeatedExpr)
             case DDDup(count, repeatedExpr) => model.allocateStorageForLine(line, 4, count, repeatedExpr)
             case If1() => processIf1()
-            case Else() => processElse()
-            case Endif() => processEndif()
+            case Else() => processElse(lineNumber)
+            case Endif() => processEndif(lineNumber)
         }
     }
 
@@ -163,7 +163,10 @@ class CodeGenerator(debugCodegen: Boolean) {
         generationMode = GenerationMode.If1Seen
     }
 
-    private def processElse(): Unit = {
+    private def processElse(lineNumber: Int): Unit = {
+        if (generationMode != GenerationMode.If1Seen) {
+            throw new CodeGenerationException(lineNumber, "Else seen without prior If1")
+        }
         val dollar = model.getDollar
         logger.debug("Setting Pass 2 end address of " + dollar + " in Else; switching to Pass 2 Line Collection")
         // How large is the pass 1 block? Store end address (current address after its contents have been assembled)
@@ -173,7 +176,10 @@ class CodeGenerator(debugCodegen: Boolean) {
         generationMode = GenerationMode.ElseSeen
     }
 
-    private def processEndif(): Unit = {
+    private def processEndif(lineNumber: Int): Unit = {
+        if (generationMode != GenerationMode.If1Seen && generationMode != GenerationMode.ElseSeen) {
+            throw new CodeGenerationException(lineNumber, "Endif seen without prior If1")
+        }
         logger.debug("Storing collected Pass 2 Lines in Endif; switching to Pass 1 Line Assembly")
         // Collect the built pass 2 structure in a list for pass 2 processing..
         p2Structures += currentP2Structure

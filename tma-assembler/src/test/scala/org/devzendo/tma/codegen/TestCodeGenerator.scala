@@ -394,8 +394,19 @@ class TestCodeGenerator extends AssertionsForJUnit with MustMatchers {
         line5Storage.data(0) must be(11)
     }
 
-    // TODO else without if1?
-    // TODO endif without if1/else?
+    @Test
+    def elseWithoutIf1(): Unit = {
+        thrown.expect(classOf[CodeGenerationException])
+        thrown.expectMessage("3: Else seen without prior If1")
+        generateFromLines(List(Line(3, "", None, Some(Else()))))
+    }
+
+    @Test
+    def endifWithoutIf1(): Unit = {
+        thrown.expect(classOf[CodeGenerationException])
+        thrown.expectMessage("7: Endif seen without prior If1")
+        generateFromLines(List(Line(7, "", None, Some(Endif()))))
+    }
 
     @Test
     def fullIf1ElseEndifTest(): Unit = {
