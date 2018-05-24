@@ -83,6 +83,7 @@ class CodeGenerator(debugCodegen: Boolean) {
             case Processor(name) =>
                 model.processor = Some(name)
                 logger.debug("Processor is '" + name + "'")
+            case Align(n) => processAlign(lineNumber, n)
             case Org(expr) => processOrg(lineNumber, expr)
             case ConstantAssignment(name, expr) => processConstantAssignment(lineNumber, name, expr)
             case VariableAssignment(name, expr) => processVariableAssignment(lineNumber, name, expr)
@@ -100,6 +101,14 @@ class CodeGenerator(debugCodegen: Boolean) {
             case If1() => processIf1()
             case Else() => processElse(lineNumber)
             case Endif() => processEndif(lineNumber)
+        }
+    }
+
+    private def processAlign(lineNumber: Int, alignment: Int): Unit = {
+        val dollar = model.getDollar
+        val remainder = dollar % alignment
+        if (remainder > 0) {
+            model.setDollar(dollar + alignment - remainder, lineNumber)
         }
     }
 

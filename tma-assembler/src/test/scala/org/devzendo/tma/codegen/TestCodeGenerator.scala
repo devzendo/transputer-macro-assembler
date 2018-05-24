@@ -19,6 +19,7 @@ package org.devzendo.tma.codegen
 import org.devzendo.tma.ast.AST.{Label, MacroName, SymbolName}
 import org.devzendo.tma.ast.{Line, _}
 import org.junit.rules.ExpectedException
+import org.junit.runners.Parameterized.Parameters
 import org.junit.{Rule, Test}
 import org.log4s.Logger
 import org.scalatest.MustMatchers
@@ -79,6 +80,28 @@ class TestCodeGenerator extends AssertionsForJUnit with MustMatchers {
     @Test
     def processor(): Unit = {
         generateFromStatement(Processor("T800")).processor must be(Some("T800"))
+    }
+
+    @Test
+    def alignmentAlreadyAligned(): Unit = {
+        val model = generateFromStatements(List(
+            Org(Number(4)),
+            Align(4)
+        ))
+        model.getDollar must be(4)
+    }
+
+    @Test
+    def alignmentAdjusts(): Unit = {
+        for (i <- 1 to 7) {
+            logger.debug("Aligning address of " + i + " to 8 bytes")
+            val localCodeGen = new CodeGenerator(true)
+            val model = localCodeGen.createModel(List(
+                Line(1, "", None, Some(Org(Number(i)))),
+                Line(2, "", None, Some(Align(8)))
+            ))
+            model.getDollar must be(8)
+        }
     }
 
     @Test
