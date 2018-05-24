@@ -529,7 +529,7 @@ class TestAssemblyParser extends AssertionsForJUnit with MustMatchers {
         lines must have size 4
 
         val expectedStartStatement = MacroStart(new MacroName("$CODE"), expectedMacroParameterNames)
-        lines(0) must equal(Line(1, textLines(0).trim(), None, Some(expectedStartStatement)))
+        lines.head must equal(Line(1, textLines.head.trim(), None, Some(expectedStartStatement)))
 
         lines(1) must equal(Line(2, textLines(1).trim(), None, Some(MacroBody(textLines(1).trim()))))
 
@@ -735,7 +735,7 @@ class TestAssemblyParser extends AssertionsForJUnit with MustMatchers {
         ))
     }
 
-    private def dumpLines(lines: List[Line]) = {
+    private def dumpLines(lines: List[Line]): Unit = {
         logger.info("======================================")
         lines.foreach((l: Line) => logger.info(l.toString))
         logger.info("======================================")

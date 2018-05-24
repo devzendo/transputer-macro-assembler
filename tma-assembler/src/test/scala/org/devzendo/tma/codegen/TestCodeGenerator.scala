@@ -56,10 +56,6 @@ class TestCodeGenerator extends AssertionsForJUnit with MustMatchers {
         generateFromLine(Line(1, "", None, Some(stmt)))
     }
 
-    private def generateFromLabelledStatement(label: Label, stmt: Statement): AssemblyModel = {
-        generateFromLine(Line(1, "", Some(label), Some(stmt)))
-    }
-
     private def generateFromLine(line: Line): AssemblyModel = {
         generateFromLines(List(line))
     }
@@ -190,7 +186,8 @@ class TestCodeGenerator extends AssertionsForJUnit with MustMatchers {
         // rethrown including line number by the code generator.
         thrown.expect(classOf[CodeGenerationException])
         thrown.expectMessage("2: Constant 'FNORD' cannot be redefined; initially defined on line 1")
-        val model = generateFromStatements(List(
+
+        generateFromStatements(List(
             ConstantAssignment(new SymbolName(fnord), Number(42)),
             ConstantAssignment(new SymbolName(fnord), Number(12))
         ))
@@ -293,7 +290,6 @@ class TestCodeGenerator extends AssertionsForJUnit with MustMatchers {
     def dbDupZeroCount(): Unit = {
         // It's allowed to have a dbdup with 0 length (as a constant or number) - you wouldn't do this, but no reason
         // to disallow it.
-        val cellWidth = 1
         val count = 0
         val dbDupStatement = DBDup(Number(count), Number(69))
         val line = Line(1, "", None, Some(dbDupStatement))
@@ -324,7 +320,7 @@ class TestCodeGenerator extends AssertionsForJUnit with MustMatchers {
 
     @Test
     def addressOfPass1BlockStoredOnIf1(): Unit = {
-        val model = generateFromLines(List(
+        generateFromLines(List(
             Line(1, "", None, Some(Org(Number(42)))),
             Line(2, "", None, Some(If1()))
         ))
@@ -334,7 +330,7 @@ class TestCodeGenerator extends AssertionsForJUnit with MustMatchers {
 
     @Test
     def sizeOfPass1BlockStoredOnElse(): Unit = {
-        val model = generateFromLines(List(
+        generateFromLines(List(
             Line(1, "", None, Some(If1())),
             Line(2, "", None, Some(DB(List(Number(1), Number(2), Number(3))))), // 3 bytes in the block
             Line(3, "", None, Some(Else()))
@@ -366,7 +362,7 @@ class TestCodeGenerator extends AssertionsForJUnit with MustMatchers {
 
     @Test
     def builtPass2LinesRecordedOnEndif(): Unit = {
-        val model = generateFromLines(List(
+        generateFromLines(List(
             Line(1, "", None, Some(Org(Number(42)))),
             Line(2, "", None, Some(If1())),
             Line(3, "", None, Some(DB(List(Number(1), Number(2), Number(3))))),

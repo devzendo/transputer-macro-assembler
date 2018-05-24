@@ -610,12 +610,9 @@ class TestAssemblyModel extends AssertionsForJUnit with MustMatchers {
     @Test
     def noForwardReferencesAtEndOfFirstPassIsGood(): Unit = {
         val line = Line(3, "irrelevant", None, Some(DBDup(Number(5), SymbolArg(fnord))))
-        val storage = model.allocateStorageForLine(line, 1, Number(5), SymbolArg(fnord))
+        model.allocateStorageForLine(line, 1, Number(5), SymbolArg(fnord))
         model.setVariable(fnord, 34, 9)
 
         model.checkUnresolvedForwardReferences()
     }
-
-    // Assembly phases -------------------------------------------------------------------------------------------------
-
 }

@@ -147,7 +147,7 @@ class TestMacroManager extends AssertionsForJUnit with MustMatchers {
         macroManager.expandMacro(macroName, List.empty)
     }
 
-    private def setupSampleNonNestedMacro = {
+    private def setupSampleNonNestedMacro(): Unit = {
         // Exhaustively testing each delimiter is done in the 'punctuation' tests; a few are illustrated here
         macroManager.startMacro(macroName, macroParameterNames)
         macroManager.addMacroLine("Replaced: FOO: (BAR) (FOO) FOO-BAR FOO,BAR <FOO> {FOO} @FOO")
@@ -160,13 +160,13 @@ class TestMacroManager extends AssertionsForJUnit with MustMatchers {
         thrown.expect(classOf[IllegalStateException])
         thrown.expectMessage("Macro '" + macroName + "' has 2 parameters, but is called with 3")
 
-        setupSampleNonNestedMacro
+        setupSampleNonNestedMacro()
         macroManager.expandMacro(macroName, List(new MacroArgument("1"), new MacroArgument("replacement"), new MacroArgument("dodgy")))
     }
 
     @Test
     def macroInvocationReplacesParametersWithArgumentsHonouringCaseOfParameters(): Unit = {
-        setupSampleNonNestedMacro
+        setupSampleNonNestedMacro()
 
         val lines = macroManager.expandMacro(macroName, List(new MacroArgument("1"), new MacroArgument("replacement")))
         lines must be(List(
@@ -177,7 +177,7 @@ class TestMacroManager extends AssertionsForJUnit with MustMatchers {
 
     @Test
     def macroInvocationWithSameParametersAsArgumentsEffectivelyDoesNothing(): Unit = {
-        setupSampleNonNestedMacro
+        setupSampleNonNestedMacro()
 
         val lines = macroManager.expandMacro(macroName, List(new MacroArgument("FOO"), new MacroArgument("BAR")))
         lines must be(List(
@@ -188,7 +188,7 @@ class TestMacroManager extends AssertionsForJUnit with MustMatchers {
 
     @Test
     def macroInvocationWithFewerArgumentsThanParametersFillInWithEmptySpace(): Unit = {
-        setupSampleNonNestedMacro
+        setupSampleNonNestedMacro()
 
         val lines = macroManager.expandMacro(macroName, List(new MacroArgument("1")))
         lines must be(List(
@@ -199,7 +199,7 @@ class TestMacroManager extends AssertionsForJUnit with MustMatchers {
 
     @Test
     def macroInvocationWithNoArgumentsFillsInAllParametersWithEmptySpace(): Unit = {
-        setupSampleNonNestedMacro
+        setupSampleNonNestedMacro()
 
         val lines = macroManager.expandMacro(macroName, List.empty)
         lines must be(List(

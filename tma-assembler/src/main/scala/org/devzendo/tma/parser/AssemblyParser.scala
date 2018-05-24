@@ -16,6 +16,8 @@
 
 package org.devzendo.tma.parser
 
+import java.io
+
 import org.devzendo.tma.ast.AST.{Label, MacroArgument, MacroName, MacroParameterName}
 import org.devzendo.tma.ast._
 import org.log4s.Logger
@@ -143,7 +145,7 @@ class AssemblyParser(val debugParser: Boolean, val macroManager: MacroManager) {
 
                 val expansion = macroManager.expandMacro(macroInvocation.name, macroInvocation.args)
                 if (debugParser) expansion.foreach( (f: String) => logger.debug("expanded macro: |" + f + "|"))
-                val parsedExpansions = expansion.flatMap((str: String) => AssemblyParser.this.parse(str, lineNumber, true))
+                val parsedExpansions = expansion.flatMap((str: String) => AssemblyParser.this.parse(str, lineNumber, inMacroExpansion = true))
                 // Ensure that any label in the macro invocation is set in the first expanded parsed line
                 val parsedExpansionsWithInvocationLabel = replaceFirstLabel(optLabel, parsedExpansions)
                 if (debugParser) parsedExpansionsWithInvocationLabel.foreach( (l: Line) => logger.debug("expanded parsed macro: |" + l + "|"))
@@ -201,15 +203,14 @@ class AssemblyParser(val debugParser: Boolean, val macroManager: MacroManager) {
                 MacroInvocation(macroName, arguments)
         }
 
-        def macroArgumentSeparator = "," | rep(whiteSpace)
+        def macroArgumentSeparator: Parser[io.Serializable] = "," | rep(whiteSpace)
 
         // Special case to prevent re-detection of an existing macro (if the word following the existing macro name is MACRO)
         def existingMacro: Parser[MacroName] = ident ~ opt(macroWord) ^? {
             case possibleMacro ~ optMacroWord
-                if macroManager.exists(possibleMacro) && optMacroWord.isEmpty => {
-                    if (debugParser) logger.debug("in existingMacro, ident: " + possibleMacro)
-                    possibleMacro
-            }
+                if macroManager.exists(possibleMacro) && optMacroWord.isEmpty =>
+                if (debugParser) logger.debug("in existingMacro, ident: " + possibleMacro)
+                possibleMacro
         }
 
         def macroArgument: Parser[MacroArgument] = """[^\s,;]+""".r ^^ {
