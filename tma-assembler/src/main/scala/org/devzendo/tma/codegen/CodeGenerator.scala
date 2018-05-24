@@ -121,9 +121,8 @@ class CodeGenerator(debugCodegen: Boolean) {
             throw new CodeGenerationException(lineNumber, "Constant cannot be set to a Character expression '" + expr + "'")
         }
         val either = model.evaluateExpression(expr)
-        // TODO throw on undefineds
         either match {
-            case Left(undefineds) =>
+            case Left(undefineds) => throw new CodeGenerationException(lineNumber, "Constant cannot be set to an undefined symbol '" + undefineds + "'")
             case Right(value) =>
                 logger.debug("Constant " + name + " = " + value)
                 model.setConstant(name, value, lineNumber)
@@ -135,9 +134,8 @@ class CodeGenerator(debugCodegen: Boolean) {
             throw new CodeGenerationException(lineNumber, "Variable cannot be set to a Character expression '" + expr + "'")
         }
         val either = model.evaluateExpression(expr)
-        // TODO throw on undefineds
         either match {
-            case Left(undefineds) =>
+            case Left(undefineds) => throw new CodeGenerationException(lineNumber, "Variable cannot be set to an undefined symbol '" + undefineds + "'")
             case Right(value) =>
                 logger.debug("Variable " + name + " = " + value)
                 model.setVariable(name, value, lineNumber)
@@ -221,7 +219,7 @@ class CodeGenerator(debugCodegen: Boolean) {
         model.checkUnresolvedForwardReferences() // will throw if there are any
 
         logger.info("Pass 2: Updating model from " + p2Structures.size + " pass 2 fixup(s)")
-        pass2
+        pass2()
         logger.info("End of Pass 2")
 
         model
