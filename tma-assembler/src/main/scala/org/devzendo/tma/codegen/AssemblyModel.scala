@@ -23,6 +23,10 @@ import org.log4s.Logger
 import scala.collection.mutable
 import scala.collection.mutable.ArrayBuffer
 
+object Endianness extends Enumeration {
+    val Little, Big = Value
+}
+
 /*
  * A mutable structure holding the output of the CodeGenerator.
  */
@@ -54,6 +58,8 @@ class AssemblyModel {
     private val forwardReferenceFixups = mutable.HashMap[String, mutable.HashSet[Storage]]()
 
     private var endSeen = false
+
+    var endianness = Endianness.Big
 
     setVariable(dollar, 0, 0)
 

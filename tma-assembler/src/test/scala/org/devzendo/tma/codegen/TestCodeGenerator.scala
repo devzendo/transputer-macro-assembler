@@ -79,8 +79,17 @@ class TestCodeGenerator extends AssertionsForJUnit with MustMatchers {
     }
 
     @Test
-    def processor(): Unit = {
-        generateFromStatement(Processor("T800")).processor must be(Some("T800"))
+    def processorT800(): Unit = {
+        val model = generateFromStatement(Processor("T800"))
+        model.processor must be(Some("T800"))
+        model.endianness must be(Endianness.Little)
+    }
+
+    @Test
+    def processor386(): Unit = {
+        val model = generateFromStatement(Processor("386"))
+        model.processor must be(Some("386"))
+        model.endianness must be(Endianness.Little)
     }
 
     @Test

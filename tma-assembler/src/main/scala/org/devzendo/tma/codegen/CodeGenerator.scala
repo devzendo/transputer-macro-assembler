@@ -96,6 +96,10 @@ class CodeGenerator(debugCodegen: Boolean) {
             case Processor(name) =>
                 model.processor = Some(name)
                 logger.debug("Processor is '" + name + "'")
+                model.endianness = name match {
+                    case "386" => Endianness.Little
+                    case "T800" => Endianness.Little
+                }
             case Align(n) => processAlign(lineNumber, n)
             case Org(expr) => processOrg(lineNumber, expr)
             case End(expr) => processEnd(lineNumber, expr)
