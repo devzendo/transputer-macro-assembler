@@ -454,6 +454,16 @@ class TestAssemblyParser extends AssertionsForJUnit with MustMatchers {
     }
 
     @Test
+    def cpu386(): Unit = {
+        singleLineParsesToStatement(".386", Processor("386"))
+    }
+
+    @Test
+    def cpuT800(): Unit = {
+        singleLineParsesToStatement(".T800", Processor("T800"))
+    }
+
+    @Test
     def align(): Unit = {
         singleLineParsesToStatement("ALIGN 4 ; cell boundary", Align(4))
     }

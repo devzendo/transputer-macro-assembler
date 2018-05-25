@@ -161,7 +161,7 @@ class AssemblyParser(val debugParser: Boolean, val macroManager: MacroManager) {
         }
 
         def statement: Parser[Statement] = constantAssignment | variableAssignment | macroStart | origin | data |
-            title | page | align | condif1 | condelse | condendif | end | ignored
+            title | page | processor | align | condif1 | condelse | condendif | end | ignored
 
         // Not sure why I can't use ~> and <~ here to avoid the equ?
         def constantAssignment: Parser[ConstantAssignment] = (
@@ -308,6 +308,15 @@ class AssemblyParser(val debugParser: Boolean, val macroManager: MacroManager) {
             case rows ~ _ ~ columns =>
                 if (debugParser) logger.debug("in page, rows:" + rows + ", columns:" + columns)
                 Page(rows.toInt, columns.toInt)
+        }
+
+        def processor: Parser[Processor] = """\.(386|T800)""".r ^^ {
+            cpuString =>
+                val cpu = cpuString.substring(1)
+                if (debugParser) {
+                    logger.debug("in processor, cpu string is '" + cpu + "'")
+                }
+                Processor(cpu)
         }
 
         def align: Parser[Align] = (
