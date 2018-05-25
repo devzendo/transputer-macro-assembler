@@ -36,6 +36,11 @@ class TestAssemblyModel extends AssertionsForJUnit with MustMatchers {
     val model = new AssemblyModel
 
 
+    @Test
+    def initialConditions(): Unit = {
+        model.hasEndBeenSeen must be (false)
+    }
+
     // Variables -------------------------------------------------------------------------------------------------------
 
     @Test

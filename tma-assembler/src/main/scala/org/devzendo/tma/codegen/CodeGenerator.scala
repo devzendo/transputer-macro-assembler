@@ -35,7 +35,15 @@ class CodeGenerator(debugCodegen: Boolean) {
     private[codegen] val p2Structures = mutable.ArrayBuffer[Pass2Structure]()
     private[codegen] var currentP2Structure = new Pass2Structure()
 
+    private var lastLineNumber = 0
+
+    def getLastLineNumber = lastLineNumber
+
     def processLine(line: Line): Unit = {
+        if (line.number > lastLineNumber) {
+            lastLineNumber = line.number
+        }
+
         // TODO what about collecting exceptions?
         try {
             if (generationMode == GenerationMode.ElseSeen && notEndif(line)) {
@@ -72,6 +80,11 @@ class CodeGenerator(debugCodegen: Boolean) {
     private def processStatement(line: Line, stmt: Statement): Unit = {
         val lineNumber = line.number
         logger.debug("Line " + lineNumber + " Statement: " + stmt)
+
+        if (model.hasEndBeenSeen) {
+            throw new CodeGenerationException(lineNumber, "No statements allowed after End statement")
+        }
+
         stmt match {
             case Title(text) =>
                 model.title = text
@@ -85,6 +98,7 @@ class CodeGenerator(debugCodegen: Boolean) {
                 logger.debug("Processor is '" + name + "'")
             case Align(n) => processAlign(lineNumber, n)
             case Org(expr) => processOrg(lineNumber, expr)
+            case End(expr) => processEnd(lineNumber, expr)
             case ConstantAssignment(name, expr) => processConstantAssignment(lineNumber, name, expr)
             case VariableAssignment(name, expr) => processVariableAssignment(lineNumber, name, expr)
             case Ignored() => // Do nothing
@@ -123,6 +137,10 @@ class CodeGenerator(debugCodegen: Boolean) {
                 logger.debug("Org: " + org)
                 model.setDollar(org, lineNumber)
         }
+    }
+
+    private def processEnd(lineNumber: Int, expr: Option[Expression]): Unit = {
+        model.endHasBeenSeen()
     }
 
     private def processConstantAssignment(lineNumber: Int, name: SymbolName, expr: Expression): Unit = {
@@ -222,7 +240,9 @@ class CodeGenerator(debugCodegen: Boolean) {
 
     def createModel(lines: List[Line]): AssemblyModel = {
         logger.info("Pass 1: Creating model from " + lines.size + " line(s)")
-        lines.foreach( (l: Line) => processLine(l) )
+        lines.foreach {
+            (l: Line) => processLine(l)
+        }
 
         logger.info("End of Pass 1: Checking for unresolved forward references")
         model.checkUnresolvedForwardReferences() // will throw if there are any
@@ -232,5 +252,11 @@ class CodeGenerator(debugCodegen: Boolean) {
         logger.info("End of Pass 2")
 
         model
+    }
+
+    def endCheck(): Unit = {
+        if (!model.hasEndBeenSeen) {
+            throw new CodeGenerationException(lastLineNumber, "End of input reached with no End statement")
+        }
     }
 }

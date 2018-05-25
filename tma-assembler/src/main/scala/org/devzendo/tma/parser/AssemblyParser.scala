@@ -319,7 +319,7 @@ class AssemblyParser(val debugParser: Boolean, val macroManager: MacroManager) {
         }
 
         def end: Parser[End] = (
-          """(end|END)""".r  ~> expression
+          """(end|END)""".r  ~> opt(expression)
           ) ^^ {
             expr =>
                 if (debugParser) logger.debug("in end, expression:" + expr)

@@ -19,7 +19,6 @@ package org.devzendo.tma.codegen
 import org.devzendo.tma.ast.AST.{Label, MacroName, SymbolName}
 import org.devzendo.tma.ast.{Line, _}
 import org.junit.rules.ExpectedException
-import org.junit.runners.Parameterized.Parameters
 import org.junit.{Rule, Test}
 import org.log4s.Logger
 import org.scalatest.MustMatchers
@@ -30,7 +29,6 @@ class TestCodeGenerator extends AssertionsForJUnit with MustMatchers {
     val dollar = "$"
     val fnord = "FNORD"
 
-
     @Rule
     def thrown: ExpectedException = _thrown
     var _thrown: ExpectedException = ExpectedException.none
@@ -39,13 +37,16 @@ class TestCodeGenerator extends AssertionsForJUnit with MustMatchers {
 
     @Test
     def initialConditions(): Unit = {
-        val model = codegen.createModel(List.empty)
+        codegen.getLastLineNumber must be (0)
+        val model = codegen.createModel(List(Line(1, "", None, Some(End(None)))))
         model.title must be("")
         model.rows must be(25)
         model.columns must be(80)
         model.processor must be(None)
         model.getDollar must be(0)
         model.getVariable(dollar) must be (0)
+        model.hasEndBeenSeen must be (true) // cannot sense it being false initially after model created
+        codegen.getLastLineNumber must be(1)
     }
 
     private def generateFromStatements(stmts: List[Statement]): AssemblyModel = {
@@ -98,10 +99,40 @@ class TestCodeGenerator extends AssertionsForJUnit with MustMatchers {
             val localCodeGen = new CodeGenerator(true)
             val model = localCodeGen.createModel(List(
                 Line(1, "", None, Some(Org(Number(i)))),
-                Line(2, "", None, Some(Align(8)))
+                Line(2, "", None, Some(Align(8))),
+                Line(3, "", None, Some(End(None)))
             ))
             model.getDollar must be(8)
         }
+    }
+
+    @Test
+    def end(): Unit = {
+        val model = generateFromLines(List(Line(1, "", None, Some(End(None)))))
+        codegen.endCheck()
+        // Gets to the end, does not throw!
+        model.hasEndBeenSeen must be (true)
+    }
+
+    @Test
+    def endMissing(): Unit = {
+        thrown.expect(classOf[CodeGenerationException])
+        thrown.expectMessage("1: End of input reached with no End statement")
+
+        generateFromLines(List(Line(1, "", None, None)))
+        codegen.endCheck()
+    }
+
+    @Test
+    def endWithSubsequentCode(): Unit = {
+        thrown.expect(classOf[CodeGenerationException])
+        thrown.expectMessage("2: No statements allowed after End statement")
+
+        generateFromLines(List(
+            Line(1, "", None, Some(End(None))),
+            Line(2, "", None, Some(DB(List(Number(5)))))
+        ))
+        // no need to call endCheck, code gen will fail before then
     }
 
     @Test
@@ -114,6 +145,7 @@ class TestCodeGenerator extends AssertionsForJUnit with MustMatchers {
     def orgUnknownSymbolRetrieval(): Unit = {
         thrown.expect(classOf[CodeGenerationException])
         thrown.expectMessage("1: Undefined symbol(s) 'FNORD'") // could be Constant, Variable or Label - don't know which
+
         generateFromStatement(Org(SymbolArg("FNORD")))
     }
 
@@ -508,5 +540,15 @@ class TestCodeGenerator extends AssertionsForJUnit with MustMatchers {
             Line(4, "", None, Some(DW(List(Number(9), Number(10))))),
             Line(5, "", None, Some(Endif()))
         ))
+    }
+
+    @Test
+    def largestLineNumberCollected(): Unit = {
+        generateFromLines(List(
+            Line(1, "", None, None),
+            Line(2, "", None, None),
+            Line(3, "", None, None)
+        ))
+        codegen.getLastLineNumber must be (3)
     }
 }

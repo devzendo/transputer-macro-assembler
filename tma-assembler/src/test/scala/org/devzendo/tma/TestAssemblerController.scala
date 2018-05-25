@@ -16,7 +16,7 @@
 
 package org.devzendo.tma
 
-import org.devzendo.tma.codegen.CodeGenerator
+import org.devzendo.tma.codegen.{CodeGenerationException, CodeGenerator}
 import org.devzendo.tma.parser.{AssemblyParser, AssemblyParserException, MacroManager}
 import org.junit.rules.ExpectedException
 import org.junit.{Rule, Test}
@@ -73,9 +73,21 @@ class TestAssemblerController extends AssertionsForJUnit with MustMatchers {
     @Test // indirect, avoids mocks, and the interface extraction they'd necessitate just to test.
     def generate(): Unit = {
         controller.parseTextLine(1, "title 'hello world'")
+        controller.parseTextLine(2, "end")
         // not much of a program! tests that the parsed lines are passed to codegen though..
         val model = controller.generateModel()
         model.title must be("'hello world'")
+    }
+
+    @Test // indirect, avoids mocks, and the interface extraction they'd necessitate just to test.
+    def callsEndCheck(): Unit = {
+        thrown.expect(classOf[CodeGenerationException])
+        thrown.expectMessage("1: End of input reached with no End statement")
+
+        controller.parseTextLine(1, "title 'hello world'")
+        // NO end statement
+        // not much of a program! tests that the end check is called on codegen though..
+        controller.generateModel()
     }
 
     // TODO model generation errors accumulate

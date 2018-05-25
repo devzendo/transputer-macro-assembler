@@ -53,6 +53,8 @@ class AssemblyModel {
     // (either a variable, constant, or label).
     private val forwardReferenceFixups = mutable.HashMap[String, mutable.HashSet[Storage]]()
 
+    private var endSeen = false
+
     setVariable(dollar, 0, 0)
 
     def getDollar: Int = getVariable(dollar)
@@ -332,7 +334,6 @@ class AssemblyModel {
     }
 
     def checkUnresolvedForwardReferences(): Unit = {
-
         if (forwardReferenceFixups.nonEmpty) {
             // If there are any undefined symbols, sort them alphabetically, and list them with the line numbers they're
             // referenced on (sorted numerically). e.g. (aardvark: #1; FNORD: #3, #4; foo: #5; zygote: #1)
@@ -351,4 +352,10 @@ class AssemblyModel {
               allStorageNamesAndLineReferences.mkString("; ") + ")")
         }
     }
+
+    def endHasBeenSeen(): Unit = {
+        endSeen = true
+    }
+
+    def hasEndBeenSeen = endSeen
 }

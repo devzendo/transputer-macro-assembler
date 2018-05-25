@@ -70,6 +70,7 @@ class AssemblerController(macroManager: MacroManager, parser: AssemblyParser, co
             throw new RuntimeException("Parse errors; cannot continue")
         }
         model = codegen.createModel(parsedLinesSoFar.toList)
+        codegen.endCheck()
         model
     }
 

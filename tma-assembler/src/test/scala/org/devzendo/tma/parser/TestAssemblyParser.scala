@@ -459,8 +459,13 @@ class TestAssemblyParser extends AssertionsForJUnit with MustMatchers {
     }
 
     @Test
-    def end(): Unit = {
-        singleLineParsesToStatement("END\tORIG", End(SymbolArg("ORIG")))
+    def endWithExpression(): Unit = {
+        singleLineParsesToStatement("END\tORIG", End(Some(SymbolArg("ORIG"))))
+    }
+
+    @Test
+    def endWithoutExpression(): Unit = {
+        singleLineParsesToStatement("END", End(None))
     }
 
     @Test
