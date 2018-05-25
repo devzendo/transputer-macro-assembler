@@ -73,12 +73,13 @@ case class DBDup(count: Expression, repeatedValue: Expression) extends Statement
 case class DWDup(count: Expression, repeatedValue: Expression) extends Statement
 case class DDDup(count: Expression, repeatedValue: Expression) extends Statement
 case class Ignored() extends Statement
-case class DirectInstruction(opcode: Opcode, num: Int) extends Statement
-case class IndirectInstruction(opcode: Opcode) extends Statement
 case class If1() extends Statement
 case class Else() extends Statement
 case class Endif() extends Statement
 
+// These need to be produced in the Transputer-specific code generator if a Transputer CPU is selected with Processor..
+// case class DirectInstruction(opcode: Opcode, num: Int) extends Statement
+// case class IndirectInstruction(opcode: Opcode) extends Statement
 
 case class Memory(address: Int, data: List[Byte])
 
