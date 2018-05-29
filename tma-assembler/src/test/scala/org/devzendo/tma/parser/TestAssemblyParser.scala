@@ -507,6 +507,16 @@ class TestAssemblyParser extends AssertionsForJUnit with MustMatchers {
     }
 
     @Test
+    def list(): Unit = {
+        singleLineParsesToStatement(".LIST", Ignored())
+    }
+
+    @Test
+    def nolist(): Unit = {
+        singleLineParsesToStatement(".NOLIST", Ignored())
+    }
+
+    @Test
     def label(): Unit = {
         val line = "FOO:\tDD\t0x0"
         parseSingleLine(line) must

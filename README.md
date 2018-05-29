@@ -16,24 +16,26 @@ Project](https://devzendo.github.io/parachute) and its future languages.
 
 Status
 ------
-In development; unfinished; not yet at its first release (as of April/May 2018).
+Project started 19 April 2018.
+In development; unfinished; not yet at its first release (as of end-of-May 2018).
 
-Currently working on the parser, and macro expansion. No code generation yet.
+Currently working on output/listing writers. Parser, macro expansion and code generation are mostly done.
 
 Remaining work:
-
-* honour the Cpu directive, to switch in Transputer family native instructions, rather than db-generating macros
-* Transputer pfix/nfix generation from direct opcodes
+* write binary file
+* write listing file & symbol map
 * documentation of syntax
-* code generation
-  * prevent reassignment to the same constant
-  * handle overflowing DB/DD/DW data in code generation
 
 * nice-to-haves...
   * handling conversion of exceptions that the macro manager might throw when expanding
   * better case insensitivity of keywords https://stackoverflow.com/questions/38070885/how-to-handle-case-insensitive-keywords-with-scala-parser-combinators
   * macros shouldn't be able to replace keywords
 
+* later....
+  * honour the Cpu directive, to switch in Transputer family native instructions, rather than db-generating macros
+  * Transputer pfix/nfix generation from direct opcodes
+  * ELF writing
+  
 Rationale
 ---------
 I needed a macro assembler to assemble eForth. I have MASM 6, which works fine,

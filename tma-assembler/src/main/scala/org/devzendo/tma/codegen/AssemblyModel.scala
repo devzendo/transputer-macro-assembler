@@ -315,6 +315,7 @@ class AssemblyModel {
     }
 
     private def resolveForwardReferences(symbolName: String, value: Int): Unit = {
+        // TODO mark the storage as having had a forward reference resolved, so the R can be shown in the listing
         val storages = forwardReferences(symbolName)
         if (storages.nonEmpty) {
             logger.debug("Resolving references to symbol '" + symbolName + "' with value " + value)

@@ -340,7 +340,7 @@ class AssemblyParser(val debugParser: Boolean, val macroManager: MacroManager) {
         def condendif: Parser[Endif] = """(endif|ENDIF)""".r ^^ ( _ => Endif() )
 
         def ignored: Parser[Ignored] = ( ignoredKeyword ~ """.*""".r ) ^^ { _ => Ignored() }
-        def ignoredKeyword: Regex = """(main|MAIN|assume|ASSUME)""".r
+        def ignoredKeyword: Regex = """(main|MAIN|assume|ASSUME|\.LIST|\.NOLIST)""".r
 
         def expression: Parser[Expression] = (
           term ~ rep("+" ~ term | "-" ~ term)

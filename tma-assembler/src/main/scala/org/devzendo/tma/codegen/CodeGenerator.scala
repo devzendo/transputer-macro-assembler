@@ -104,7 +104,9 @@ class CodeGenerator(debugCodegen: Boolean) {
             case Org(expr) => processOrg(lineNumber, expr)
             case End(expr) => processEnd(lineNumber, expr)
             case ConstantAssignment(name, expr) => processConstantAssignment(lineNumber, name, expr)
+            // TODO store the value of the assignment so the listing can show it
             case VariableAssignment(name, expr) => processVariableAssignment(lineNumber, name, expr)
+                // TODO store the value of the assignment so the listing can show it
             case Ignored() => // Do nothing
             case MacroStart(_, _) =>  // All macro AST statements are handled by the parser; the expansions are handled
             case MacroBody(_) =>      // by the rest of the AST statement handlers, here..
