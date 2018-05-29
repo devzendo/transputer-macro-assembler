@@ -44,7 +44,6 @@ class CodeGenerator(debugCodegen: Boolean) {
             lastLineNumber = line.number
         }
 
-        // TODO what about collecting exceptions?
         try {
             if (generationMode == GenerationMode.ElseSeen && notEndif(line)) {
                 logger.debug("Adding line to Pass 2 Collection: " + line)
@@ -244,21 +243,37 @@ class CodeGenerator(debugCodegen: Boolean) {
         }
     }
 
+    private val codeGenerationErrors = mutable.ArrayBuffer[CodeGenerationException]()
+
     def createModel(lines: List[Line]): AssemblyModel = {
         logger.info("Pass 1: Creating model from " + lines.size + " line(s)")
-        lines.foreach {
-            (l: Line) => processLine(l)
+        lines.foreach { l: Line =>
+            try {
+                processLine(l)
+            } catch {
+                case cge: CodeGenerationException => codeGenerationErrors += cge
+            }
         }
 
         logger.info("End of Pass 1: Checking for unresolved forward references")
-        model.checkUnresolvedForwardReferences() // will throw if there are any
+        try {
+            model.checkUnresolvedForwardReferences() // will throw if there are any
+        } catch {
+            case cge: CodeGenerationException => codeGenerationErrors += cge
+        }
 
         logger.info("Pass 2: Updating model from " + p2Structures.size + " pass 2 fixup(s)")
-        pass2()
+        try {
+            pass2()
+        } catch {
+            case cge: CodeGenerationException => codeGenerationErrors += cge
+        }
         logger.info("End of Pass 2")
 
         model
     }
+
+    def getCodeGenerationExceptions: List[CodeGenerationException] = codeGenerationErrors.toList
 
     def endCheck(): Unit = {
         if (!model.hasEndBeenSeen) {

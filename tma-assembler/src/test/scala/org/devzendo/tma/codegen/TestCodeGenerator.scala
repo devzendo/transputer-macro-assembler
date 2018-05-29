@@ -63,7 +63,15 @@ class TestCodeGenerator extends AssertionsForJUnit with MustMatchers {
     }
 
     private def generateFromLines(lines: List[Line]): AssemblyModel = {
-        codegen.createModel(lines)
+        val model = codegen.createModel(lines)
+        // In this test class, we want to catch/sense the first exception. When used in the main assembler code,
+        // all exceptions are caught and logged so we can see the full error list, not just the first.
+        val exceptions = codegen.getCodeGenerationExceptions
+        if (exceptions.nonEmpty) {
+            throw exceptions.head
+        } else {
+            model
+        }
     }
 
     @Test

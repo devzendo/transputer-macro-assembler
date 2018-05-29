@@ -20,7 +20,7 @@ import java.io.File
 import java.util
 
 import org.devzendo.commoncode.resource.ResourceLoader
-import org.devzendo.tma.codegen.CodeGenerator
+import org.devzendo.tma.codegen.{CodeGenerationException, CodeGenerator}
 import org.devzendo.tma.parser.{AssemblyParser, AssemblyParserException, MacroManager}
 
 class AssemblerMain(val argList: List[String]) {
@@ -127,6 +127,13 @@ class AssemblerMain(val argList: List[String]) {
         controller.generateModel()
         val endCodegenTime = System.currentTimeMillis()
         logger.debug("Code generation complete in " + (endCodegenTime - startCodegenTime) + " ms")
+
+        val codeGenerationExceptions = controller.getCodeGenerationExceptions()
+        if (codeGenerationExceptions.nonEmpty) {
+            logger.error("Code generation errors:")
+            codeGenerationExceptions.foreach( (f: CodeGenerationException) => logger.error(f.getMessage))
+            errorQuit("Cannot continue")
+        }
 
         val startOutputTime = System.currentTimeMillis()
         controller.output(outputFile, binaryFile, listingFile)

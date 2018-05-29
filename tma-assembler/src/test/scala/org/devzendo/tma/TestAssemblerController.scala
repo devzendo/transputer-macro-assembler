@@ -16,6 +16,7 @@
 
 package org.devzendo.tma
 
+import org.devzendo.tma.ast._
 import org.devzendo.tma.codegen.{CodeGenerationException, CodeGenerator}
 import org.devzendo.tma.parser.{AssemblyParser, AssemblyParserException, MacroManager}
 import org.junit.rules.ExpectedException
@@ -90,5 +91,29 @@ class TestAssemblerController extends AssertionsForJUnit with MustMatchers {
         controller.generateModel()
     }
 
-    // TODO model generation errors accumulate
+    @Test
+    def codeGenerationErrorsAccumulate(): Unit = {
+        // no parse errors here, but will cause code gen / model exceptions
+        controller.addParsedLine(Line(1, "", None, Some(Org(Characters("blah"))))) // characters as an Org argument
+        controller.addParsedLine(Line(2, "", None, Some(Org(SymbolArg("fnorg"))))) // fnord is undefined
+        controller.addParsedLine(Line(3, "", None, Some(ConstantAssignment("bar", Characters("foo"))))) // cannot set a constant to characters
+        controller.addParsedLine(Line(4, "", None, Some(ConstantAssignment("valid", Number(5))))) // perfectly valid
+        controller.addParsedLine(Line(5, "", Some("valid"), Some(DB(List(Number(5)))))) // label can't override constant...
+        // ... AssemblyModelException converted to CodeGenerationException
+        controller.addParsedLine(Line(6, "", None, Some(ConstantAssignment("unres", SymbolArg("missing"))))) // unresolved forward reference
+        controller.addParsedLine(Line(7, "", None, Some(End(None))))
+        controller.addParsedLine(Line(8, "", None, Some(ConstantAssignment("valid", Number(5))))) // no statements allowed after End
+
+        controller.generateModel()
+
+        val errors = controller.getCodeGenerationExceptions().map((e: CodeGenerationException) => e.getMessage )
+        errors must be(List(
+            "1: Origin cannot be set to a Character expression 'Characters(blah)'",
+            "2: Undefined symbol(s) 'fnorg'",
+            "3: Constant cannot be set to a Character expression 'Characters(foo)'",
+            "5: Label 'valid' cannot override existing constant; initially defined on line 4",
+            "6: Constant cannot be set to an undefined symbol 'Set(missing)'",
+            "8: No statements allowed after End statement"
+        ))
+    }
 }

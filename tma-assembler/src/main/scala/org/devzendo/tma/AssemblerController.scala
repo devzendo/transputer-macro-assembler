@@ -19,7 +19,7 @@ package org.devzendo.tma
 import java.io.File
 
 import org.devzendo.tma.ast.Line
-import org.devzendo.tma.codegen.{AssemblyModel, CodeGenerator}
+import org.devzendo.tma.codegen.{AssemblyModel, CodeGenerationException, CodeGenerator}
 import org.devzendo.tma.output.{BinaryWriter, ELFWriter, ListingWriter}
 import org.devzendo.tma.parser.{AssemblyParser, AssemblyParserException, MacroManager}
 import org.log4s.Logger
@@ -73,6 +73,10 @@ class AssemblerController(macroManager: MacroManager, parser: AssemblyParser, co
         codegen.endCheck()
         model
     }
+
+    // Obtain any code generation errors that have been accumulated. If there are errors, the main code will log them
+    // and exit.
+    def getCodeGenerationExceptions(): List[CodeGenerationException] = codegen.getCodeGenerationExceptions
 
     // OUTPUT PHASE ----------------------------------------------------------------------------------------------------
 
