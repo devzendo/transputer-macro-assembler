@@ -27,6 +27,9 @@ object Endianness extends Enumeration {
     val Little, Big = Value
 }
 
+// Macro expansions have the same line number as their invocation; hence line number -> list[storage+]
+case class Storage(address: Int, cellWidth: Int, data: Array[Int], line: Line, exprs: List[Expression])
+
 /*
  * A mutable structure holding the output of the CodeGenerator.
  */
@@ -46,8 +49,6 @@ class AssemblyModel {
     private val constants = mutable.HashMap[String, Value]()
     private val labels = mutable.HashMap[String, Value]()
 
-    // Macro expansions have the same line number as their invocation; hence line number -> list[storage+]
-    case class Storage(address: Int, cellWidth: Int, data: Array[Int], line: Line, exprs: List[Expression])
     // Storage has a reference to its Line, so when the map of Undefined forward references -> Set[Storage]
     // is scanned at the end of the codegen phase, each Storage can show the Line on which the forward reference is.
     private val storagesForLines = mutable.HashMap[Int, mutable.ArrayBuffer[Storage]]() // indexed by line number
@@ -308,6 +309,14 @@ class AssemblyModel {
         allocateStorageForLine(line, cellWidth, exprs.toList)
     }
 
+    def foreachStorage(op: (Int, List[Storage]) => Unit): Unit = {
+        val lineNumbers = storagesForLines.keySet.toList.sorted
+        lineNumbers.foreach(num => {
+            val storages = storagesForLines(num).toList
+            op(num, storages)
+        })
+    }
+
     private def recordForwardReferences(undefinedSymbols: Set[String], storageToReEvaluate: Storage): Unit = {
         for (undefinedSymbol <- undefinedSymbols) {
             forwardReferenceFixups.getOrElseUpdate(undefinedSymbol, mutable.HashSet[Storage]()) += storageToReEvaluate
@@ -365,4 +374,42 @@ class AssemblyModel {
     }
 
     def hasEndBeenSeen = endSeen
+
+    private var lowStorageAddress = 0
+    private var highStorageAddress = 0
+
+    private def calculateBounds(): Unit = {
+        if ((lowStorageAddress, highStorageAddress) == (0, 0)) {
+            if (storagesForLines.nonEmpty) {
+                lowStorageAddress = Int.MaxValue
+                highStorageAddress = Int.MinValue
+                for (storageArray <- storagesForLines.values) {
+                    for (storage <- storageArray) {
+                        val start = storage.address
+                        val end = start + (storage.cellWidth * storage.data.length) - 1
+                        logger.debug("start " + start + " end " + end + " (" + (end - start + 1) + " byte(s))")
+                        if (start < lowStorageAddress) {
+                            logger.debug("new low bound")
+                            lowStorageAddress = start
+                        }
+                        if (end > highStorageAddress) {
+                            logger.debug("new high bound")
+                            highStorageAddress = end
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    def lowestStorageAddress: Int = {
+        calculateBounds()
+        lowStorageAddress
+    }
+
+    def highestStorageAddress: Int = {
+        calculateBounds()
+        highStorageAddress
+    }
+
 }

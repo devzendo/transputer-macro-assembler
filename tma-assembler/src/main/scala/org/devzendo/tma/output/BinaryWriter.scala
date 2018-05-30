@@ -16,15 +16,63 @@
 
 package org.devzendo.tma.output
 
-import java.io.File
+import java.io.{File, RandomAccessFile}
 
-import org.devzendo.tma.codegen.AssemblyModel
+import org.devzendo.commoncode.string.HexDump
+import org.devzendo.tma.codegen.{AssemblyModel, Storage}
 
 class BinaryWriter(val outputFile: File) {
     val logger = org.log4s.getLogger
+    logger.debug("Writing binary file " + outputFile.getAbsoluteFile)
+
 
     def encode(model: AssemblyModel): Unit = {
         logger.info("Writing binary file " + outputFile.getName)
+        val start = model.lowestStorageAddress
+        logger.info("Start address 0x" + HexDump.int2hex(start))
+        val end = model.highestStorageAddress
+        logger.info("End address 0x" + HexDump.int2hex(end))
+        val fileSize = end - start
+        val raf = new RandomAccessFile(outputFile, "rw")
+        try {
+            logger.debug("Zeroing 0x" + HexDump.int2hex(fileSize) + " byte(s)")
+            zero(raf, fileSize)
+            model.foreachStorage( (lineNumber: Int, storages: List[Storage]) => {
+                logger.debug("Writing storage for line " + lineNumber)
+                for (storage <- storages) {
+                    val address = storage.address
+                    val offset = address - start
+                    logger.debug("Seeking to offset 0x" + HexDump.int2hex(offset) + " for address 0x" + HexDump.int2hex(address))
+                    raf.seek(offset)
+
+                    // TODO DW, DD... storage.cellWidth match... endianness encoding
+
+                    for (dataInt <- storage.data) {
+                        logger.debug("  writing 0x" + HexDump.byte2hex(dataInt.toByte))
+                        raf.writeByte(dataInt)
+                    }
+                }
+            })
+        } finally {
+            raf.close()
+        }
+
+    }
+
+    private def zero(raf: RandomAccessFile, fileSize: Int) = {
+        raf.seek(0)
+        val emptyChunkSize = 128
+        val emptiness = Array.fill[Byte](emptyChunkSize)(0)
+        var remaining = fileSize
+        var offset = 0
+        while (remaining > 0) {
+            val thisChunkSize = Math.min(emptyChunkSize, remaining)
+            logger.debug("  Writing " + thisChunkSize + " zero(es) at offset 0x" + HexDump.int2hex(offset))
+            raf.write(emptiness, 0, thisChunkSize)
+            remaining = remaining - thisChunkSize
+            offset = offset + thisChunkSize
+        }
+        raf.seek(0)
     }
 
 }

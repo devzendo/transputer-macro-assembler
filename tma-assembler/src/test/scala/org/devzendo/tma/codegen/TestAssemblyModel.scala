@@ -24,6 +24,8 @@ import org.log4s.Logger
 import org.scalatest.MustMatchers
 import org.scalatest.junit.AssertionsForJUnit
 
+import scala.collection.mutable
+
 class TestAssemblyModel extends AssertionsForJUnit with MustMatchers {
     val logger: Logger = org.log4s.getLogger
     val dollar = "$"
@@ -39,6 +41,8 @@ class TestAssemblyModel extends AssertionsForJUnit with MustMatchers {
     @Test
     def initialConditions(): Unit = {
         model.hasEndBeenSeen must be (false)
+        model.lowestStorageAddress must be(0)
+        model.highestStorageAddress must be(0)
     }
 
     // Variables -------------------------------------------------------------------------------------------------------
@@ -619,5 +623,57 @@ class TestAssemblyModel extends AssertionsForJUnit with MustMatchers {
         model.setVariable(fnord, 34, 9)
 
         model.checkUnresolvedForwardReferences()
+    }
+
+    @Test
+    def lowestAndHighestStorageAddresses(): Unit = {
+        model.setDollar(0x4000, 1)
+
+        val exprs = List(Number(1), Number(2))
+        model.allocateStorageForLine(Line(2, "", None, Some(DB(exprs))), 1, exprs)
+
+        model.setDollar(0x4020, 3)
+
+        model.allocateStorageForLine(Line(4, "", None, Some(DB(exprs))), 1, exprs)
+
+        model.lowestStorageAddress must be(0x4000)
+        model.highestStorageAddress must be(0x4021)
+    }
+
+    @Test
+    def foreachStorageGivesLinesAndStoragesInOrder(): Unit = {
+        simpleOrderingTestModel
+
+        val lineNumbers = mutable.ArrayBuffer[Int]()
+        val storageBytes = mutable.ArrayBuffer[Int]()
+        var calls = 0
+        model.foreachStorage( (lineNumber: Int, storages: List[Storage]) => {
+            calls += 1
+            lineNumbers += lineNumber
+            for (storage <- storages) {
+                for (data <- storage.data) {
+                    storageBytes += data
+                }
+            }
+        })
+
+        calls must be(3) // two line 2's are coalesced into one call with two storages
+
+        lineNumbers.toArray must be(Array(1, 2, 5))
+        storageBytes.toArray must be(Array(1, 2, 3, 21))
+    }
+
+    private def simpleOrderingTestModel = {
+        val line5 = Line(5, "irrelevant", None, Some(DB(List(Number(21)))))
+        model.allocateStorageForLine(line5, 1, List(Number(21)))
+
+        val line1 = Line(1, "irrelevant", None, Some(DB(List(Number(1)))))
+        model.allocateStorageForLine(line1, 1, List(Number(1)))
+
+        val line2 = Line(2, "irrelevant", None, Some(DB(List(Number(2)))))
+        model.allocateStorageForLine(line2, 1, List(Number(2)))
+
+        val line2again = Line(2, "irrelevant", None, Some(DB(List(Number(3)))))
+        model.allocateStorageForLine(line2again, 1, List(Number(3)))
     }
 }
