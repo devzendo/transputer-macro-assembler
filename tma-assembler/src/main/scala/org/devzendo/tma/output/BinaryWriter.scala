@@ -19,7 +19,7 @@ package org.devzendo.tma.output
 import java.io.{File, RandomAccessFile}
 
 import org.devzendo.commoncode.string.HexDump
-import org.devzendo.tma.codegen.{AssemblyModel, Storage}
+import org.devzendo.tma.codegen.{AssemblyModel, Endianness, Storage}
 
 class BinaryWriter(val outputFile: File) {
     val logger = org.log4s.getLogger
@@ -45,11 +45,24 @@ class BinaryWriter(val outputFile: File) {
                     logger.debug("Seeking to offset 0x" + HexDump.int2hex(offset) + " for address 0x" + HexDump.int2hex(address))
                     raf.seek(offset)
 
-                    // TODO DW, DD... storage.cellWidth match... endianness encoding
+                    // Endianness encoding, yes you can use Channels... a bit of a faff
 
                     for (dataInt <- storage.data) {
-                        logger.debug("  writing 0x" + HexDump.byte2hex(dataInt.toByte))
-                        raf.writeByte(dataInt)
+                        storage.cellWidth match {
+                            case 1 =>
+                                logger.debug("  Writing Byte 0x" + HexDump.byte2hex(dataInt.toByte))
+                                raf.writeByte(dataInt)
+                            case 2 =>
+                                logger.debug("  Writing " + model.endianness + " Endian Word 0x" + HexDump.short2hex(dataInt.toShort))
+                                model.endianness match {
+                                    case Endianness.Little =>
+                                        raf.writeByte(dataInt & 0x00ff)
+                                        raf.writeByte((dataInt & 0xff00) >> 8)
+                                    case Endianness.Big =>
+                                        raf.writeByte((dataInt & 0xff00) >> 8)
+                                        raf.writeByte(dataInt & 0x00ff)
+                                }
+                        }
                     }
                 }
             })

@@ -19,8 +19,8 @@ package org.devzendo.tma
 import java.io.{File, RandomAccessFile}
 
 import org.devzendo.commoncode.string.HexDump
-import org.devzendo.tma.ast.{DB, Line, Number}
-import org.devzendo.tma.codegen.AssemblyModel
+import org.devzendo.tma.ast.{DB, DW, Line, Number}
+import org.devzendo.tma.codegen.{AssemblyModel, Endianness}
 import org.devzendo.tma.output.BinaryWriter
 import org.devzendo.tma.util.TempFolder
 import org.junit.Test
@@ -101,6 +101,28 @@ class TestBinaryWriter extends TempFolder with AssertionsForJUnit with MustMatch
     }
 
     @Test
+    def originAtZeroContents(): Unit = {
+        val model = new AssemblyModel()
+
+        val exprs1 = List(Number(1), Number(2))
+        model.allocateStorageForLine(Line(2, "", None, Some(DB(exprs1))), 1, exprs1)
+
+        val size = model.highestStorageAddress - model.lowestStorageAddress
+        size must be(0x01)
+
+        writer.encode(model)
+
+        dumpFile()
+
+        binaryFile.length() must be(0x02)
+
+        byteAccess(ba => {
+            ba.byte(0x0000) must be(1)
+            ba.byte(0x0001) must be(2)
+        })
+    }
+
+    @Test
     def overlappingStorage(): Unit = {
         val model = new AssemblyModel()
 
@@ -130,4 +152,65 @@ class TestBinaryWriter extends TempFolder with AssertionsForJUnit with MustMatch
             ba.byte(0x0003) must be(4)
         })
     }
+
+    @Test
+    def littleEndianWord(): Unit = {
+        val model = new AssemblyModel()
+
+        model.endianness = Endianness.Little
+
+        val words = List(Number(0x1234), Number(0x5678), Number(0x9ABC))
+        model.allocateStorageForLine(Line(1, "", None, Some(new DW(words))), 2, words)
+
+        val size = model.highestStorageAddress - model.lowestStorageAddress
+        size must be(0x05)
+
+        writer.encode(model)
+
+        dumpFile()
+
+        binaryFile.length() must be(0x06)
+
+        byteAccess(ba => {
+            ba.byte(0x0000) must be(0x34)
+            ba.byte(0x0001) must be(0x12)
+
+            ba.byte(0x0002) must be(0x78)
+            ba.byte(0x0003) must be(0x56)
+
+            ba.byte(0x0004) must be(0xBC.toByte) // stupid JVM unsigneds..
+            ba.byte(0x0005) must be(0x9A.toByte)
+        })
+    }
+
+    @Test
+    def bigEndianWord(): Unit = {
+        val model = new AssemblyModel()
+
+        model.endianness = Endianness.Big
+
+        val words = List(Number(0x1234), Number(0x5678), Number(0x9ABC))
+        model.allocateStorageForLine(Line(1, "", None, Some(new DW(words))), 2, words)
+
+        val size = model.highestStorageAddress - model.lowestStorageAddress
+        size must be(0x05)
+
+        writer.encode(model)
+
+        dumpFile()
+
+        binaryFile.length() must be(0x06)
+
+        byteAccess(ba => {
+            ba.byte(0x0000) must be(0x12)
+            ba.byte(0x0001) must be(0x34)
+
+            ba.byte(0x0002) must be(0x56)
+            ba.byte(0x0003) must be(0x78)
+
+            ba.byte(0x0004) must be(0x9A.toByte)
+            ba.byte(0x0005) must be(0xBC.toByte) // stupid JVM unsigneds..
+        })
+    }
+
 }
