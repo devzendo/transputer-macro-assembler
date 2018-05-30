@@ -100,5 +100,32 @@ class TestBinaryWriter extends TempFolder with AssertionsForJUnit with MustMatch
         })
     }
 
-    // TODO overlapping storage
+    @Test
+    def overlappingStorage(): Unit = {
+        val model = new AssemblyModel()
+
+        model.setDollar(0x4000, 1)
+
+        val exprs1 = List(Number(1), Number(2))
+        model.allocateStorageForLine(Line(2, "", None, Some(DB(exprs1))), 1, exprs1)
+
+        model.setDollar(0x4000, 3)
+
+        val exprs2 = List(Number(3), Number(4))
+        model.allocateStorageForLine(Line(4, "", None, Some(DB(exprs2))), 1, exprs2)
+
+        val size = model.highestStorageAddress - model.lowestStorageAddress
+        size must be(0x01)
+
+        writer.encode(model)
+
+        dumpFile()
+
+        binaryFile.length() must be(0x02)
+
+        byteAccess(ba => {
+            ba.byte(0x0000) must be(3)
+            ba.byte(0x0001) must be(4)
+        })
+    }
 }
