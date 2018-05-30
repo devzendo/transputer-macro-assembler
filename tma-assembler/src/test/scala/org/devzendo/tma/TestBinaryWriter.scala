@@ -106,26 +106,28 @@ class TestBinaryWriter extends TempFolder with AssertionsForJUnit with MustMatch
 
         model.setDollar(0x4000, 1)
 
-        val exprs1 = List(Number(1), Number(2))
+        val exprs1 = List(Number(1), Number(2), Number(3), Number(4))
         model.allocateStorageForLine(Line(2, "", None, Some(DB(exprs1))), 1, exprs1)
 
-        model.setDollar(0x4000, 3)
+        model.setDollar(0x4001, 3)
 
-        val exprs2 = List(Number(3), Number(4))
+        val exprs2 = List(Number(5), Number(6))
         model.allocateStorageForLine(Line(4, "", None, Some(DB(exprs2))), 1, exprs2)
 
         val size = model.highestStorageAddress - model.lowestStorageAddress
-        size must be(0x01)
+        size must be(0x03)
 
         writer.encode(model)
 
         dumpFile()
 
-        binaryFile.length() must be(0x02)
+        binaryFile.length() must be(0x04)
 
         byteAccess(ba => {
-            ba.byte(0x0000) must be(3)
-            ba.byte(0x0001) must be(4)
+            ba.byte(0x0000) must be(1)
+            ba.byte(0x0001) must be(5)
+            ba.byte(0x0002) must be(6)
+            ba.byte(0x0003) must be(4)
         })
     }
 }
