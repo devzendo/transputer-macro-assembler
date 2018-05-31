@@ -2,7 +2,8 @@ Elementary Macro Assembler with Transputer Support
 ==================================================
 This is a simple byte-building macro assembler, that can build binary files,
 irrespective of actual CPU instructions. You can build your set of 'opcodes'
-via macros and ALIGN/DB/DD/DW directives.
+via macros and ALIGN/DB/DD/DW directives. Its input language is a small subset
+of Microsoft MASM 5.1.
 
 It also understands variants of the Transputer assembly language when the CPU
 directive selects a Transputer variant. Initially targetting the T800.
@@ -19,10 +20,10 @@ Status
 Project started 19 April 2018.
 In development; unfinished; not yet at its first release (as of end-of-May 2018).
 
-Currently working on output/listing writers. Parser, macro expansion and code generation are mostly done.
+Currently working on listing writer. Parser, macro expansion, code generation and output of
+binary file are done.
 
 Remaining work:
-* write binary file
 * write listing file & symbol map
 * documentation of syntax
 
@@ -38,7 +39,8 @@ Remaining work:
   
 Rationale
 ---------
-I needed a macro assembler to assemble eForth. I have MASM 6, which works fine,
+I needed a macro assembler to assemble eForth (and in a reusable form for future
+Transputer language projects). I have MASM 6, which works fine,
 but is closed source, and in 2018, quite difficult to obtain legitimately. (I
 have Windows XP SP2, Visual C++ Studio 6.0, and the Processor Pack 5 - this
 latter is now unobtainium, so was retreived via the Wayback Machine - more
