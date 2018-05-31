@@ -14,14 +14,13 @@
  * limitations under the License.
  */
 
-package org.devzendo.tma
+package org.devzendo.tma.output
 
 import java.io.{File, RandomAccessFile}
 
 import org.devzendo.commoncode.string.HexDump
 import org.devzendo.tma.ast._
 import org.devzendo.tma.codegen.{AssemblyModel, Endianness}
-import org.devzendo.tma.output.BinaryWriter
 import org.devzendo.tma.util.TempFolder
 import org.junit.Test
 import org.scalatest.MustMatchers
