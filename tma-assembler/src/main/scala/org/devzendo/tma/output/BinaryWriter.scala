@@ -20,9 +20,10 @@ import java.io.{File, RandomAccessFile}
 
 import org.devzendo.commoncode.string.HexDump
 import org.devzendo.tma.codegen.{AssemblyModel, Endianness, Storage}
+import org.log4s.Logger
 
 class BinaryWriter(val outputFile: File) {
-    val logger = org.log4s.getLogger
+    val logger: Logger = org.log4s.getLogger
     logger.debug("Writing binary file " + outputFile.getAbsoluteFile)
 
 
@@ -46,7 +47,6 @@ class BinaryWriter(val outputFile: File) {
                     raf.seek(offset)
 
                     // Endianness encoding, yes you can use Channels... a bit of a faff
-
                     for (dataInt <- storage.data) {
                         val bytes = encodeData(dataInt, storage.cellWidth, model.endianness)
                         raf.write(bytes)
@@ -56,7 +56,6 @@ class BinaryWriter(val outputFile: File) {
         } finally {
             raf.close()
         }
-
     }
 
     private def encodeData(dataInt: Int, cellWidth: Int, endianness: Endianness.Value): Array[Byte] = {
@@ -99,7 +98,7 @@ class BinaryWriter(val outputFile: File) {
         }
     }
 
-    private def zero(raf: RandomAccessFile, fileSize: Int) = {
+    private def zero(raf: RandomAccessFile, fileSize: Int): Unit = {
         raf.seek(0)
         val emptyChunkSize = 128
         val emptiness = Array.fill[Byte](emptyChunkSize)(0)
@@ -114,5 +113,4 @@ class BinaryWriter(val outputFile: File) {
         }
         raf.seek(0)
     }
-
 }

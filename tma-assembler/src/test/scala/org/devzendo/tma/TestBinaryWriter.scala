@@ -32,7 +32,7 @@ class TestBinaryWriter extends TempFolder with AssertionsForJUnit with MustMatch
     private val binaryFile: File = File.createTempFile("out.", ".bin", temporaryDirectory)
     private val writer: BinaryWriter = new BinaryWriter(binaryFile)
 
-    def byteAccess(op: ByteAccess => Unit) = {
+    private def byteAccess(op: ByteAccess => Unit) = {
         val ba = new ByteAccess()
         try {
             op(ba)
@@ -41,7 +41,7 @@ class TestBinaryWriter extends TempFolder with AssertionsForJUnit with MustMatch
         }
     }
 
-    class ByteAccess {
+    private class ByteAccess {
         val raf = new RandomAccessFile(binaryFile, "r")
         def byte(pos: Long) = {
             raf.seek(pos)
@@ -52,7 +52,7 @@ class TestBinaryWriter extends TempFolder with AssertionsForJUnit with MustMatch
         }
     }
 
-    def dumpFile() = {
+    private def dumpFile() = {
         val raf = new RandomAccessFile(binaryFile, "r")
         try {
             val buffer = Array.fill[Byte](raf.length().toInt)(0)
