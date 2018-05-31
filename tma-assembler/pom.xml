@@ -33,7 +33,7 @@
 
         <dependency>
             <groupId>org.log4s</groupId>
-            <artifactId>log4s_2.11</artifactId>
+            <artifactId>log4s_2.12</artifactId>
             <version>1.6.1</version>
         </dependency>
 
