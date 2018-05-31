@@ -48,7 +48,8 @@ class BinaryWriter(val outputFile: File) {
                     // Endianness encoding, yes you can use Channels... a bit of a faff
 
                     for (dataInt <- storage.data) {
-                        writeData(raf, dataInt, storage.cellWidth, model.endianness)
+                        val bytes = encodeData(dataInt, storage.cellWidth, model.endianness)
+                        raf.write(bytes)
                     }
                 }
             })
@@ -58,34 +59,42 @@ class BinaryWriter(val outputFile: File) {
 
     }
 
-    private def writeData(raf: RandomAccessFile, dataInt: Int, cellWidth: Int, endianness: Endianness.Value) = {
+    private def encodeData(dataInt: Int, cellWidth: Int, endianness: Endianness.Value): Array[Byte] = {
         cellWidth match {
             case 1 =>
-                logger.debug("  Writing Byte 0x" + HexDump.byte2hex(dataInt.toByte))
-                raf.writeByte(dataInt)
+                logger.debug("Encoding Byte 0x" + HexDump.byte2hex(dataInt.toByte))
+                Array[Byte](dataInt.toByte)
             case 2 =>
-                logger.debug("  Writing " + endianness + " Endian Word 0x" + HexDump.short2hex(dataInt.toShort))
+                logger.debug("Encoding " + endianness + " Endian Word 0x" + HexDump.short2hex(dataInt.toShort))
                 endianness match {
                     case Endianness.Little =>
-                        raf.writeByte(dataInt & 0x00ff)
-                        raf.writeByte((dataInt & 0xff00) >> 8)
+                        Array[Byte](
+                            ( dataInt & 0x00ff).toByte,
+                            ((dataInt & 0xff00) >> 8).toByte
+                        )
                     case Endianness.Big =>
-                        raf.writeByte((dataInt & 0xff00) >> 8)
-                        raf.writeByte(dataInt & 0x00ff)
+                        Array[Byte](
+                            ((dataInt & 0xff00) >> 8).toByte,
+                            ( dataInt & 0x00ff).toByte
+                        )
                 }
             case 4 =>
-                logger.debug("  Writing " + endianness + " Endian Double Word 0x" + HexDump.int2hex(dataInt))
+                logger.debug("Encoding " + endianness + " Endian Double Word 0x" + HexDump.int2hex(dataInt))
                 endianness match {
                     case Endianness.Little =>
-                        raf.writeByte(dataInt & 0x000000ff)
-                        raf.writeByte((dataInt & 0x0000ff00) >> 8)
-                        raf.writeByte((dataInt & 0x00ff0000) >> 16)
-                        raf.writeByte((dataInt & 0xff000000) >> 24)
+                        Array[Byte](
+                            ( dataInt & 0x000000ff).toByte,
+                            ((dataInt & 0x0000ff00) >> 8).toByte,
+                            ((dataInt & 0x00ff0000) >> 16).toByte,
+                            ((dataInt & 0xff000000) >> 24).toByte
+                        )
                     case Endianness.Big =>
-                        raf.writeByte((dataInt & 0xff000000) >> 24)
-                        raf.writeByte((dataInt & 0x00ff0000) >> 16)
-                        raf.writeByte((dataInt & 0x0000ff00) >> 8)
-                        raf.writeByte(dataInt & 0x000000ff)
+                        Array[Byte](
+                            ((dataInt & 0xff000000) >> 24).toByte,
+                            ((dataInt & 0x00ff0000) >> 16).toByte,
+                            ((dataInt & 0x0000ff00) >> 8).toByte,
+                            ( dataInt & 0x000000ff).toByte
+                        )
                 }
         }
     }
