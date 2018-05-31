@@ -76,16 +76,6 @@
             <scope>test</scope>
         </dependency>
 
-        <dependency>
-            <groupId>org.scalacheck</groupId>
-            <artifactId>scalacheck_${scalacheck.scala.version}</artifactId>
-            <scope>test</scope>
-        </dependency>
-        <dependency>
-            <groupId>org.devzendo</groupId>
-            <artifactId>scalacheck-contrib_${scalacheck.scala.version}</artifactId>
-        </dependency>
-
     </dependencies>
 
     <build>
