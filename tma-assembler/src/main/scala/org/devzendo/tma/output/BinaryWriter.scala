@@ -56,11 +56,25 @@ class BinaryWriter(val outputFile: File) {
                                 logger.debug("  Writing " + model.endianness + " Endian Word 0x" + HexDump.short2hex(dataInt.toShort))
                                 model.endianness match {
                                     case Endianness.Little =>
-                                        raf.writeByte(dataInt & 0x00ff)
+                                        raf.writeByte( dataInt & 0x00ff)
                                         raf.writeByte((dataInt & 0xff00) >> 8)
                                     case Endianness.Big =>
                                         raf.writeByte((dataInt & 0xff00) >> 8)
-                                        raf.writeByte(dataInt & 0x00ff)
+                                        raf.writeByte( dataInt & 0x00ff)
+                                }
+                            case 4 =>
+                                logger.debug("  Writing " + model.endianness + " Endian Double Word 0x" + HexDump.int2hex(dataInt))
+                                model.endianness match {
+                                    case Endianness.Little =>
+                                        raf.writeByte( dataInt & 0x000000ff)
+                                        raf.writeByte((dataInt & 0x0000ff00) >> 8)
+                                        raf.writeByte((dataInt & 0x00ff0000) >> 16)
+                                        raf.writeByte((dataInt & 0xff000000) >> 24)
+                                    case Endianness.Big =>
+                                        raf.writeByte((dataInt & 0xff000000) >> 24)
+                                        raf.writeByte((dataInt & 0x00ff0000) >> 16)
+                                        raf.writeByte((dataInt & 0x0000ff00) >> 8)
+                                        raf.writeByte( dataInt & 0x000000ff)
                                 }
                         }
                     }

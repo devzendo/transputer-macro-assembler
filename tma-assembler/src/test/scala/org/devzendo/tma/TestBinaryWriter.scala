@@ -19,7 +19,7 @@ package org.devzendo.tma
 import java.io.{File, RandomAccessFile}
 
 import org.devzendo.commoncode.string.HexDump
-import org.devzendo.tma.ast.{DB, DW, Line, Number}
+import org.devzendo.tma.ast._
 import org.devzendo.tma.codegen.{AssemblyModel, Endianness}
 import org.devzendo.tma.output.BinaryWriter
 import org.devzendo.tma.util.TempFolder
@@ -208,9 +208,70 @@ class TestBinaryWriter extends TempFolder with AssertionsForJUnit with MustMatch
             ba.byte(0x0002) must be(0x56)
             ba.byte(0x0003) must be(0x78)
 
-            ba.byte(0x0004) must be(0x9A.toByte)
-            ba.byte(0x0005) must be(0xBC.toByte) // stupid JVM unsigneds..
+            ba.byte(0x0004) must be(0x9A.toByte) // stupid JVM unsigneds..
+            ba.byte(0x0005) must be(0xBC.toByte)
         })
     }
 
+    @Test
+    def littleEndianDoubleWord(): Unit = {
+        val model = new AssemblyModel()
+
+        model.endianness = Endianness.Little
+
+        val words = List(Number(0x01234567), Number(0x89ABCDEF))
+        model.allocateStorageForLine(Line(1, "", None, Some(new DD(words))), 4, words)
+
+        val size = model.highestStorageAddress - model.lowestStorageAddress
+        size must be(0x07)
+
+        writer.encode(model)
+
+        dumpFile()
+
+        binaryFile.length() must be(0x08)
+
+        byteAccess(ba => {
+            ba.byte(0x0000) must be(0x67)
+            ba.byte(0x0001) must be(0x45)
+            ba.byte(0x0002) must be(0x23)
+            ba.byte(0x0003) must be(0x01)
+
+            ba.byte(0x0004) must be(0xEF.toByte) // stupid JVM unsigneds..
+            ba.byte(0x0005) must be(0xCD.toByte)
+            ba.byte(0x0006) must be(0xAB.toByte)
+            ba.byte(0x0007) must be(0x89.toByte)
+        })
+    }
+
+    @Test
+    def bigEndianDoubleWord(): Unit = {
+        val model = new AssemblyModel()
+
+        model.endianness = Endianness.Big
+
+        val words = List(Number(0x01234567), Number(0x89ABCDEF))
+        model.allocateStorageForLine(Line(1, "", None, Some(new DD(words))), 4, words)
+
+        val size = model.highestStorageAddress - model.lowestStorageAddress
+        size must be(0x07)
+
+        writer.encode(model)
+
+        dumpFile()
+
+        binaryFile.length() must be(0x08)
+
+        byteAccess(ba => {
+            ba.byte(0x0000) must be(0x01)
+            ba.byte(0x0001) must be(0x23)
+            ba.byte(0x0002) must be(0x45)
+            ba.byte(0x0003) must be(0x67)
+
+            ba.byte(0x0004) must be(0x89.toByte) // stupid JVM unsigneds..
+            ba.byte(0x0005) must be(0xAB.toByte)
+            ba.byte(0x0006) must be(0xCD.toByte)
+            ba.byte(0x0007) must be(0xEF.toByte)
+        })
+    }
 }
