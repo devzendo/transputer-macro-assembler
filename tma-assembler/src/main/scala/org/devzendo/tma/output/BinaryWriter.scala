@@ -48,35 +48,7 @@ class BinaryWriter(val outputFile: File) {
                     // Endianness encoding, yes you can use Channels... a bit of a faff
 
                     for (dataInt <- storage.data) {
-                        storage.cellWidth match {
-                            case 1 =>
-                                logger.debug("  Writing Byte 0x" + HexDump.byte2hex(dataInt.toByte))
-                                raf.writeByte(dataInt)
-                            case 2 =>
-                                logger.debug("  Writing " + model.endianness + " Endian Word 0x" + HexDump.short2hex(dataInt.toShort))
-                                model.endianness match {
-                                    case Endianness.Little =>
-                                        raf.writeByte( dataInt & 0x00ff)
-                                        raf.writeByte((dataInt & 0xff00) >> 8)
-                                    case Endianness.Big =>
-                                        raf.writeByte((dataInt & 0xff00) >> 8)
-                                        raf.writeByte( dataInt & 0x00ff)
-                                }
-                            case 4 =>
-                                logger.debug("  Writing " + model.endianness + " Endian Double Word 0x" + HexDump.int2hex(dataInt))
-                                model.endianness match {
-                                    case Endianness.Little =>
-                                        raf.writeByte( dataInt & 0x000000ff)
-                                        raf.writeByte((dataInt & 0x0000ff00) >> 8)
-                                        raf.writeByte((dataInt & 0x00ff0000) >> 16)
-                                        raf.writeByte((dataInt & 0xff000000) >> 24)
-                                    case Endianness.Big =>
-                                        raf.writeByte((dataInt & 0xff000000) >> 24)
-                                        raf.writeByte((dataInt & 0x00ff0000) >> 16)
-                                        raf.writeByte((dataInt & 0x0000ff00) >> 8)
-                                        raf.writeByte( dataInt & 0x000000ff)
-                                }
-                        }
+                        writeData(raf, dataInt, storage.cellWidth, model.endianness)
                     }
                 }
             })
@@ -84,6 +56,38 @@ class BinaryWriter(val outputFile: File) {
             raf.close()
         }
 
+    }
+
+    private def writeData(raf: RandomAccessFile, dataInt: Int, cellWidth: Int, endianness: Endianness.Value) = {
+        cellWidth match {
+            case 1 =>
+                logger.debug("  Writing Byte 0x" + HexDump.byte2hex(dataInt.toByte))
+                raf.writeByte(dataInt)
+            case 2 =>
+                logger.debug("  Writing " + endianness + " Endian Word 0x" + HexDump.short2hex(dataInt.toShort))
+                endianness match {
+                    case Endianness.Little =>
+                        raf.writeByte(dataInt & 0x00ff)
+                        raf.writeByte((dataInt & 0xff00) >> 8)
+                    case Endianness.Big =>
+                        raf.writeByte((dataInt & 0xff00) >> 8)
+                        raf.writeByte(dataInt & 0x00ff)
+                }
+            case 4 =>
+                logger.debug("  Writing " + endianness + " Endian Double Word 0x" + HexDump.int2hex(dataInt))
+                endianness match {
+                    case Endianness.Little =>
+                        raf.writeByte(dataInt & 0x000000ff)
+                        raf.writeByte((dataInt & 0x0000ff00) >> 8)
+                        raf.writeByte((dataInt & 0x00ff0000) >> 16)
+                        raf.writeByte((dataInt & 0xff000000) >> 24)
+                    case Endianness.Big =>
+                        raf.writeByte((dataInt & 0xff000000) >> 24)
+                        raf.writeByte((dataInt & 0x00ff0000) >> 16)
+                        raf.writeByte((dataInt & 0x0000ff00) >> 8)
+                        raf.writeByte(dataInt & 0x000000ff)
+                }
+        }
     }
 
     private def zero(raf: RandomAccessFile, fileSize: Int) = {
