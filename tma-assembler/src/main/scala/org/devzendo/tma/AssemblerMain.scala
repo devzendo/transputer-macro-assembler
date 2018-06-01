@@ -41,7 +41,7 @@ class AssemblerMain(val argList: List[String]) {
         if (file.exists()) {
             Some(file)
         } else {
-            logger.error("The " + fileType + " file '" + f + "' does not exist")
+            logger.error(s"The $fileType file '$f' does not exist")
             quit()
             None // won't get here
         }
@@ -53,7 +53,7 @@ class AssemblerMain(val argList: List[String]) {
 
         def expectFileName(): Option[File] = {
             if (argIndex == argList.length - 1) {
-                logger.error(f + " requires a file as its argument")
+                logger.error(s"$f requires a file as its argument")
                 quit()
                 None // won't get here
             }
@@ -84,7 +84,7 @@ class AssemblerMain(val argList: List[String]) {
 
             case _ => {
                 if (f.startsWith("-")) {
-                    logger.error("Unknown command line option: '" + f + "'")
+                    logger.error(s"Unknown command line option: '$f'")
                     logger.error("")
                     usage()
                     quit()
@@ -110,11 +110,11 @@ class AssemblerMain(val argList: List[String]) {
         val controller = new AssemblerController(macroManager, parser, codegen)
         val asm = asmFile.get
 
-        logger.debug("Start of parsing from from " + asm.getName)
+        logger.debug(s"Start of parsing from from ${asm.getName}")
         val startParseTime = System.currentTimeMillis()
         controller.parseFile(asm)
         val endParseTime = System.currentTimeMillis()
-        logger.debug("Parsing complete in " + (endParseTime - startParseTime) + " ms")
+        logger.debug(s"Parsing complete in ${endParseTime - startParseTime} ms")
 
         val parserExceptions = controller.getParseExceptions()
         if (parserExceptions.nonEmpty) {
@@ -126,7 +126,7 @@ class AssemblerMain(val argList: List[String]) {
         val startCodegenTime = System.currentTimeMillis()
         controller.generateModel()
         val endCodegenTime = System.currentTimeMillis()
-        logger.debug("Code generation complete in " + (endCodegenTime - startCodegenTime) + " ms")
+        logger.debug(s"Code generation complete in ${endCodegenTime - startCodegenTime} ms")
 
         val codeGenerationExceptions = controller.getCodeGenerationExceptions()
         if (codeGenerationExceptions.nonEmpty) {
@@ -138,7 +138,7 @@ class AssemblerMain(val argList: List[String]) {
         val startOutputTime = System.currentTimeMillis()
         controller.output(outputFile, binaryFile, listingFile)
         val endOutputTime = System.currentTimeMillis()
-        logger.debug("Output complete in " + (endOutputTime - startOutputTime) + " ms")
+        logger.debug(s"Output complete in ${endOutputTime - startOutputTime} ms")
     }
 
     // -----------------------------------------------------------------------------------------------------------------
@@ -183,7 +183,7 @@ class AssemblerMain(val argList: List[String]) {
     }
 
     def version() {
-        logger.info(AssemblerMain.appName + " " + getPropertiesVersion())
+        logger.info(s"${AssemblerMain.appName} ${getPropertiesVersion()}")
     }
 
 
