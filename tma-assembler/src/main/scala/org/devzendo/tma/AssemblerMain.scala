@@ -17,16 +17,12 @@
 package org.devzendo.tma
 
 import java.io.File
-import java.util
 
-import org.devzendo.commoncode.resource.ResourceLoader
 import org.devzendo.tma.codegen.{CodeGenerationException, CodeGenerator}
 import org.devzendo.tma.parser.{AssemblyParser, AssemblyParserException, MacroManager}
 
 class AssemblerMain(val argList: List[String]) {
     val logger = org.log4s.getLogger
-
-    val assemblerProperties = loadAssemblerProperties()
 
     var argIndex = 0
     var asmFile: Option[File] = None
@@ -168,22 +164,8 @@ class AssemblerMain(val argList: List[String]) {
         logger.info("--times                  - show timing data in each log line output")
     }
 
-    def loadAssemblerProperties(): util.Properties = {
-        val propertiesResourceName = "assembler.properties"
-        val propertiesResource = ResourceLoader.readPropertiesResource(propertiesResourceName)
-        if (propertiesResource == null) {
-            logger.error("Could not load " + propertiesResourceName)
-            exit()
-        }
-        propertiesResource
-    }
-
-    def getPropertiesVersion() = {
-        assemblerProperties.getProperty("version")
-    }
-
     def version() {
-        logger.info(s"${AssemblerMain.appName} ${getPropertiesVersion()}")
+        logger.info(s"${AssemblerMain.appName} ${Version.getPropertiesVersion()}")
     }
 
 
