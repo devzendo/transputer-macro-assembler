@@ -71,6 +71,7 @@ class CodeGenerator(debugCodegen: Boolean) {
     }
 
     private def processLineStatement(line: Line): Unit = {
+        model.addLine(line)
         line.stmt.foreach((stmt: Statement) =>
             processStatement(line, stmt)
         )

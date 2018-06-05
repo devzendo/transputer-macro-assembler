@@ -49,6 +49,9 @@ class AssemblyModel {
     private val constants = mutable.HashMap[String, Value]()
     private val labels = mutable.HashMap[String, Value]()
 
+    // All incoming Lines (original-in-source and macro expansion lines) are appended here. Recall that macro expansion
+    // lines will have the same line number as original-in-source lines.
+    private val lines = mutable.ArrayBuffer[Line]()
     // Storage has a reference to its Line, so when the map of Undefined forward references -> Set[Storage]
     // is scanned at the end of the codegen phase, each Storage can show the Line on which the forward reference is.
     private val storagesForLines = mutable.HashMap[Int, mutable.ArrayBuffer[Storage]]() // indexed by line number
@@ -247,6 +250,10 @@ class AssemblyModel {
         }
     }
 
+    def addLine(line: Line): Unit = {
+        lines += line
+    }
+
     def getStoragesForLine(lineNumber: Int): List[Storage] = {
         storagesForLines.getOrElse(lineNumber, ArrayBuffer[Storage]()).toList
     }
@@ -309,6 +316,22 @@ class AssemblyModel {
         allocateStorageForLine(line, cellWidth, exprs.toList)
     }
 
+    // Note that this will give you the original-in-source and macro expansion Lines, and for each Storage,
+    // back-references to its originating Line. (Which will be the Line of the first argument.)
+    def foreachLineStorage(op: (Line, List[Storage]) => Unit): Unit = {
+        for (line <- lines) { // can have many macro expanded lines' storages for this line number
+            val lineNumber = line.number
+            val storages = storagesForLines.getOrElse(lineNumber, mutable.ArrayBuffer[Storage]()).toList
+            val storagesForThisLine = storages.filter((s: Storage) => {s.line == line}) // NB: don't compare on line number!
+            op(line, storagesForThisLine)
+
+            // So: line is the original Line, storages(x).line is always the Line that caused it, could be the original
+            // Line or a macro expansion from it
+            // And: storages could be empty, if there's no storage for Line
+        }
+    }
+
+    // Note, this does not get you the original-in-source Lines, only those Lines that have had Storage allocated.
     def foreachStorage(op: (Int, List[Storage]) => Unit): Unit = {
         val lineNumbers = storagesForLines.keySet.toList.sorted
         lineNumbers.foreach(num => {

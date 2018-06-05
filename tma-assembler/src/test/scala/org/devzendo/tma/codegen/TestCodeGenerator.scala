@@ -16,13 +16,15 @@
 
 package org.devzendo.tma.codegen
 
-import org.devzendo.tma.ast.AST.{Label, MacroName, SymbolName}
+import org.devzendo.tma.ast.AST.{Label, MacroArgument, MacroName, SymbolName}
 import org.devzendo.tma.ast.{Line, _}
 import org.junit.rules.ExpectedException
 import org.junit.{Rule, Test}
 import org.log4s.Logger
-import org.scalatest.MustMatchers
+import org.scalatest.{DiagrammedAssertions, MustMatchers}
 import org.scalatest.junit.AssertionsForJUnit
+
+import scala.collection.mutable
 
 class TestCodeGenerator extends AssertionsForJUnit with MustMatchers {
     val logger: Logger = org.log4s.getLogger
@@ -72,6 +74,24 @@ class TestCodeGenerator extends AssertionsForJUnit with MustMatchers {
         } else {
             model
         }
+    }
+
+    @Test
+    def linesAreAddedToModel(): Unit = {
+        val originalLine = Line(1, "; text of line", None, None)
+        val model = generateFromLine(originalLine)
+
+        // foreachLineStorage is the only way to get original Lines out...
+        var calls = 0
+        model.foreachLineStorage((line: Line, storages: List[Storage]) => {
+            calls += 1
+            if (calls > 1) {
+                fail("Should have only called back once")
+            }
+
+            line must be(originalLine)
+            storages must be(empty)
+        })
     }
 
     @Test
@@ -304,6 +324,11 @@ class TestCodeGenerator extends AssertionsForJUnit with MustMatchers {
         storage.data.toList must be(List(42, 69))
         storage.line must be(line)
         model.getDollar must be(0 + (cellWidth * 2))
+    }
+
+    @Test
+    def dbCharacters(): Unit = {
+        ???
     }
 
     @Test
@@ -567,5 +592,52 @@ class TestCodeGenerator extends AssertionsForJUnit with MustMatchers {
             Line(3, "", None, None)
         ))
         codegen.getLastLineNumber must be (3)
+    }
+
+    @Test
+    def foreachLineStorageGivesAllOriginalLinesAndMacroExpandedLinesAndStorages(): Unit = {
+        import org.scalatest.DiagrammedAssertions._
+        val line5Exprs = List(SymbolArg("_CODE"), SymbolArg("_LINK"))
+        val lines = List(
+            Line(11, "EQU\tCELLL\t10", None, Some(ConstantAssignment(new SymbolName("CELLL"), Number(10)))),
+            Line(12, "_NAME\t=\t3", None, Some(VariableAssignment(new SymbolName("_NAME"), Number(3)))),
+            Line(13, "$CODE\t3,'?RX',QRX", None, Some(MacroInvocation(new MacroName("$CODE"), List(new MacroArgument("3"), new MacroArgument("'?RX'"), new MacroArgument("QRX"))))),
+            Line(13, "_CODE\t= $", None, Some(VariableAssignment(new SymbolName("_CODE"), SymbolArg("$")))),
+            Line(13, "ORG\t_NAME", None, Some(Org(SymbolArg("_NAME")))),
+            Line(13, "DD\t _CODE,_LINK", None, Some(DD(line5Exprs))),
+            Line(13, "_LINK\t= $", None, Some(VariableAssignment(new SymbolName("_LINK"), SymbolArg("$")))),
+            Line(13, "DB\t3,5", None, Some(DB(List(Number(3), Number(5))))),
+            Line(13, "ORG\t_CODE", None, Some(Org(SymbolArg("_CODE"))))
+        )
+        val expectedStorageLists: List[List[Storage]] = List(
+            List.empty,
+            List.empty,
+            List.empty,
+            List.empty,
+            List.empty,
+            List(Storage(3, 4, Array[Int](0, 11), lines(5), line5Exprs)),
+            List.empty,
+            List(Storage(11, 1, Array[Int](3, 5), lines(7), List(Number(3), Number(5)))),
+            List.empty
+        )
+        val model = generateFromLines(lines)
+
+        var index = 0
+        model.foreachLineStorage((line: Line, storages: List[Storage]) => {
+            logger.info(s"line $line")
+            for (st <- storages) {
+                logger.info(s"  data ${st.data.toList} storage $st")
+            }
+            DiagrammedAssertions.assert(line == lines(index))
+
+            // just check the data...
+            val expectedStorage = expectedStorageLists(index)
+            storages.size must be(expectedStorage.size)
+            val storagesDataList = storages.flatMap( (st: Storage) => st.data.toList)
+            val expectedDataStoragesDataList = expectedStorage.flatMap( (st: Storage) => st.data.toList)
+            DiagrammedAssertions.assert(storagesDataList == expectedDataStoragesDataList)
+
+            index += 1
+        })
     }
 }
