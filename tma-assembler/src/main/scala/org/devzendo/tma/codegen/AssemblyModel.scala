@@ -275,6 +275,17 @@ class AssemblyModel {
         }
     }
 
+    private def expandCharacterExpressions(possCharacterExprs: List[Expression]): List[Expression] = {
+        possCharacterExprs.flatMap((expr: Expression) => {
+            expr match {
+                case Characters(chars) =>
+                    chars.map((char: Char) => Number(char.toInt)).toList
+                case _ =>
+                    List(expr)
+            }
+        })
+    }
+
     def allocateStorageForLine(line: Line, cellWidth: Int, exprs: List[Expression]): Storage = {
         // TODO Orcish manoevre?
         val storages = if (storagesForLines.contains(line.number)) {
@@ -284,11 +295,17 @@ class AssemblyModel {
             storagesForLines.put(line.number, newLines)
             newLines
         }
-        val storage = Storage(getDollar, cellWidth, Array.ofDim[Int](exprs.size), line, exprs)
+
+        // The incoming exprs will need evaluating to numbers that are stored in the Storage's data field. Most
+        // expressions are evaluated to a single number, but Characters are evaluated to multiple. So expand all
+        // elements of a Characters expression to an individual Number.
+        val characterExpandedExprs = expandCharacterExpressions(exprs)
+
+        val storage = Storage(getDollar, cellWidth, Array.ofDim[Int](characterExpandedExprs.size), line, characterExpandedExprs)
         storages += storage
 
         // Evaluate expressions, storing, or record forward references if symbols are undefined at the moment.
-        exprs.zipWithIndex.foreach((tuple: (Expression, Int)) => {
+        characterExpandedExprs.zipWithIndex.foreach((tuple: (Expression, Int)) => {
             val storeValue = evaluateExpression(tuple._1) match {
                 case Right(value) => value
                 case Left(undefineds) =>
@@ -300,7 +317,7 @@ class AssemblyModel {
         })
 
         validateDataSizes(line.number, storage.data, cellWidth)
-        setDollar(getDollar + (cellWidth * exprs.size), line.number)
+        setDollar(getDollar + (cellWidth * characterExpandedExprs.size), line.number)
 
         storage
     }

@@ -354,6 +354,11 @@ class TestAssemblyParser extends AssertionsForJUnit with MustMatchers {
     }
 
     @Test
+    def dbMixedNumbersAndCharacters(): Unit = {
+        singleLineParsesToStatement("DB\t5, 'abc', 7", DB(List(Number(5), Characters("abc"), Number(7))))
+    }
+
+    @Test
     def dbMixingExpressionAndStringDisallowed(): Unit = {
         thrown.expect(classOf[AssemblyParserException])
         thrown.expectMessage("1: Unknown statement 'DB\t'foo' + 3'") // Not the clearest message, but disallowing is clear.

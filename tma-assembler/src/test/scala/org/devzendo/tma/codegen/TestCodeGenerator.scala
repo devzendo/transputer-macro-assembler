@@ -328,7 +328,36 @@ class TestCodeGenerator extends AssertionsForJUnit with MustMatchers {
 
     @Test
     def dbCharacters(): Unit = {
-        ???
+        val cellWidth = 1
+        val dbStatement = DB(List(Characters("Ab0")))
+        val line = Line(1, "", None, Some(dbStatement))
+        val model = generateFromLine(line)
+
+        val storages = model.getStoragesForLine(1)
+        storages must have size 1
+        val storage = storages.head
+        storage.address must be(0)
+        storage.cellWidth must be(1)
+        storage.data.toList must be(List(65, 98, 48))
+        storage.line must be(line)
+        model.getDollar must be(0 + (cellWidth * 3))
+    }
+
+    @Test
+    def dbMixedNumbersAndCharacters(): Unit = {
+        val cellWidth = 1
+        val dbStatement = DB(List(Number(5), Characters("abc"), Number(7)))
+        val line = Line(1, "", None, Some(dbStatement))
+        val model = generateFromLine(line)
+
+        val storages = model.getStoragesForLine(1)
+        storages must have size 1
+        val storage = storages.head
+        storage.address must be(0)
+        storage.cellWidth must be(1)
+        storage.data.toList must be(List(5, 97, 98, 99, 7))
+        storage.line must be(line)
+        model.getDollar must be(0 + (cellWidth * 5))
     }
 
     @Test

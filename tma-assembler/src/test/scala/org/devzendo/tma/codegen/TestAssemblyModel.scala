@@ -238,8 +238,8 @@ class TestAssemblyModel extends AssertionsForJUnit with MustMatchers {
 
     @Test
     def evalCharactersFails(): Unit = {
-        // For db/dw/dd, we'll have to take care of character expressions as they occur in the parameter list -
-        // evaluateExpression only returns an Int.
+        // For db/dw/dd, we expand character expressions as they occur in the parameter list -
+        // evaluateExpression only returns an Int. See allocateStorageForLine and expandCharacterExpressions.
 
         thrown.expect(classOf[AssemblyModelException])
         thrown.expectMessage("Cannot evaluate 'Characters(FNORD)' as an Int")
@@ -458,6 +458,18 @@ class TestAssemblyModel extends AssertionsForJUnit with MustMatchers {
 
         storage.data must be(Array[Int](73))
         model.forwardReferences(fnord) must be (Set.empty)
+    }
+
+    @Test
+    def storageOfCharactersIsExpandedToNumbers(): Unit = {
+        val cellWidth = 1
+        val str = "abc"
+        val exprs = List(Characters(str))
+        val line = Line(3, "irrelevant", None, Some(DB(exprs)))
+        val storage = model.allocateStorageForLine(line, cellWidth, exprs)
+
+        storage.data must be(Array[Int](97, 98, 99))
+        model.getDollar must be(cellWidth * str.length)
     }
 
     @Test
