@@ -287,14 +287,7 @@ class AssemblyModel {
     }
 
     def allocateStorageForLine(line: Line, cellWidth: Int, exprs: List[Expression]): Storage = {
-        // TODO Orcish manoevre?
-        val storages = if (storagesForLines.contains(line.number)) {
-            storagesForLines(line.number)
-        } else {
-            val newLines = mutable.ArrayBuffer[Storage]()
-            storagesForLines.put(line.number, newLines)
-            newLines
-        }
+        val storages = storagesForLines.getOrElseUpdate(line.number, mutable.ArrayBuffer[Storage]())
 
         // The incoming exprs will need evaluating to numbers that are stored in the Storage's data field. Most
         // expressions are evaluated to a single number, but Characters are evaluated to multiple. So expand all

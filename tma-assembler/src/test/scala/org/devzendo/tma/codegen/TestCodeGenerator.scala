@@ -23,6 +23,7 @@ import org.junit.{Rule, Test}
 import org.log4s.Logger
 import org.scalatest.junit.AssertionsForJUnit
 import org.scalatest.{DiagrammedAssertions, MustMatchers}
+import org.scalatest.DiagrammedAssertions.diagrammedAssertionsHelper
 
 class TestCodeGenerator extends AssertionsForJUnit with MustMatchers {
     val logger: Logger = org.log4s.getLogger
