@@ -51,9 +51,9 @@ object ListingWriter {
 class ListingWriter(val outputFile: File) {
     import ListingWriter._
 
-    val logger = org.log4s.getLogger
-    val headerLeft = s"DevZendo.org Macro Assembler ${Version.getPropertiesVersion()}"
-    val headerRight = LocalDateTime.now().format(DateTimeFormatter.ofPattern("kk/MM/yyyy HH:mm:ss"))
+    private val logger = org.log4s.getLogger
+    private val headerLeft = s"DevZendo.org Macro Assembler ${Version.getPropertiesVersion()}"
+    private val headerRight = LocalDateTime.now().format(DateTimeFormatter.ofPattern("kk/MM/yyyy HH:mm:ss"))
 
 
 
@@ -61,7 +61,7 @@ class ListingWriter(val outputFile: File) {
 
         def calculatePrintableLines(): Int = {
             var printableLines = 0
-            model.foreachLineStorage((line: Line, storages: List[Storage]) => {
+            model.foreachLineStorage((_: Line, storages: List[Storage]) => {
                 if (storages.nonEmpty) {
                     for (st <- storages) {
                         printableLines += numPrintableLinesForStorage(st)
@@ -80,7 +80,7 @@ class ListingWriter(val outputFile: File) {
         var lineNumber = 0
         var pageNumber = 1
 
-        var printableLines = calculatePrintableLines()
+        val printableLines = calculatePrintableLines()
         val pageHeightWithoutHeader = model.rows - 2
         val maxPageNumber = (printableLines + pageHeightWithoutHeader - 1) / pageHeightWithoutHeader
         logger.debug(s"printable lines $printableLines maxPageNumber $maxPageNumber pageHeightWithoutHeader $pageHeightWithoutHeader")
