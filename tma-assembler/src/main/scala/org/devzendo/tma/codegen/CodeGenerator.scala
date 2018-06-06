@@ -37,7 +37,7 @@ class CodeGenerator(debugCodegen: Boolean) {
 
     private var lastLineNumber = 0
 
-    def getLastLineNumber = lastLineNumber
+    def getLastLineNumber: Int = lastLineNumber
 
     def processLine(line: Line): Unit = {
         if (line.number > lastLineNumber) {

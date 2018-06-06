@@ -21,10 +21,8 @@ import org.devzendo.tma.ast.{Line, _}
 import org.junit.rules.ExpectedException
 import org.junit.{Rule, Test}
 import org.log4s.Logger
-import org.scalatest.{DiagrammedAssertions, MustMatchers}
 import org.scalatest.junit.AssertionsForJUnit
-
-import scala.collection.mutable
+import org.scalatest.{DiagrammedAssertions, MustMatchers}
 
 class TestCodeGenerator extends AssertionsForJUnit with MustMatchers {
     val logger: Logger = org.log4s.getLogger
@@ -625,7 +623,6 @@ class TestCodeGenerator extends AssertionsForJUnit with MustMatchers {
 
     @Test
     def foreachLineStorageGivesAllOriginalLinesAndMacroExpandedLinesAndStorages(): Unit = {
-        import org.scalatest.DiagrammedAssertions._
         val line5Exprs = List(SymbolArg("_CODE"), SymbolArg("_LINK"))
         val lines = List(
             Line(11, "EQU\tCELLL\t10", None, Some(ConstantAssignment(new SymbolName("CELLL"), Number(10)))),

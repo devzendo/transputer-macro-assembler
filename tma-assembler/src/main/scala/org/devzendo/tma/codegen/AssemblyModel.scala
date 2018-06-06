@@ -63,7 +63,7 @@ class AssemblyModel {
 
     private var endSeen = false
 
-    var endianness = Endianness.Big
+    var endianness: Endianness.Value = Endianness.Big
 
     setVariable(dollar, 0, 0)
 
@@ -413,7 +413,7 @@ class AssemblyModel {
         endSeen = true
     }
 
-    def hasEndBeenSeen = endSeen
+    def hasEndBeenSeen: Boolean = endSeen
 
     private var lowStorageAddress = 0
     private var highStorageAddress = 0
