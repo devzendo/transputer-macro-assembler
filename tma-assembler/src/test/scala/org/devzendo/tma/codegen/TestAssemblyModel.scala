@@ -47,6 +47,8 @@ class TestAssemblyModel extends AssertionsForJUnit with MustMatchers {
 
     // Variables -------------------------------------------------------------------------------------------------------
 
+    private def genDummyLine(lineNumber: Int) = Line(lineNumber, "", None, None)
+
     @Test
     def unknownVariableRetrieval(): Unit = {
         thrown.expect(classOf[AssemblyModelException])
@@ -62,16 +64,44 @@ class TestAssemblyModel extends AssertionsForJUnit with MustMatchers {
 
     @Test
     def dollarCanBeSet(): Unit = {
-        model.setDollar(50, 0)
+        model.setDollar(50, genDummyLine(0))
         model.getDollar must be(50)
-        model.setVariable(dollar, 23, 0)
+        model.setVariable(dollar, 23, genDummyLine(0))
         model.getDollar must be(23)
         model.getVariable(dollar) must be(23)
     }
 
     @Test
+    def setDollarCreatesAnAssignmentValue(): Unit = {
+        model.setDollar(42, genDummyLine(4))
+        checkAssignmentOfValue(false)
+    }
+
+    @Test
+    def setDollarSilentlyDoesNotCreateAnAssignmentValue(): Unit = {
+        model.setDollarSilently(42)
+
+        numberOfSourcedValues must be(0)
+    }
+
+    @Test
+    def incrementDollarSilentlyDoesNotCreateAnAssignmentValue(): Unit = {
+        model.incrementDollar(42)
+
+        numberOfSourcedValues must be(0)
+    }
+
+    private def numberOfSourcedValues = {
+        var count = 0
+        model.foreachSourcedValue((_: Int, _: List[SourcedValue]) => {
+            count += 1
+        })
+        count
+    }
+
+    @Test
     def variableCanBeSet(): Unit = {
-        model.setVariable(fnord, 69, 0)
+        model.setVariable(fnord, 69, genDummyLine(0))
         model.getVariable(fnord) must be(69)
         model.variable(fnord) must be(Some(69))
         model.constant(fnord) must be(None) // it's a variable, not a constant, nor a label
@@ -80,8 +110,8 @@ class TestAssemblyModel extends AssertionsForJUnit with MustMatchers {
 
     @Test
     def variableCanBeRedefined(): Unit = {
-        model.setVariable(fnord, 32, 0)
-        model.setVariable(fnord, 69, 0)
+        model.setVariable(fnord, 32, genDummyLine(0))
+        model.setVariable(fnord, 69, genDummyLine(0))
         model.getVariable(fnord) must be(69)
     }
 
@@ -90,8 +120,8 @@ class TestAssemblyModel extends AssertionsForJUnit with MustMatchers {
         thrown.expect(classOf[AssemblyModelException])
         thrown.expectMessage("Variable '" + fnord + "' cannot override existing constant; initially defined on line 1")
 
-        model.setConstant(fnord, 69, 1)
-        model.setVariable(fnord, 17, 2)
+        model.setConstant(fnord, 69, genDummyLine(1))
+        model.setVariable(fnord, 17, genDummyLine(2))
     }
 
     @Test
@@ -99,8 +129,8 @@ class TestAssemblyModel extends AssertionsForJUnit with MustMatchers {
         thrown.expect(classOf[AssemblyModelException])
         thrown.expectMessage("Variable '" + fnord + "' cannot override existing label; initially defined on line 1")
 
-        model.setLabel(fnord, 69, 1)
-        model.setVariable(fnord, 17, 2)
+        model.setLabel(fnord, 69, genDummyLine(1))
+        model.setVariable(fnord, 17, genDummyLine(2))
     }
 
     // Constants -------------------------------------------------------------------------------------------------------
@@ -114,7 +144,7 @@ class TestAssemblyModel extends AssertionsForJUnit with MustMatchers {
 
     @Test
     def constantCanBeSet(): Unit = {
-        model.setConstant(fnord, 69, 1)
+        model.setConstant(fnord, 69, genDummyLine(1))
         model.getConstant(fnord) must be(69)
         model.constant(fnord) must be(Some(69))
         model.variable(fnord) must be(None) // it's a constant, not a variable, nor a label
@@ -126,8 +156,8 @@ class TestAssemblyModel extends AssertionsForJUnit with MustMatchers {
         thrown.expect(classOf[AssemblyModelException])
         thrown.expectMessage("Constant '" + fnord + "' cannot be redefined; initially defined on line 1")
 
-        model.setConstant(fnord, 69, 1)
-        model.setConstant(fnord, 17, 2)
+        model.setConstant(fnord, 69, genDummyLine(1))
+        model.setConstant(fnord, 17, genDummyLine(2))
     }
 
     @Test
@@ -135,8 +165,8 @@ class TestAssemblyModel extends AssertionsForJUnit with MustMatchers {
         thrown.expect(classOf[AssemblyModelException])
         thrown.expectMessage("Constant '" + fnord + "' cannot override existing variable; last stored on line 1")
 
-        model.setVariable(fnord, 69, 1)
-        model.setConstant(fnord, 17, 2)
+        model.setVariable(fnord, 69, genDummyLine(1))
+        model.setConstant(fnord, 17, genDummyLine(2))
     }
 
     @Test
@@ -144,8 +174,8 @@ class TestAssemblyModel extends AssertionsForJUnit with MustMatchers {
         thrown.expect(classOf[AssemblyModelException])
         thrown.expectMessage("Constant '" + fnord + "' cannot override existing label; initially defined on line 1")
 
-        model.setLabel(fnord, 69, 1)
-        model.setConstant(fnord, 17, 2)
+        model.setLabel(fnord, 69, genDummyLine(1))
+        model.setConstant(fnord, 17, genDummyLine(2))
     }
 
     // Labels ----------------------------------------------------------------------------------------------------------
@@ -158,7 +188,7 @@ class TestAssemblyModel extends AssertionsForJUnit with MustMatchers {
 
     @Test
     def labelCanBeSet(): Unit = {
-        model.setLabel(fnord, 69, 1)
+        model.setLabel(fnord, 69, genDummyLine(1))
         model.getLabel(fnord) must be(69)
         model.label(fnord) must be(Some(69))
         model.variable(fnord) must be(None) // it's a label, not a variable, nor a constant (semantically, though it is constant)
@@ -170,8 +200,8 @@ class TestAssemblyModel extends AssertionsForJUnit with MustMatchers {
         thrown.expect(classOf[AssemblyModelException])
         thrown.expectMessage("Label '" + fnord + "' cannot be redefined; initially defined on line 1")
 
-        model.setLabel(fnord, 69, 1)
-        model.setLabel(fnord, 17, 2)
+        model.setLabel(fnord, 69, genDummyLine(1))
+        model.setLabel(fnord, 17, genDummyLine(2))
     }
 
     @Test
@@ -179,8 +209,8 @@ class TestAssemblyModel extends AssertionsForJUnit with MustMatchers {
         thrown.expect(classOf[AssemblyModelException])
         thrown.expectMessage("Label '" + fnord + "' cannot override existing variable; last stored on line 1")
 
-        model.setVariable(fnord, 17, 1)
-        model.setLabel(fnord, 69, 2)
+        model.setVariable(fnord, 17, genDummyLine(1))
+        model.setLabel(fnord, 69, genDummyLine(2))
     }
 
     @Test
@@ -188,8 +218,8 @@ class TestAssemblyModel extends AssertionsForJUnit with MustMatchers {
         thrown.expect(classOf[AssemblyModelException])
         thrown.expectMessage("Label '" + fnord + "' cannot override existing constant; initially defined on line 1")
 
-        model.setConstant(fnord, 17, 1)
-        model.setLabel(fnord, 69, 2)
+        model.setConstant(fnord, 17, genDummyLine(1))
+        model.setLabel(fnord, 69, genDummyLine(2))
     }
 
     // Evaluate Expression ---------------------------------------------------------------------------------------------
@@ -201,7 +231,7 @@ class TestAssemblyModel extends AssertionsForJUnit with MustMatchers {
 
     @Test
     def evalSymbolArgOfExistingVariable(): Unit = {
-        model.setVariable(fnord, 45, 0)
+        model.setVariable(fnord, 45, genDummyLine(0))
         model.evaluateExpression(SymbolArg(fnord)) must be(Right(45))
     }
 
@@ -226,13 +256,13 @@ class TestAssemblyModel extends AssertionsForJUnit with MustMatchers {
 
     @Test
     def evalSymbolArgOfExistingConstant(): Unit = {
-        model.setConstant(fnord, 45, 1)
+        model.setConstant(fnord, 45, genDummyLine(1))
         model.evaluateExpression(SymbolArg(fnord)) must be(Right(45))
     }
 
     @Test
     def evalSymbolArgOfExistingLabel(): Unit = {
-        model.setLabel(fnord, 45, 1)
+        model.setLabel(fnord, 45, genDummyLine(1))
         model.evaluateExpression(SymbolArg(fnord)) must be(Right(45))
     }
 
@@ -325,26 +355,26 @@ class TestAssemblyModel extends AssertionsForJUnit with MustMatchers {
 
     @Test
     def definedVariable(): Unit = {
-        model.setVariable(fnord, 1, 1)
+        model.setVariable(fnord, 1, genDummyLine(1))
         model.definedValue(new SymbolName(fnord)) must be(true)
     }
 
     @Test
     def definedConstant(): Unit = {
-        model.setConstant(fnord, 1, 1)
+        model.setConstant(fnord, 1, genDummyLine(1))
         model.definedValue(new SymbolName(fnord)) must be(true)
     }
 
     @Test
     def definedLabel(): Unit = {
-        model.setLabel(fnord, 1, 1)
+        model.setLabel(fnord, 1, genDummyLine(1))
         model.definedValue(new SymbolName(fnord)) must be(true)
     }
 
     @Test
     def findUndefinedSymbolInSymbolArg(): Unit = {
         model.findUndefineds(SymbolArg(fnord)) must be(Set(fnord))
-        model.setConstant(fnord, 1, 1)
+        model.setConstant(fnord, 1, genDummyLine(1))
         model.findUndefineds(SymbolArg(fnord)) must be(empty)
     }
 
@@ -357,16 +387,16 @@ class TestAssemblyModel extends AssertionsForJUnit with MustMatchers {
     @Test
     def findUndefinedSymbolInUnary(): Unit = {
         model.findUndefineds(Unary(Negate(), SymbolArg(fnord))) must be(Set(fnord))
-        model.setConstant(fnord, 1, 1)
+        model.setConstant(fnord, 1, genDummyLine(1))
         model.findUndefineds(Unary(Negate(), SymbolArg(fnord))) must be(empty)
     }
 
     @Test
     def findUndefinedSymbolInBinary(): Unit = {
         model.findUndefineds(Binary(Add(), SymbolArg(fnord), SymbolArg("foo"))) must be(Set(fnord, "foo"))
-        model.setConstant(fnord, 1, 1)
+        model.setConstant(fnord, 1, genDummyLine(1))
         model.findUndefineds(Binary(Add(), SymbolArg(fnord), SymbolArg("foo"))) must be(Set("foo"))
-        model.setConstant("foo", 1, 1)
+        model.setConstant("foo", 1, genDummyLine(1))
         model.findUndefineds(Binary(Add(), SymbolArg(fnord), SymbolArg("foo"))) must be(empty)
     }
 
@@ -375,7 +405,7 @@ class TestAssemblyModel extends AssertionsForJUnit with MustMatchers {
     @Test
     def storageRetrieval(): Unit = {
         val address = 69
-        model.setDollar(address, 0)
+        model.setDollar(address, genDummyLine(0))
         val exprs = List(Number(42), Number(69), Number(0), Number(1))
         val line = Line(3, "irrelevant", None, Some(DB(exprs)))
         val storage = model.allocateStorageForLine(line, 1, exprs)
@@ -386,15 +416,15 @@ class TestAssemblyModel extends AssertionsForJUnit with MustMatchers {
     }
 
     @Test
-    def noStorageForLineGivesEmptyList(): Unit = {
-        model.getStoragesForLine(17) must be(empty)
+    def noSourcedValueForLineGivesEmptyList(): Unit = {
+        model.getSourcedValuesForLineNumber(17) must be(empty)
     }
 
     @Test
     def storageIncrementsDollarByCellWidthTimesLength(): Unit = {
         val startAddress = 20
         val cellWidth = 1
-        model.setDollar(startAddress, 0)
+        model.setDollar(startAddress, genDummyLine(0))
 
         val exprs = List(Number(42), Number(69))
         val line = Line(3, "irrelevant", None, Some(DB(exprs)))
@@ -424,7 +454,7 @@ class TestAssemblyModel extends AssertionsForJUnit with MustMatchers {
     def storageWithForwardReferenceIsRemovedOnVariableDefinitionButOtherForwardReferencesRemain(): Unit = {
         val exprs = List(SymbolArg(fnord), SymbolArg("foo"))
         val storage = model.allocateStorageForLine(Line(3, "irrelevant", None, Some(DB(exprs))), 1, exprs)
-        model.setVariable(fnord, 73, 4)
+        model.setVariable(fnord, 73, genDummyLine(4))
 
         model.forwardReferences(fnord) must be (Set.empty)
         model.forwardReferences("foo") must be (Set(storage))
@@ -434,7 +464,7 @@ class TestAssemblyModel extends AssertionsForJUnit with MustMatchers {
     def storageWithForwardReferenceIsFixedUpAndForwardReferenceRemovedOnVariableDefinition(): Unit = {
         val exprs = List(SymbolArg(fnord))
         val storage = model.allocateStorageForLine(Line(3, "irrelevant", None, Some(DB(exprs))), 1, exprs)
-        model.setVariable(fnord, 73, 4)
+        model.setVariable(fnord, 73, genDummyLine(4))
 
         storage.data must be(Array[Int](73))
         model.forwardReferences(fnord) must be (Set.empty)
@@ -444,7 +474,7 @@ class TestAssemblyModel extends AssertionsForJUnit with MustMatchers {
     def storageWithForwardReferenceIsFixedUpAndForwardReferenceRemovedOnConstantDefinition(): Unit = {
         val exprs = List(SymbolArg(fnord))
         val storage = model.allocateStorageForLine(Line(3, "irrelevant", None, Some(DB(exprs))), 1, exprs)
-        model.setConstant(fnord, 73, 4)
+        model.setConstant(fnord, 73, genDummyLine(4))
 
         storage.data must be(Array[Int](73))
         model.forwardReferences(fnord) must be (Set.empty)
@@ -454,7 +484,7 @@ class TestAssemblyModel extends AssertionsForJUnit with MustMatchers {
     def storageWithForwardReferenceIsFixedUpAndForwardReferenceRemovedOnLabelDefinition(): Unit = {
         val exprs = List(SymbolArg(fnord))
         val storage = model.allocateStorageForLine(Line(3, "irrelevant", None, Some(DB(exprs))), 1, exprs)
-        model.setLabel(fnord, 73, 4)
+        model.setLabel(fnord, 73, genDummyLine(4))
 
         storage.data must be(Array[Int](73))
         model.forwardReferences(fnord) must be (Set.empty)
@@ -473,6 +503,46 @@ class TestAssemblyModel extends AssertionsForJUnit with MustMatchers {
     }
 
     @Test
+    def assigmentOfValueByVariableForLine(): Unit = {
+        model.setVariable(fnord, 42, genDummyLine(4))
+
+        checkAssignmentOfValue(false)
+    }
+
+    @Test
+    def assigmentOfValueByConstantForLine(): Unit = {
+        model.setConstant(fnord, 42, genDummyLine(4))
+
+        checkAssignmentOfValue(false)
+    }
+
+    @Test
+    def assigmentOfValueByLabelForLine(): Unit = {
+        model.setLabel(fnord, 42, genDummyLine(4))
+
+        checkAssignmentOfValue(true)
+    }
+
+    private def checkAssignmentOfValue(isLabel: Boolean) = {
+        var foundLine = 0
+        var foundValue = 0
+        var foundIsLabel = false
+
+        // the only way to get AssignmentValues out
+        model.foreachSourcedValue((lineNumber: Int, sourcedValues: List[SourcedValue]) => {
+            for (sourcedValue <- sourcedValues) {
+                val assignmentValue = sourcedValue.asInstanceOf[AssignmentValue]
+                foundLine = lineNumber
+                foundValue = assignmentValue.data
+                foundIsLabel = assignmentValue.isLabel
+            }
+        })
+        foundLine must be(4)
+        foundValue must be(42)
+        foundIsLabel must be(isLabel)
+    }
+
+    @Test
     def undefinedCountExpressionInDupFails(): Unit = {
         thrown.expect(classOf[AssemblyModelException])
         thrown.expectMessage("Count of 'SymbolArg(FNORD)' is undefined on line 3")
@@ -483,7 +553,7 @@ class TestAssemblyModel extends AssertionsForJUnit with MustMatchers {
     @Test
     def storageOfDbDup(): Unit = {
         val address = 69
-        model.setDollar(address, 0)
+        model.setDollar(address, genDummyLine(0))
         val line = Line(3, "irrelevant", None, Some(DBDup(Number(5), Number(69))))
         val storage = model.allocateStorageForLine(line, 1, Number(5), Number(69))
         storage.data must be(Array(69, 69, 69, 69, 69))
@@ -495,7 +565,7 @@ class TestAssemblyModel extends AssertionsForJUnit with MustMatchers {
     @Test
     def storageOfDbDupIncrementsAddress(): Unit = {
         val address = 69
-        model.setDollar(address, 0)
+        model.setDollar(address, genDummyLine(0))
         val count = 5
         val cellWidth = 1
         val line = Line(3, "irrelevant", None, Some(DBDup(Number(count), Number(69))))
@@ -514,7 +584,7 @@ class TestAssemblyModel extends AssertionsForJUnit with MustMatchers {
     def storageOfDbDupWithForwardReferenceIsFixedUpAndForwardReferenceRemovedOnVariableDefinition(): Unit = {
         val line = Line(3, "irrelevant", None, Some(DBDup(Number(5), SymbolArg(fnord))))
         val storage = model.allocateStorageForLine(line, 1, Number(5), SymbolArg(fnord))
-        model.setVariable(fnord, 73, 4)
+        model.setVariable(fnord, 73, genDummyLine(4))
 
         storage.data must be(Array[Int](73, 73, 73, 73, 73))
         model.forwardReferences(fnord) must be (Set.empty)
@@ -632,19 +702,19 @@ class TestAssemblyModel extends AssertionsForJUnit with MustMatchers {
     def noForwardReferencesAtEndOfFirstPassIsGood(): Unit = {
         val line = Line(3, "irrelevant", None, Some(DBDup(Number(5), SymbolArg(fnord))))
         model.allocateStorageForLine(line, 1, Number(5), SymbolArg(fnord))
-        model.setVariable(fnord, 34, 9)
+        model.setVariable(fnord, 34, genDummyLine(9))
 
         model.checkUnresolvedForwardReferences()
     }
 
     @Test
     def lowestAndHighestStorageAddresses(): Unit = {
-        model.setDollar(0x4000, 1)
+        model.setDollar(0x4000, genDummyLine(1))
 
         val exprs = List(Number(1), Number(2))
         model.allocateStorageForLine(Line(2, "", None, Some(DB(exprs))), 1, exprs)
 
-        model.setDollar(0x4020, 3)
+        model.setDollar(0x4020, genDummyLine(3))
 
         model.allocateStorageForLine(Line(4, "", None, Some(DB(exprs))), 1, exprs)
 
@@ -653,31 +723,44 @@ class TestAssemblyModel extends AssertionsForJUnit with MustMatchers {
     }
 
     @Test
-    def foreachStorageGivesLinesAndStoragesInOrder(): Unit = {
+    def foreachSourcedValueGivesLinesAndSourcedValueInOrder(): Unit = {
         simpleOrderingTestModel
 
         val lineNumbers = mutable.ArrayBuffer[Int]()
         val storageBytes = mutable.ArrayBuffer[Int]()
+        val assignmentValues = mutable.ArrayBuffer[Int]()
         var calls = 0
-        model.foreachStorage( (lineNumber: Int, storages: List[Storage]) => {
+        model.foreachSourcedValue((lineNumber: Int, sourcedValues: List[SourcedValue]) => {
             calls += 1
             lineNumbers += lineNumber
-            for (storage <- storages) {
-                for (data <- storage.data) {
-                    storageBytes += data
+            for (sourcedValue <- sourcedValues) {
+                sourcedValue match {
+                    case storage: Storage =>
+                        for (data <- storage.data) {
+                            storageBytes += data
+                        }
+                    case assignmentValue: AssignmentValue =>
+                        assignmentValues += assignmentValue.data
                 }
             }
         })
 
-        calls must be(3) // two line 2's are coalesced into one call with two storages
+        // two line 2's are coalesced into one call with two Storages
+        calls must be(4)
 
-        lineNumbers.toArray must be(Array(1, 2, 5))
+        lineNumbers.toArray must be(Array(1, 2, 4, 5))
         storageBytes.toArray must be(Array(1, 2, 3, 21))
+        assignmentValues.toArray must be(Array(42))
     }
 
     private def simpleOrderingTestModel = {
+        // The Lines here are illustrative of the Lines that would cause the allocateStorageForLine/assignmentForLine
+        // calls...
         val line5 = Line(5, "irrelevant", None, Some(DB(List(Number(21)))))
         model.allocateStorageForLine(line5, 1, List(Number(21)))
+
+        // e.g. val line4 = Line(4, "irrelevant", None, Some(VariableAssignment(new SymbolName(fnord), Number(42))))
+        model.setVariable(fnord, 42, genDummyLine(4))
 
         val line1 = Line(1, "irrelevant", None, Some(DB(List(Number(1)))))
         model.allocateStorageForLine(line1, 1, List(Number(1)))

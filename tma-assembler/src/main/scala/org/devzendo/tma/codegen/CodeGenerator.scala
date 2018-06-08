@@ -66,7 +66,7 @@ class CodeGenerator(debugCodegen: Boolean) {
 
     private def createLabel(line: Line): Unit = {
         line.label.foreach((label: Label) =>
-            model.setLabel(label, model.getDollar, line.number)
+            model.setLabel(label, model.getDollar, line)
         )
     }
 
@@ -100,13 +100,11 @@ class CodeGenerator(debugCodegen: Boolean) {
                     case "386" => Endianness.Little
                     case "T800" => Endianness.Little
                 }
-            case Align(n) => processAlign(lineNumber, n)
-            case Org(expr) => processOrg(lineNumber, expr)
-            case End(expr) => processEnd(lineNumber, expr)
-            case ConstantAssignment(name, expr) => processConstantAssignment(lineNumber, name, expr)
-            // TODO store the value of the assignment so the listing can show it
-            case VariableAssignment(name, expr) => processVariableAssignment(lineNumber, name, expr)
-                // TODO store the value of the assignment so the listing can show it
+            case Align(n) => processAlign(line, n)
+            case Org(expr) => processOrg(line, expr)
+            case End(expr) => processEnd(line, expr)
+            case ConstantAssignment(name, expr) => processConstantAssignment(line, name, expr)
+            case VariableAssignment(name, expr) => processVariableAssignment(line, name, expr)
             case Ignored() => // Do nothing
             case MacroStart(_, _) =>  // All macro AST statements are handled by the parser; the expansions are handled
             case MacroBody(_) =>      // by the rest of the AST statement handlers, here..
@@ -119,20 +117,21 @@ class CodeGenerator(debugCodegen: Boolean) {
             case DWDup(count, repeatedExpr) => model.allocateStorageForLine(line, 2, count, repeatedExpr)
             case DDDup(count, repeatedExpr) => model.allocateStorageForLine(line, 4, count, repeatedExpr)
             case If1() => processIf1()
-            case Else() => processElse(lineNumber)
-            case Endif() => processEndif(lineNumber)
+            case Else() => processElse(line)
+            case Endif() => processEndif(line)
         }
     }
 
-    private def processAlign(lineNumber: Int, alignment: Int): Unit = {
+    private def processAlign(line: Line, alignment: Int): Unit = {
         val dollar = model.getDollar
         val remainder = dollar % alignment
         if (remainder > 0) {
-            model.setDollar(dollar + alignment - remainder, lineNumber)
+            model.incrementDollar(alignment - remainder)
         }
     }
 
-    private def processOrg(lineNumber: Int, expr: Expression): Unit = {
+    private def processOrg(line: Line, expr: Expression): Unit = {
+        val lineNumber = line.number
         if (expressionContainsCharacters(expr)) {
             throw new CodeGenerationException(lineNumber, "Origin cannot be set to a Character expression '" + expr + "'")
         }
@@ -141,15 +140,16 @@ class CodeGenerator(debugCodegen: Boolean) {
             case Left(undefineds) => throw new CodeGenerationException(lineNumber, "Undefined symbol(s) '" + undefineds.mkString(",") + "'")
             case Right(org) =>
                 logger.debug("Org: " + org)
-                model.setDollar(org, lineNumber)
+                model.setDollar(org, line)
         }
     }
 
-    private def processEnd(lineNumber: Int, expr: Option[Expression]): Unit = {
+    private def processEnd(line: Line, expr: Option[Expression]): Unit = {
         model.endHasBeenSeen()
     }
 
-    private def processConstantAssignment(lineNumber: Int, name: SymbolName, expr: Expression): Unit = {
+    private def processConstantAssignment(line: Line, name: SymbolName, expr: Expression): Unit = {
+        val lineNumber = line.number
         if (expressionContainsCharacters(expr)) {
             throw new CodeGenerationException(lineNumber, "Constant cannot be set to a Character expression '" + expr + "'")
         }
@@ -158,11 +158,12 @@ class CodeGenerator(debugCodegen: Boolean) {
             case Left(undefineds) => throw new CodeGenerationException(lineNumber, "Constant cannot be set to an undefined symbol '" + undefineds + "'")
             case Right(value) =>
                 logger.debug("Constant " + name + " = " + value)
-                model.setConstant(name, value, lineNumber)
+                model.setConstant(name, value, line)
         }
     }
 
-    private def processVariableAssignment(lineNumber: Int, name: SymbolName, expr: Expression): Unit = {
+    private def processVariableAssignment(line: Line, name: SymbolName, expr: Expression): Unit = {
+        val lineNumber = line.number
         if (expressionContainsCharacters(expr)) {
             throw new CodeGenerationException(lineNumber, "Variable cannot be set to a Character expression '" + expr + "'")
         }
@@ -171,7 +172,7 @@ class CodeGenerator(debugCodegen: Boolean) {
             case Left(undefineds) => throw new CodeGenerationException(lineNumber, "Variable cannot be set to an undefined symbol '" + undefineds + "'")
             case Right(value) =>
                 logger.debug("Variable " + name + " = " + value)
-                model.setVariable(name, value, lineNumber)
+                model.setVariable(name, value, line)
         }
     }
 
@@ -194,9 +195,9 @@ class CodeGenerator(debugCodegen: Boolean) {
         generationMode = GenerationMode.If1Seen
     }
 
-    private def processElse(lineNumber: Int): Unit = {
+    private def processElse(line: Line): Unit = {
         if (generationMode != GenerationMode.If1Seen) {
-            throw new CodeGenerationException(lineNumber, "Else seen without prior If1")
+            throw new CodeGenerationException(line.number, "Else seen without prior If1")
         }
         val dollar = model.getDollar
         logger.debug("Setting Pass 2 end address of " + dollar + " in Else; switching to Pass 2 Line Collection")
@@ -207,9 +208,9 @@ class CodeGenerator(debugCodegen: Boolean) {
         generationMode = GenerationMode.ElseSeen
     }
 
-    private def processEndif(lineNumber: Int): Unit = {
+    private def processEndif(line: Line): Unit = {
         if (generationMode != GenerationMode.If1Seen && generationMode != GenerationMode.ElseSeen) {
-            throw new CodeGenerationException(lineNumber, "Endif seen without prior If1")
+            throw new CodeGenerationException(line.number, "Endif seen without prior If1")
         }
         logger.debug("Storing collected Pass 2 Lines in Endif; switching to Pass 1 Line Assembly")
         // Collect the built pass 2 structure in a list for pass 2 processing..
@@ -226,7 +227,7 @@ class CodeGenerator(debugCodegen: Boolean) {
             // Only bother processing lines, and setting $ if there are any lines - can't set $ without a line number
             // for diagnostics..
             if (p2Lines.nonEmpty) {
-                model.setDollar(p2.getStartAddress, p2Lines.head.number)
+                model.setDollarSilently(p2.getStartAddress)
                 for (line <- p2Lines) {
                     // This will possibly append Storages at existing addresses - these will be resolved sequentially
                     // overwriting earlier memory, in the writers.

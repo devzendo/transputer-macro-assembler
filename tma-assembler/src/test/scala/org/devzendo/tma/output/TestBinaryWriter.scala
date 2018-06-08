@@ -64,16 +64,18 @@ class TestBinaryWriter extends TempFolder with AssertionsForJUnit with MustMatch
         }
     }
 
+    private def genDummyLine(lineNumber: Int) = Line(lineNumber, "", None, None)
+
     @Test
     def fileSizeAndContents(): Unit = {
         val model = new AssemblyModel()
 
-        model.setDollar(0x4000, 1)
+        model.setDollar(0x4000, genDummyLine(1))
 
         val exprs1 = List(Number(1), Number(2))
         model.allocateStorageForLine(Line(2, "", None, Some(DB(exprs1))), 1, exprs1)
 
-        model.setDollar(0x4020, 3)
+        model.setDollar(0x4020, genDummyLine(3))
 
         val exprs2 = List(Number(3), Number(4))
         model.allocateStorageForLine(Line(4, "", None, Some(DB(exprs2))), 1, exprs2)
@@ -125,12 +127,12 @@ class TestBinaryWriter extends TempFolder with AssertionsForJUnit with MustMatch
     def overlappingStorage(): Unit = {
         val model = new AssemblyModel()
 
-        model.setDollar(0x4000, 1)
+        model.setDollar(0x4000, genDummyLine(1))
 
         val exprs1 = List(Number(1), Number(2), Number(3), Number(4))
         model.allocateStorageForLine(Line(2, "", None, Some(DB(exprs1))), 1, exprs1)
 
-        model.setDollar(0x4001, 3)
+        model.setDollar(0x4001, genDummyLine(3))
 
         val exprs2 = List(Number(5), Number(6))
         model.allocateStorageForLine(Line(4, "", None, Some(DB(exprs2))), 1, exprs2)

@@ -75,21 +75,29 @@ class TestCodeGenerator extends AssertionsForJUnit with MustMatchers {
         }
     }
 
+    private def singleStorage(sourcedValues: List[SourcedValue]): Storage = {
+        sourcedValues.filter(_.isInstanceOf[Storage]).head.asInstanceOf[Storage]
+    }
+
+    private def singleAssignmentValue(sourcedValues: List[SourcedValue]): AssignmentValue = {
+        sourcedValues.filter(_.isInstanceOf[AssignmentValue]).head.asInstanceOf[AssignmentValue]
+    }
+
     @Test
     def linesAreAddedToModel(): Unit = {
         val originalLine = Line(1, "; text of line", None, None)
         val model = generateFromLine(originalLine)
 
-        // foreachLineStorage is the only way to get original Lines out...
+        // foreachLineSourcedValues is the only way to get original Lines out...
         var calls = 0
-        model.foreachLineStorage((line: Line, storages: List[Storage]) => {
+        model.foreachLineSourcedValues((line: Line, sourcedValues: List[SourcedValue]) => {
             calls += 1
             if (calls > 1) {
                 fail("Should have only called back once")
             }
 
             line must be(originalLine)
-            storages must be(empty)
+            sourcedValues must be(empty)
         })
     }
 
@@ -315,9 +323,9 @@ class TestCodeGenerator extends AssertionsForJUnit with MustMatchers {
         val line = Line(1, "", None, Some(dbStatement))
         val model = generateFromLine(line)
 
-        val storages = model.getStoragesForLine(1)
+        val storages = model.getSourcedValuesForLineNumber(1)
         storages must have size 1
-        val storage = storages.head
+        val storage = singleStorage(storages)
         storage.address must be(0)
         storage.cellWidth must be(1)
         storage.data.toList must be(List(42, 69))
@@ -332,9 +340,9 @@ class TestCodeGenerator extends AssertionsForJUnit with MustMatchers {
         val line = Line(1, "", None, Some(dbStatement))
         val model = generateFromLine(line)
 
-        val storages = model.getStoragesForLine(1)
+        val storages = model.getSourcedValuesForLineNumber(1)
         storages must have size 1
-        val storage = storages.head
+        val storage = singleStorage(storages)
         storage.address must be(0)
         storage.cellWidth must be(1)
         storage.data.toList must be(List(65, 98, 48))
@@ -349,9 +357,9 @@ class TestCodeGenerator extends AssertionsForJUnit with MustMatchers {
         val line = Line(1, "", None, Some(dbStatement))
         val model = generateFromLine(line)
 
-        val storages = model.getStoragesForLine(1)
+        val storages = model.getSourcedValuesForLineNumber(1)
         storages must have size 1
-        val storage = storages.head
+        val storage = singleStorage(storages)
         storage.address must be(0)
         storage.cellWidth must be(1)
         storage.data.toList must be(List(5, 97, 98, 99, 7))
@@ -366,9 +374,9 @@ class TestCodeGenerator extends AssertionsForJUnit with MustMatchers {
         val line = Line(1, "", None, Some(dwStatement))
         val model = generateFromLine(line)
 
-        val storages = model.getStoragesForLine(1)
+        val storages = model.getSourcedValuesForLineNumber(1)
         storages must have size 1
-        val storage = storages.head
+        val storage = singleStorage(storages)
         storage.address must be(0)
         storage.cellWidth must be(2)
         storage.data.toList must be(List(42, 69))
@@ -383,9 +391,9 @@ class TestCodeGenerator extends AssertionsForJUnit with MustMatchers {
         val line = Line(1, "", None, Some(ddStatement))
         val model = generateFromLine(line)
 
-        val storages = model.getStoragesForLine(1)
+        val storages = model.getSourcedValuesForLineNumber(1)
         storages must have size 1
-        val storage = storages.head
+        val storage = singleStorage(storages)
         storage.address must be(0)
         storage.cellWidth must be(4)
         storage.data.toList must be(List(42, 69))
@@ -401,9 +409,9 @@ class TestCodeGenerator extends AssertionsForJUnit with MustMatchers {
         val line = Line(1, "", None, Some(dbDupStatement))
         val model = generateFromLine(line)
 
-        val storages = model.getStoragesForLine(1)
+        val storages = model.getSourcedValuesForLineNumber(1)
         storages must have size 1
-        val storage = storages.head
+        val storage = singleStorage(storages)
         storage.address must be(0)
         storage.cellWidth must be(1)
         storage.data.toList must be(List(69, 69, 69, 69, 69))
@@ -420,9 +428,9 @@ class TestCodeGenerator extends AssertionsForJUnit with MustMatchers {
         val line = Line(1, "", None, Some(dbDupStatement))
         val model = generateFromLine(line)
 
-        val storages = model.getStoragesForLine(1)
+        val storages = model.getSourcedValuesForLineNumber(1)
         storages must have size 1
-        val storage = storages.head
+        val storage = singleStorage(storages)
         storage.address must be(0)
         storage.cellWidth must be(1)
         storage.data.toList must be(List.empty)
@@ -481,7 +489,7 @@ class TestCodeGenerator extends AssertionsForJUnit with MustMatchers {
         codegen.p2Structures must be(empty)
 
         // ...and the pass 2 lines haven't been stored normally.
-        val storages = model.getStoragesForLine(3)
+        val storages = model.getSourcedValuesForLineNumber(3)
         storages must be(empty)
     }
 
@@ -521,9 +529,9 @@ class TestCodeGenerator extends AssertionsForJUnit with MustMatchers {
         ))
 
         // Line 5 is stored... since we're back in Assembly (conversion to Storage) mode after Endif
-        val storages = model.getStoragesForLine(5)
+        val storages = model.getSourcedValuesForLineNumber(5)
         storages must have size 1
-        val line5Storage = storages.head
+        val line5Storage = singleStorage(storages)
         line5Storage.line.number must be(5)
         line5Storage.data must have size 1
         line5Storage.data(0) must be(11)
@@ -562,37 +570,40 @@ class TestCodeGenerator extends AssertionsForJUnit with MustMatchers {
 
         model.getLabel(fnord) must be(42)
 
-        val line2Storages = model.getStoragesForLine(2)
-        line2Storages must have size 1
-        val line2Storage = line2Storages.head
+        val line2SourcedValues = model.getSourcedValuesForLineNumber(2)
+        line2SourcedValues must have size 2
+        val line2Storage = singleStorage(line2SourcedValues)
         line2Storage.address must be(42)
         line2Storage.data must be(Array(77))
         line2Storage.cellWidth must be(1)
 
-        val line4Storages = model.getStoragesForLine(4)
+        val line2AssignmentValue = singleAssignmentValue(line2SourcedValues)
+        line2AssignmentValue.data must be(42)
+
+        val line4Storages = model.getSourcedValuesForLineNumber(4)
         line4Storages must have size 1
-        val line4Storage = line4Storages.head
+        val line4Storage = singleStorage(line4Storages)
         line4Storage.address must be(43)
         line4Storage.data must be(Array(1, 2, 3))
         line4Storage.cellWidth must be(1)
 
-        val line7Storages = model.getStoragesForLine(7)
+        val line7Storages = model.getSourcedValuesForLineNumber(7)
         line7Storages must have size 1
-        val line7Storage = line7Storages.head
+        val line7Storage = singleStorage(line7Storages)
         line7Storage.address must be(43)
         line7Storage.data must be(Array(6, 7, 8))
         line7Storage.cellWidth must be(1)
 
-        val line9Storages = model.getStoragesForLine(9)
+        val line9Storages = model.getSourcedValuesForLineNumber(9)
         line9Storages must have size 1
-        val line9Storage = line9Storages.head
+        val line9Storage = singleStorage(line9Storages)
         line9Storage.address must be(50)
         line9Storage.data must be(Array(42)) // fnord is resolved
         line9Storage.cellWidth must be(4)
 
-        val line11Storages = model.getStoragesForLine(11)
+        val line11Storages = model.getSourcedValuesForLineNumber(11)
         line11Storages must have size 1
-        val line11Storage = line11Storages.head
+        val line11Storage = singleStorage(line11Storages)
         line11Storage.address must be(54)
         line11Storage.data must be(Array(11))
         line11Storage.cellWidth must be(1)
@@ -623,7 +634,46 @@ class TestCodeGenerator extends AssertionsForJUnit with MustMatchers {
     }
 
     @Test
-    def foreachLineStorageGivesAllOriginalLinesAndMacroExpandedLinesAndStorages(): Unit = {
+    def labelAndStorageCauseTwoSourcedValues(): Unit = {
+        val model = generateFromLines(List(
+            Line(1, "", None, Some(Org(Number(42)))),
+            Line(2, "", Some(new Label(fnord)), Some(DB(List(Number(77)))))
+        ))
+
+        val sourcedValues = model.getSourcedValuesForLineNumber(2)
+        sourcedValues must have size 2
+
+        val storage = singleStorage(sourcedValues)
+        storage.address must be(42)
+        storage.data must be(Array(77))
+        storage.cellWidth must be(1)
+
+        val assignmentValue = singleAssignmentValue(sourcedValues)
+        assignmentValue.isLabel must be(true)
+        assignmentValue.data must be(42)
+    }
+
+    @Test
+    def labelAndAssignmentCauseTwoSourcedValues(): Unit = {
+        val model = generateFromLines(List(
+            Line(1, "", None, Some(Org(Number(42)))),
+            Line(2, "", Some(new Label(fnord)), Some(VariableAssignment(new SymbolName("foo"), Number(77))))
+        ))
+
+        val sourcedValues = model.getSourcedValuesForLineNumber(2)
+        sourcedValues must have size 2
+
+        val assignmentValues = sourcedValues.map(_.asInstanceOf[AssignmentValue])
+
+        val label = assignmentValues.filter(_.isLabel).head
+        label.data must be(42)
+
+        val assignment = assignmentValues.filter(!_.isLabel).head
+        assignment.data must be(77)
+    }
+
+    @Test
+    def foreachLineSourcedValuesGivesAllOriginalLinesAndMacroExpandedLinesAndSourcedValues(): Unit = {
         val line5Exprs = List(SymbolArg("_CODE"), SymbolArg("_LINK"))
         val lines = List(
             Line(11, "EQU\tCELLL\t10", None, Some(ConstantAssignment(new SymbolName("CELLL"), Number(10)))),
@@ -636,33 +686,38 @@ class TestCodeGenerator extends AssertionsForJUnit with MustMatchers {
             Line(13, "DB\t3,5", None, Some(DB(List(Number(3), Number(5))))),
             Line(13, "ORG\t_CODE", None, Some(Org(SymbolArg("_CODE"))))
         )
-        val expectedStorageLists: List[List[Storage]] = List(
-            List.empty,
-            List.empty,
-            List.empty,
-            List.empty,
-            List.empty,
-            List(Storage(3, 4, Array[Int](0, 11), lines(5), line5Exprs)),
-            List.empty,
-            List(Storage(11, 1, Array[Int](3, 5), lines(7), List(Number(3), Number(5)))),
-            List.empty
+        val expectedDataValues: List[List[Int]] = List(
+            List[Int](10),
+            List[Int](3),
+            List[Int](),
+            List[Int](0),
+            List[Int](3),
+            List[Int](0, 11),
+            List[Int](11),
+            List[Int](3, 5),
+            List[Int](0)
         )
         val model = generateFromLines(lines)
 
         var index = 0
-        model.foreachLineStorage((line: Line, storages: List[Storage]) => {
+        model.foreachLineSourcedValues((line: Line, sourcedValues: List[SourcedValue]) => {
             logger.info(s"line $line")
-            for (st <- storages) {
-                logger.info(s"  data ${st.data.toList} storage $st")
+            for (st <- sourcedValues) {
+                logger.info(s"   sourcedValue $st")
             }
             DiagrammedAssertions.assert(line == lines(index))
 
             // just check the data...
-            val expectedStorage = expectedStorageLists(index)
-            storages.size must be(expectedStorage.size)
-            val storagesDataList = storages.flatMap( (st: Storage) => st.data.toList)
-            val expectedDataStoragesDataList = expectedStorage.flatMap( (st: Storage) => st.data.toList)
-            DiagrammedAssertions.assert(storagesDataList == expectedDataStoragesDataList)
+            val expectedDataList = expectedDataValues(index)
+            if (expectedDataList.isEmpty) {
+                sourcedValues must be(empty)
+            } else {
+                val sourcedDataList = sourcedValues.head match { // there's only one SourcedValue generated by the above test data
+                    case storage: Storage => storage.data.toList
+                    case assignmentValue: AssignmentValue => List[Int](assignmentValue.data)
+                }
+                DiagrammedAssertions.assert(sourcedDataList == expectedDataList, "Line Index " + (index + 1))
+            }
 
             index += 1
         })

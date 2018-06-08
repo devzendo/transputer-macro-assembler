@@ -22,18 +22,23 @@ import java.time.format.DateTimeFormatter
 
 import org.devzendo.tma.Version
 import org.devzendo.tma.ast.Line
-import org.devzendo.tma.codegen.{AssemblyModel, Storage}
+import org.devzendo.tma.codegen.{AssemblyModel, AssignmentValue, SourcedValue, Storage}
 
 object ListingWriter {
-    def numPrintableLinesForStorage(storage: Storage): Int = {
-        if (storage.data.length == 0) {
-            1
-        } else {
-            storage.cellWidth match {
-                case 1 => (storage.data.length + 4) / 5
-                case 2 => (storage.data.length + 2) / 3
-                case 4 => storage.data.length
-            }
+    def numPrintableLinesForSourcedValue(sourcedValue: SourcedValue): Int = {
+        sourcedValue match {
+            case storage: Storage =>
+                if (storage.data.length == 0) {
+                    1
+                } else {
+                    storage.cellWidth match {
+                        case 1 => (storage.data.length + 4) / 5
+                        case 2 => (storage.data.length + 2) / 3
+                        case 4 => storage.data.length
+                    }
+                }
+            case _: AssignmentValue =>
+                1
         }
     }
 
@@ -61,10 +66,10 @@ class ListingWriter(val outputFile: File) {
 
         def calculatePrintableLines(): Int = {
             var printableLines = 0
-            model.foreachLineStorage((_: Line, storages: List[Storage]) => {
-                if (storages.nonEmpty) {
-                    for (st <- storages) {
-                        printableLines += numPrintableLinesForStorage(st)
+            model.foreachLineSourcedValues((_: Line, sourcedValues: List[SourcedValue]) => {
+                if (sourcedValues.nonEmpty) {
+                    for (sourcedValue <- sourcedValues) {
+                        printableLines += numPrintableLinesForSourcedValue(sourcedValue)
                     }
                 } else {
                     // just count the line, there's no subsequent byte lines
@@ -88,15 +93,20 @@ class ListingWriter(val outputFile: File) {
 
         val printWriter = new PrintWriter(outputFile)
         try {
-            model.foreachLineStorage((line: Line, storages: List[Storage]) => {
+            model.foreachLineSourcedValues((line: Line, sourcedValues: List[SourcedValue]) => {
                 logger.info(s"line $line")
-                for (st <- storages) {
-                    logger.info(s"  data ${st.data.toList} storage $st")
+                for (sv <- sourcedValues) {
+                    sv match {
+                        case st: Storage =>
+                            logger.info(s"  data ${st.data.toList} storage $st")
+                        case av: AssignmentValue =>
+                            logger.info(s"  data ${av.data} assigned value $av")
+                    }
                 }
 
                 val lineBuf = new StringBuilder()
                 lineBuf.append(" " * 17) // TODO storage db/dw/dd
-                // TODO constant/variable assignment = values
+                // TODO constant/variable assignment = values, going to need some model changes to store the value assigned on each line a la Storage
                 lineBuf.append(line.text)
 
                 emitLineWithHeader(lineBuf.toString())

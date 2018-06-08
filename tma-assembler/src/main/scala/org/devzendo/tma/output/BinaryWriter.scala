@@ -19,7 +19,7 @@ package org.devzendo.tma.output
 import java.io.{File, RandomAccessFile}
 
 import org.devzendo.commoncode.string.HexDump
-import org.devzendo.tma.codegen.{AssemblyModel, Endianness, Storage}
+import org.devzendo.tma.codegen.{AssemblyModel, Endianness, SourcedValue, Storage}
 import org.log4s.Logger
 
 class BinaryWriter(val outputFile: File) {
@@ -38,18 +38,22 @@ class BinaryWriter(val outputFile: File) {
         try {
             logger.debug("Zeroing 0x" + HexDump.int2hex(fileSize) + " byte(s)")
             zero(raf, fileSize)
-            model.foreachStorage( (lineNumber: Int, storages: List[Storage]) => {
+            model.foreachSourcedValue((lineNumber: Int, sourcedValues: List[SourcedValue]) => {
                 logger.debug("Writing storage for line " + lineNumber)
-                for (storage <- storages) {
-                    val address = storage.address
-                    val offset = address - start
-                    logger.debug("Seeking to offset 0x" + HexDump.int2hex(offset) + " for address 0x" + HexDump.int2hex(address))
-                    raf.seek(offset)
+                for (sourcedValue <- sourcedValues) {
+                    sourcedValue match {
+                        case storage: Storage =>
+                            val address = storage.address
+                            val offset = address - start
+                            logger.debug("Seeking to offset 0x" + HexDump.int2hex(offset) + " for address 0x" + HexDump.int2hex(address))
+                            raf.seek(offset)
 
-                    // Endianness encoding, yes you can use Channels... a bit of a faff
-                    for (dataInt <- storage.data) {
-                        val bytes = encodeData(dataInt, storage.cellWidth, model.endianness)
-                        raf.write(bytes)
+                            // Endianness encoding, yes you can use Channels... a bit of a faff
+                            for (dataInt <- storage.data) {
+                                val bytes = encodeData(dataInt, storage.cellWidth, model.endianness)
+                                raf.write(bytes)
+                            }
+                        case _ => // do nothing
                     }
                 }
             })

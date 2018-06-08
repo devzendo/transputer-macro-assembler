@@ -27,8 +27,11 @@ object Endianness extends Enumeration {
     val Little, Big = Value
 }
 
+sealed abstract class SourcedValue(val line: Line)
 // Macro expansions have the same line number as their invocation; hence line number -> list[storage+]
-case class Storage(address: Int, cellWidth: Int, data: Array[Int], line: Line, exprs: List[Expression])
+case class Storage(address: Int, cellWidth: Int, data: Array[Int], override val line: Line, exprs: List[Expression]) extends SourcedValue(line)
+// Constant and Variable assignments are recalled against the line that sets them to a particular value
+case class AssignmentValue(data: Int, override val line: Line, isLabel: Boolean) extends SourcedValue(line)
 
 /*
  * A mutable structure holding the output of the CodeGenerator.
@@ -52,24 +55,33 @@ class AssemblyModel {
     // All incoming Lines (original-in-source and macro expansion lines) are appended here. Recall that macro expansion
     // lines will have the same line number as original-in-source lines.
     private val lines = mutable.ArrayBuffer[Line]()
-    // Storage has a reference to its Line, so when the map of Undefined forward references -> Set[Storage]
+    // SourcedValues has a reference to its Line, so when the map of Undefined forward references -> Set[Storage]
     // is scanned at the end of the codegen phase, each Storage can show the Line on which the forward reference is.
-    private val storagesForLines = mutable.HashMap[Int, mutable.ArrayBuffer[Storage]]() // indexed by line number
+    private val sourcedValuesForLineNumbers = mutable.HashMap[Int, mutable.ArrayBuffer[SourcedValue]]() // indexed by line number
     // And it's a map, since it's likely to be sparsely populated (not every line generates Storage)
 
     // Any forward references are noted here, and resolution done on definition of the forwardly-referenced symbol
-    // (either a variable, constant, or label).
+    // (either a variable, constant, or label). Forward references are only resolved for Storages, not AssignmentValues.
     private val forwardReferenceFixups = mutable.HashMap[String, mutable.HashSet[Storage]]()
 
     private var endSeen = false
 
     var endianness: Endianness.Value = Endianness.Big
 
-    setVariable(dollar, 0, 0)
+    // Initialise $ without storing back reference to a Line, since there isn't one.
+    setDollarSilently(0)
 
     def getDollar: Int = getVariable(dollar)
-    def setDollar(n: Int, lineNumber: Int): Unit = {
-        setVariable(dollar, n, lineNumber)
+    def setDollar(n: Int, line: Line): Unit = {
+        setVariable(dollar, n, line)
+    }
+    def setDollarSilently(n: Int): Unit = {
+        // Set $ without storing back reference to a Line, since there isn't one.
+        logger.debug("Variable $ (silently) = " + n)
+        variables.put(dollar, Value(n, 0))
+    }
+    def incrementDollar(n: Int): Unit = {
+        setDollarSilently(getDollar + n)
     }
 
     def getVariable(name: String): Int = {
@@ -83,7 +95,7 @@ class AssemblyModel {
         case None => None
     }
 
-    def setVariable(name: String, n: Int, lineNumber: Int): Unit = {
+    def setVariable(name: String, n: Int, line: Line): Unit = {
         constants.get(name) match {
             case Some(con) => throw new AssemblyModelException("Variable '" + name + "' cannot override existing constant; initially defined on line " + con.definitionLine)
             case None => // drop through
@@ -92,7 +104,8 @@ class AssemblyModel {
             case Some(label) => throw new AssemblyModelException("Variable '" + name + "' cannot override existing label; initially defined on line " + label.definitionLine)
             case None => // drop through
         }
-        variables.put(name, Value(n, lineNumber))
+        variables.put(name, Value(n, line.number))
+        sourcedValuesForLineNumber(line.number) += AssignmentValue(n, line, isLabel = false)
         logger.debug("Variable " + name + " = " + n)
         resolveForwardReferences(name, n)
     }
@@ -107,7 +120,7 @@ class AssemblyModel {
         case Some(con) => Some(con.value)
         case None => None
     }
-    def setConstant(name: String, n: Int, lineNumber: Int): Unit = {
+    def setConstant(name: String, n: Int, line: Line): Unit = {
         variables.get(name) match {
             case Some(vr) => throw new AssemblyModelException("Constant '" + name + "' cannot override existing variable; last stored on line " + vr.definitionLine)
             case None => // drop through
@@ -119,7 +132,8 @@ class AssemblyModel {
         constants.get(name) match {
             case Some(con) => throw new AssemblyModelException("Constant '" + name + "' cannot be redefined; initially defined on line " + con.definitionLine)
             case None =>
-                constants.put(name, Value(n, lineNumber))
+                constants.put(name, Value(n, line.number))
+                sourcedValuesForLineNumber(line.number) += AssignmentValue(n, line, isLabel = false)
                 logger.debug("Constant " + name + " = " + n)
                 resolveForwardReferences(name, n)
         }
@@ -135,7 +149,7 @@ class AssemblyModel {
         case Some(label) => Some(label.value)
         case None => None
     }
-    def setLabel(name: String, n: Int, lineNumber: Int): Unit = {
+    def setLabel(name: String, n: Int, line: Line): Unit = {
         variables.get(name) match {
             case Some(vr) => throw new AssemblyModelException("Label '" + name + "' cannot override existing variable; last stored on line " + vr.definitionLine)
             case None => // drop through
@@ -147,7 +161,8 @@ class AssemblyModel {
         labels.get(name) match {
             case Some(label) => throw new AssemblyModelException("Label '" + name + "' cannot be redefined; initially defined on line " + label.definitionLine)
             case None =>
-                labels.put(name, Value(n, lineNumber))
+                labels.put(name, Value(n, line.number))
+                sourcedValuesForLineNumber(line.number) += AssignmentValue(n, line, isLabel = true)
                 logger.debug("Label " + name + " = " + n)
                 resolveForwardReferences(name, n)
         }
@@ -254,8 +269,8 @@ class AssemblyModel {
         lines += line
     }
 
-    def getStoragesForLine(lineNumber: Int): List[Storage] = {
-        storagesForLines.getOrElse(lineNumber, ArrayBuffer[Storage]()).toList
+    def getSourcedValuesForLineNumber(lineNumber: Int): List[SourcedValue] = {
+        sourcedValuesForLineNumbers.getOrElse(lineNumber, ArrayBuffer[SourcedValue]()).toList
     }
 
     private def getUnsignedInt(x: Int): Long = x & 0x00000000ffffffffL
@@ -287,7 +302,8 @@ class AssemblyModel {
     }
 
     def allocateStorageForLine(line: Line, cellWidth: Int, exprs: List[Expression]): Storage = {
-        val storages = storagesForLines.getOrElseUpdate(line.number, mutable.ArrayBuffer[Storage]())
+        val lineNumber = line.number
+        val sourcedValues = sourcedValuesForLineNumber(lineNumber)
 
         // The incoming exprs will need evaluating to numbers that are stored in the Storage's data field. Most
         // expressions are evaluated to a single number, but Characters are evaluated to multiple. So expand all
@@ -295,24 +311,28 @@ class AssemblyModel {
         val characterExpandedExprs = expandCharacterExpressions(exprs)
 
         val storage = Storage(getDollar, cellWidth, Array.ofDim[Int](characterExpandedExprs.size), line, characterExpandedExprs)
-        storages += storage
+        sourcedValues += storage
 
         // Evaluate expressions, storing, or record forward references if symbols are undefined at the moment.
         characterExpandedExprs.zipWithIndex.foreach((tuple: (Expression, Int)) => {
             val storeValue = evaluateExpression(tuple._1) match {
                 case Right(value) => value
                 case Left(undefineds) =>
-                    logger.debug("Symbol(s) (" + undefineds + ") are not yet defined on line " + line.number)
+                    logger.debug("Symbol(s) (" + undefineds + ") are not yet defined on line " + lineNumber)
                     recordForwardReferences(undefineds, storage)
                     0
             }
             storage.data(tuple._2) = storeValue
         })
 
-        validateDataSizes(line.number, storage.data, cellWidth)
-        setDollar(getDollar + (cellWidth * characterExpandedExprs.size), line.number)
+        validateDataSizes(lineNumber, storage.data, cellWidth)
+        incrementDollar(cellWidth * characterExpandedExprs.size)
 
         storage
+    }
+
+    private def sourcedValuesForLineNumber(lineNumber: Int) = {
+        sourcedValuesForLineNumbers.getOrElseUpdate(lineNumber, mutable.ArrayBuffer[SourcedValue]())
     }
 
     def allocateStorageForLine(line: Line, cellWidth: Int, count: Expression, repeatedExpr: Expression): Storage = {
@@ -328,25 +348,29 @@ class AssemblyModel {
 
     // Note that this will give you the original-in-source and macro expansion Lines, and for each Storage,
     // back-references to its originating Line. (Which will be the Line of the first argument.)
-    def foreachLineStorage(op: (Line, List[Storage]) => Unit): Unit = {
+    // Each Line can have more than one SourcedValue: e.g. a Label on the same line as a DB generates an AssignmentValue
+    // and a Storage.
+    def foreachLineSourcedValues(op: (Line, List[SourcedValue]) => Unit): Unit = {
         for (line <- lines) { // can have many macro expanded lines' storages for this line number
             val lineNumber = line.number
-            val storages = storagesForLines.getOrElse(lineNumber, mutable.ArrayBuffer[Storage]()).toList
-            val storagesForThisLine = storages.filter((s: Storage) => {s.line == line}) // NB: don't compare on line number!
-            op(line, storagesForThisLine)
+            val sourcedValues = sourcedValuesForLineNumbers.getOrElse(lineNumber, mutable.ArrayBuffer[SourcedValue]()).toList
+            val sourcedValuesForThisLine = sourcedValues.filter((s: SourcedValue) => {s.line == line}) // NB: don't compare on line number!
 
-            // So: line is the original Line, storages(x).line is always the Line that caused it, could be the original
+            op(line, sourcedValuesForThisLine)
+
+            // So: line is the original Line, sourcedValues(x).line is always the Line that caused it, could be the original
             // Line or a macro expansion from it
-            // And: storages could be empty, if there's no storage for Line
+            // And: sourcedValues could be empty, if there's no sourced value for Line
         }
     }
 
     // Note, this does not get you the original-in-source Lines, only those Lines that have had Storage allocated.
-    def foreachStorage(op: (Int, List[Storage]) => Unit): Unit = {
-        val lineNumbers = storagesForLines.keySet.toList.sorted
+    def foreachSourcedValue(op: (Int, List[SourcedValue]) => Unit): Unit = {
+        val lineNumbers = sourcedValuesForLineNumbers.keySet.toList.sorted
         lineNumbers.foreach(num => {
-            val storages = storagesForLines(num).toList
-            op(num, storages)
+            val sourcedValues = sourcedValuesForLineNumbers(num).toList
+
+            op(num, sourcedValues)
         })
     }
 
@@ -413,21 +437,25 @@ class AssemblyModel {
 
     private def calculateBounds(): Unit = {
         if ((lowStorageAddress, highStorageAddress) == (0, 0)) {
-            if (storagesForLines.nonEmpty) {
+            if (sourcedValuesForLineNumbers.nonEmpty) {
                 lowStorageAddress = Int.MaxValue
                 highStorageAddress = Int.MinValue
-                for (storageArray <- storagesForLines.values) {
-                    for (storage <- storageArray) {
-                        val start = storage.address
-                        val end = start + (storage.cellWidth * storage.data.length) - 1
-                        logger.debug("start " + start + " end " + end + " (" + (end - start + 1) + " byte(s))")
-                        if (start < lowStorageAddress) {
-                            logger.debug("new low bound")
-                            lowStorageAddress = start
-                        }
-                        if (end > highStorageAddress) {
-                            logger.debug("new high bound")
-                            highStorageAddress = end
+                for (sourcedValues <- sourcedValuesForLineNumbers.values) {
+                    for (sourcedValue <- sourcedValues) {
+                        sourcedValue match {
+                            case storage: Storage =>
+                                val start = storage.address
+                                val end = start + (storage.cellWidth * storage.data.length) - 1
+                                logger.debug("start " + start + " end " + end + " (" + (end - start + 1) + " byte(s))")
+                                if (start < lowStorageAddress) {
+                                    logger.debug("new low bound")
+                                    lowStorageAddress = start
+                                }
+                                if (end > highStorageAddress) {
+                                    logger.debug("new high bound")
+                                    highStorageAddress = end
+                                }
+                            case _ => // do nothing
                         }
                     }
                 }
@@ -444,5 +472,4 @@ class AssemblyModel {
         calculateBounds()
         highStorageAddress
     }
-
 }

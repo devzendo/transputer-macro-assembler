@@ -19,13 +19,12 @@ package org.devzendo.tma.output
 import java.io.File
 
 import org.devzendo.tma.ast.{DB, Line, Number}
-import org.devzendo.tma.codegen.{AssemblyModel, Storage}
+import org.devzendo.tma.codegen.{AssemblyModel, AssignmentValue, Storage}
 import org.devzendo.tma.util.TempFolder
 import org.junit.Test
 import org.scalatest.MustMatchers
 import org.scalatest.junit.AssertionsForJUnit
 
-import scala.collection.mutable
 import scala.io.Source
 
 class TestListingWriter extends TempFolder with AssertionsForJUnit with MustMatchers {
@@ -37,7 +36,7 @@ class TestListingWriter extends TempFolder with AssertionsForJUnit with MustMatc
     model.columns = 80
     model.title = "Sample assembly listing"
 
-    private def lineAccess(op: LineAccess => Unit) = {
+    private def lineAccess(op: LineAccess => Unit): Unit = {
         val la = new LineAccess()
 
         op(la)
@@ -58,7 +57,7 @@ class TestListingWriter extends TempFolder with AssertionsForJUnit with MustMatc
             }
             lines(number)
         }
-        def numLines = lines.length
+        def numLines: Int = lines.length
     }
 
     private def topOfPageLinesList(numLinesTotal: Int): List[Int] = {
@@ -210,24 +209,26 @@ class TestListingWriter extends TempFolder with AssertionsForJUnit with MustMatc
             Storage(0, cellWidth, dataArray, null, List.empty)
         }
 
-        import ListingWriter.numPrintableLinesForStorage
-        numPrintableLinesForStorage(widthAndIntsToStorage(1, 0)) must be(1)
-        numPrintableLinesForStorage(widthAndIntsToStorage(1, 1)) must be(1)
-        numPrintableLinesForStorage(widthAndIntsToStorage(1, 5)) must be(1)
-        numPrintableLinesForStorage(widthAndIntsToStorage(1, 6)) must be(2)
-        numPrintableLinesForStorage(widthAndIntsToStorage(1, 10)) must be(2)
-        numPrintableLinesForStorage(widthAndIntsToStorage(1, 11)) must be(3)
+        import ListingWriter.numPrintableLinesForSourcedValue
+        numPrintableLinesForSourcedValue(widthAndIntsToStorage(1, 0)) must be(1)
+        numPrintableLinesForSourcedValue(widthAndIntsToStorage(1, 1)) must be(1)
+        numPrintableLinesForSourcedValue(widthAndIntsToStorage(1, 5)) must be(1)
+        numPrintableLinesForSourcedValue(widthAndIntsToStorage(1, 6)) must be(2)
+        numPrintableLinesForSourcedValue(widthAndIntsToStorage(1, 10)) must be(2)
+        numPrintableLinesForSourcedValue(widthAndIntsToStorage(1, 11)) must be(3)
 
-        numPrintableLinesForStorage(widthAndIntsToStorage(2, 0)) must be(1)
-        numPrintableLinesForStorage(widthAndIntsToStorage(2, 1)) must be(1)
-        numPrintableLinesForStorage(widthAndIntsToStorage(2, 3)) must be(1)
-        numPrintableLinesForStorage(widthAndIntsToStorage(2, 4)) must be(2)
-        numPrintableLinesForStorage(widthAndIntsToStorage(2, 6)) must be(2)
-        numPrintableLinesForStorage(widthAndIntsToStorage(2, 7)) must be(3)
+        numPrintableLinesForSourcedValue(widthAndIntsToStorage(2, 0)) must be(1)
+        numPrintableLinesForSourcedValue(widthAndIntsToStorage(2, 1)) must be(1)
+        numPrintableLinesForSourcedValue(widthAndIntsToStorage(2, 3)) must be(1)
+        numPrintableLinesForSourcedValue(widthAndIntsToStorage(2, 4)) must be(2)
+        numPrintableLinesForSourcedValue(widthAndIntsToStorage(2, 6)) must be(2)
+        numPrintableLinesForSourcedValue(widthAndIntsToStorage(2, 7)) must be(3)
 
-        numPrintableLinesForStorage(widthAndIntsToStorage(4, 0)) must be(1)
-        numPrintableLinesForStorage(widthAndIntsToStorage(4, 1)) must be(1)
-        numPrintableLinesForStorage(widthAndIntsToStorage(4, 2)) must be(2)
-        numPrintableLinesForStorage(widthAndIntsToStorage(4, 3)) must be(3)
+        numPrintableLinesForSourcedValue(widthAndIntsToStorage(4, 0)) must be(1)
+        numPrintableLinesForSourcedValue(widthAndIntsToStorage(4, 1)) must be(1)
+        numPrintableLinesForSourcedValue(widthAndIntsToStorage(4, 2)) must be(2)
+        numPrintableLinesForSourcedValue(widthAndIntsToStorage(4, 3)) must be(3)
+
+        numPrintableLinesForSourcedValue(AssignmentValue(0, null, isLabel = false)) must be(1)
     }
 }
