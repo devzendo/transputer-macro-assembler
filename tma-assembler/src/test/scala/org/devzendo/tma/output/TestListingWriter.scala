@@ -32,6 +32,8 @@ class TestListingWriter extends TempFolder with AssertionsForJUnit with MustMatc
     private val listingFile: File = File.createTempFile("out.", ".lst", temporaryDirectory)
     private val writer: ListingWriter = new ListingWriter(listingFile)
     private val model = new AssemblyModel()
+    private val fnord = "FNORD"
+
     model.rows = 25
     model.columns = 80
     model.title = "Sample assembly listing"
@@ -46,8 +48,26 @@ class TestListingWriter extends TempFolder with AssertionsForJUnit with MustMatc
         private val lines: Array[String] = Source.fromFile(listingFile).getLines().toArray
 
         logger.debug(s"Read ${lines.length} line(s)")
+
+        // print columns
+        val colRowsHeight = ("" + model.columns).length
+        logger.debug(s"Columns ${model.columns} x Rows: ${model.rows}; column rows height: $colRowsHeight")
+        val columnRows = Array.ofDim[Char](colRowsHeight, model.columns)
+        val fmt = s"%0${colRowsHeight}d"
+        for (x <- 0 until model.columns) {
+            val vStr = fmt.format(x + 1)
+            for (y <- 0 until colRowsHeight) {
+                val c = vStr(y)
+                columnRows(y)(x) = c
+            }
+        }
+        for (y <- 0 until colRowsHeight) {
+            val line = columnRows(y).mkString
+            logger.debug(s"   |$line|")
+        }
+
         for (lineIndex <- lines.zipWithIndex) {
-            val output = "%03d |%s|".format(lineIndex._2 + 1, lineIndex._1)
+            val output = "%03d|%s|".format(lineIndex._2 + 1, lineIndex._1)
             logger.debug(output)
         }
 
@@ -98,6 +118,19 @@ class TestListingWriter extends TempFolder with AssertionsForJUnit with MustMatc
             secondLine must startWith (model.title)
             // page number (on the right) isn't invariant...
         }
+    }
+
+    private def listingBodyLinesAre(expectedLines: String*): Unit = {
+        model.rows = 2 + expectedLines.length
+        writer.encode(model)
+        lineAccess(la => {
+            invariants(la)
+
+            for (line <- 2 until 2 + expectedLines.length) {
+                val contentLine = la.line(line)
+                contentLine must be(expectedLines(line - 2))
+            }
+        })
     }
 
     @Test
@@ -187,10 +220,30 @@ class TestListingWriter extends TempFolder with AssertionsForJUnit with MustMatc
     }
 
     @Test
+    def lengthPadding(): Unit = {
+        import ListingWriter.padToLength
+        padToLength(null, 0) must be("")
+        padToLength("", 0) must be("")
+
+        padToLength("x", 0) must be("")
+
+        padToLength(null, 1) must be(" ")
+        padToLength("", 1) must be(" ")
+
+        padToLength("x", 1) must be("x")
+        padToLength("x", 2) must be("x ")
+        padToLength("x", 3) must be("x  ")
+
+        padToLength("xy", 2) must be("xy")
+
+        padToLength("xyz", 2) must be("xy")
+    }
+
+    @Test
     def lineTruncationWithLeftExpansionArea(): Unit = {
         model.columns = 70
         val line = Line(1, ";234567890123456789012345678901234567890123456789012345678901234567890", None, None)
-        val leftExpansionArea = " " * 17
+        val leftExpansionArea = " " * 21
         model.addLine(line)
 
         writer.encode(model)
@@ -198,7 +251,7 @@ class TestListingWriter extends TempFolder with AssertionsForJUnit with MustMatc
             invariants(la)
 
             val thirdLine = la.line(2)
-            thirdLine must be (leftExpansionArea + ";2345678901234567890123456789012345678901234567890123")
+            thirdLine must be (leftExpansionArea + ";234567890123456789012345678901234567890123456789")
         })
     }
 
@@ -231,4 +284,17 @@ class TestListingWriter extends TempFolder with AssertionsForJUnit with MustMatc
 
         numPrintableLinesForSourcedValue(AssignmentValue(0, null, isLabel = false)) must be(1)
     }
+
+
+    @Test
+    def labelsShowTheirAddresses(): Unit = {
+        model.setDollarSilently(0x40000000)
+        val line = Line(1, "FNORD:", Some(fnord), None)
+        model.addLine(line)
+        model.setLabel(fnord, model.getDollar, line)
+        //                  123456789012345678901234567890
+        val expectedLine = " 40000000            FNORD:"
+        listingBodyLinesAre(expectedLine)
+    }
+
 }

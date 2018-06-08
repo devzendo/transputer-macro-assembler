@@ -20,6 +20,7 @@ import java.io.{File, PrintWriter}
 import java.time.LocalDateTime
 import java.time.format.DateTimeFormatter
 
+import org.devzendo.commoncode.string.HexDump
 import org.devzendo.tma.Version
 import org.devzendo.tma.ast.Line
 import org.devzendo.tma.codegen.{AssemblyModel, AssignmentValue, SourcedValue, Storage}
@@ -49,6 +50,15 @@ object ListingWriter {
             inLine.substring(0, maxColumns)
         } else {
             inLine
+        }
+    }
+
+    def padToLength(line: String, length: Int): String = {
+        val tr = truncateToMaxColumns(line, length)
+        if (tr.length < length) {
+            tr + (" " * (length - tr.length))
+        } else {
+            tr
         }
     }
 }
@@ -105,7 +115,28 @@ class ListingWriter(val outputFile: File) {
                 }
 
                 val lineBuf = new StringBuilder()
-                lineBuf.append(" " * 17) // TODO storage db/dw/dd
+
+                var address = ""
+                var assignment = ""
+                for (sourcedValue <- sourcedValues) {
+                    logger.debug(s"sourcedValue $sourcedValue")
+                    sourcedValue match {
+                        case storage: Storage => address = HexDump.int2hex(storage.address)
+                        case assignmentValue: AssignmentValue =>
+                            if (assignmentValue.isLabel) {
+                                address = HexDump.int2hex(assignmentValue.data)
+                            } else {
+                                assignment = "=" +
+                                  (if (assignmentValue.data <= 65535)
+                                      HexDump.short2hex(assignmentValue.data.toShort)
+                                  else
+                                      HexDump.int2hex(assignmentValue.data))
+                            }
+                    }
+                }
+                val left = padToLength(" " + List(address, assignment).mkString(" "), 21)
+                logger.debug(s"address '$address' assignment '$assignment' left '$left'")
+                lineBuf.append(left) // TODO storage db/dw/dd
                 // TODO constant/variable assignment = values, going to need some model changes to store the value assigned on each line a la Storage
                 lineBuf.append(line.text)
 
