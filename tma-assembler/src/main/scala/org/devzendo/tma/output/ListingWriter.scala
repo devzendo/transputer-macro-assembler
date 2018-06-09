@@ -126,7 +126,7 @@ class ListingWriter(val outputFile: File) {
                             if (assignmentValue.isLabel) {
                                 address = HexDump.int2hex(assignmentValue.data)
                             } else {
-                                assignment = "=" +
+                                assignment = "= " +
                                   (if (assignmentValue.data <= 65535)
                                       HexDump.short2hex(assignmentValue.data.toShort)
                                   else
@@ -134,7 +134,7 @@ class ListingWriter(val outputFile: File) {
                             }
                     }
                 }
-                val left = padToLength(" " + List(address, assignment).mkString(" "), 21)
+                val left = padToLength(" " + List(address, assignment).filter(_.nonEmpty).mkString(" "), 21)
                 logger.debug(s"address '$address' assignment '$assignment' left '$left'")
                 lineBuf.append(left) // TODO storage db/dw/dd
                 // TODO constant/variable assignment = values, going to need some model changes to store the value assigned on each line a la Storage

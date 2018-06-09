@@ -18,7 +18,8 @@ package org.devzendo.tma.output
 
 import java.io.File
 
-import org.devzendo.tma.ast.{DB, Line, Number}
+import org.devzendo.tma.ast.AST.SymbolName
+import org.devzendo.tma.ast.{DB, Line, Number, VariableAssignment}
 import org.devzendo.tma.codegen.{AssemblyModel, AssignmentValue, Storage}
 import org.devzendo.tma.util.TempFolder
 import org.junit.Test
@@ -285,7 +286,6 @@ class TestListingWriter extends TempFolder with AssertionsForJUnit with MustMatc
         numPrintableLinesForSourcedValue(AssignmentValue(0, null, isLabel = false)) must be(1)
     }
 
-
     @Test
     def labelsShowTheirAddresses(): Unit = {
         model.setDollarSilently(0x40000000)
@@ -294,6 +294,38 @@ class TestListingWriter extends TempFolder with AssertionsForJUnit with MustMatc
         model.setLabel(fnord, model.getDollar, line)
         //                  123456789012345678901234567890
         val expectedLine = " 40000000            FNORD:"
+        listingBodyLinesAre(expectedLine)
+    }
+
+    @Test
+    def assignmentOf16BitNumber(): Unit = {
+        val line = Line(1, "FNORD = 65534", None, Some(VariableAssignment(new SymbolName(fnord), Number(65534))))
+        model.addLine(line)
+        model.setVariable(fnord, 65534, line)
+        //                  12345678901234567890123456789012345
+        val expectedLine = " = FFFE              FNORD = 65534"
+        listingBodyLinesAre(expectedLine)
+    }
+
+    @Test
+    def assignmentOf32BitNumber(): Unit = {
+        val line = Line(1, "FNORD = 65536", None, Some(VariableAssignment(new SymbolName(fnord), Number(65536))))
+        model.addLine(line)
+        model.setVariable(fnord, 65536, line)
+        //                  12345678901234567890123456789012345
+        val expectedLine = " = 00010000          FNORD = 65536"
+        listingBodyLinesAre(expectedLine)
+    }
+
+    @Test
+    def storageShowsItsAddress(): Unit = {
+        model.setDollarSilently(0x40000000)
+        val exprs = List(Number(1), Number(2), Number(3))
+        val line = Line(1, "DB 1,2,3", None, Some(DB(exprs)))
+        model.addLine(line)
+        model.allocateStorageForLine(line, 1, exprs)
+        //                  12345678901234567890123456789012345
+        val expectedLine = " 40000000            DB 1,2,3" // TODO no storage bytes yet
         listingBodyLinesAre(expectedLine)
     }
 
