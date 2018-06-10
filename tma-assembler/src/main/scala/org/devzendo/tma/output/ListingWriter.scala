@@ -127,16 +127,13 @@ class ListingWriter(val outputFile: File) {
                             storageLines = storage.cellWidth match {
                                 case 1 =>
                                     val eachLinesInts = storage.data.sliding(4, 4)
-                                    val linesOfHexDump = eachLinesInts.map((a: Array[Int]) => a.map((b: Int) => HexDump.byte2hex(b.toByte)).mkString(" "))
-                                    linesOfHexDump.toList
+                                    eachLinesInts.map((a: Array[Int]) => a.map((b: Int) => HexDump.byte2hex(b.toByte)).mkString(" ")).toList
                                 case 2 =>
                                     val eachLinesInts = storage.data.sliding(2, 2)
-                                    val linesOfHexDump = eachLinesInts.map((a: Array[Int]) => a.map((b: Int) => HexDump.short2hex(b.toShort)).mkString(" "))
-                                    linesOfHexDump.toList
+                                    eachLinesInts.map((a: Array[Int]) => a.map((b: Int) => HexDump.short2hex(b.toShort)).mkString(" ")).toList
                                 case 4 =>
                                     val eachLinesInts = storage.data.sliding(1, 1)
-                                    val linesOfHexDump = eachLinesInts.map((a: Array[Int]) => a.map((b: Int) => HexDump.int2hex(b)).mkString(" "))
-                                    linesOfHexDump.toList
+                                    eachLinesInts.map((a: Array[Int]) => a.map((b: Int) => HexDump.int2hex(b)).mkString(" ")).toList
                             }
                         case assignmentValue: AssignmentValue =>
                             if (assignmentValue.isLabel) {
