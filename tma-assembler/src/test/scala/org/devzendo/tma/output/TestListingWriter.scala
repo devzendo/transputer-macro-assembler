@@ -51,10 +51,10 @@ class TestListingWriter extends TempFolder with AssertionsForJUnit with MustMatc
         logger.debug(s"Read ${lines.length} line(s)")
 
         // print columns
-        val colRowsHeight = ("" + model.columns).length
+        private val colRowsHeight = ("" + model.columns).length
         logger.debug(s"Columns ${model.columns} x Rows: ${model.rows}; column rows height: $colRowsHeight")
-        val columnRows = Array.ofDim[Char](colRowsHeight, model.columns)
-        val fmt = s"%0${colRowsHeight}d"
+        private val columnRows = Array.ofDim[Char](colRowsHeight, model.columns)
+        private val fmt = s"%0${colRowsHeight}d"
         for (x <- 0 until model.columns) {
             val vStr = fmt.format(x + 1)
             for (y <- 0 until colRowsHeight) {
