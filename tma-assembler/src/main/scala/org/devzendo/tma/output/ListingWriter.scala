@@ -116,6 +116,7 @@ class ListingWriter(val outputFile: File) {
 
                 val lineBuf = new StringBuilder()
 
+                var initialStorageAddress = 0
                 var address = ""
                 var assignment = ""
                 var storageLines: List[String] = List.empty
@@ -123,6 +124,7 @@ class ListingWriter(val outputFile: File) {
                     logger.debug(s"sourcedValue $sourcedValue")
                     sourcedValue match {
                         case storage: Storage =>
+                            initialStorageAddress = storage.address
                             address = HexDump.int2hex(storage.address)
                             storageLines = storage.cellWidth match {
                                 case 1 =>
@@ -147,16 +149,25 @@ class ListingWriter(val outputFile: File) {
                             }
                     }
                 }
+
                 val firstStorageLine = if (storageLines.isEmpty) "" else storageLines.head
                 val left = padToLength(" " + List(address, assignment, firstStorageLine).filter(_.nonEmpty).mkString(" "), 22)
                 logger.debug(s"address '$address' assignment '$assignment' left '$left'")
                 lineBuf.append(left)
                 lineBuf.append(line.text)
-
                 emitLineWithHeader(lineBuf.toString())
-                // TODO storage overflow data lines that won't fit in first 17 chars
 
-
+                if (storageLines.size > 1) {
+                    for (remainingStorageLine <- storageLines.tail) {
+                        initialStorageAddress += 4
+                        lineBuf.clear()
+                        lineBuf.append(" ")
+                        lineBuf.append(HexDump.int2hex(initialStorageAddress))
+                        lineBuf.append(" ")
+                        lineBuf.append(remainingStorageLine)
+                        emitLineWithHeader(lineBuf.toString())
+                    }
+                }
             })
 
             padOutToFullPages()

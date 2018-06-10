@@ -362,4 +362,43 @@ class TestListingWriter extends TempFolder with AssertionsForJUnit with MustMatc
         listingBodyLinesAre(expectedLine)
     }
 
+    @Test
+    def storageOverMaxBytesPerLine(): Unit = {
+        val exprs = List(Number(1), Number(2), Number(3), Number(4), Number(5), Number(6), Number(7), Number(8), Number(9))
+        val line = Line(1, "DB 1,2,3,4,5,6,7,8,9", None, Some(DB(exprs)))
+        model.addLine(line)
+        model.allocateStorageForLine(line, 1, exprs)
+        //                   12345678901234567890123456789012345
+        val expectedLine1 = " 00000000 01 02 03 04 DB 1,2,3,4,5,6,7,8,9"
+        val expectedLine2 = " 00000004 05 06 07 08"
+        val expectedLine3 = " 00000008 09"
+        listingBodyLinesAre(expectedLine1, expectedLine2, expectedLine3)
+    }
+
+    @Test
+    def storageOverMaxWordsPerLine(): Unit = {
+        val exprs = List(Number(0x0102), Number(0x0304), Number(0x0506), Number(0x0708), Number(0x090A))
+        val line = Line(1, "DW 0x0102,0x0304,0x0506,0x0708,0x090A", None, Some(DW(exprs)))
+        model.addLine(line)
+        model.allocateStorageForLine(line, 2, exprs)
+        //                   12345678901234567890123456789012345
+        val expectedLine1 = " 00000000 0102 0304   DW 0x0102,0x0304,0x0506,0x0708,0x090A"
+        val expectedLine2 = " 00000004 0506 0708"
+        val expectedLine3 = " 00000008 090A"
+        listingBodyLinesAre(expectedLine1, expectedLine2, expectedLine3)
+    }
+
+    @Test
+    def storageOverMaxDoubleWordsPerLine(): Unit = {
+        val exprs = List(Number(0x01020304), Number(0x05060708), Number(0x090A0B0C))
+        val line = Line(1, "DD 0x01020304,0x05060708,0x090A0B0C", None, Some(DD(exprs)))
+        model.addLine(line)
+        model.allocateStorageForLine(line, 4, exprs)
+        //                   12345678901234567890123456789012345
+        val expectedLine1 = " 00000000 01020304    DD 0x01020304,0x05060708,0x090A0B0C"
+        val expectedLine2 = " 00000004 05060708"
+        val expectedLine3 = " 00000008 090A0B0C"
+        listingBodyLinesAre(expectedLine1, expectedLine2, expectedLine3)
+    }
+
 }
