@@ -129,8 +129,14 @@ class ListingWriter(val outputFile: File) {
                                     val eachLinesInts = storage.data.sliding(4, 4)
                                     val linesOfHexDump = eachLinesInts.map((a: Array[Int]) => a.map((b: Int) => HexDump.byte2hex(b.toByte)).mkString(" "))
                                     linesOfHexDump.toList
-                                case 2 => List.empty
-                                case 4 => List.empty
+                                case 2 =>
+                                    val eachLinesInts = storage.data.sliding(2, 2)
+                                    val linesOfHexDump = eachLinesInts.map((a: Array[Int]) => a.map((b: Int) => HexDump.short2hex(b.toShort)).mkString(" "))
+                                    linesOfHexDump.toList
+                                case 4 =>
+                                    val eachLinesInts = storage.data.sliding(1, 1)
+                                    val linesOfHexDump = eachLinesInts.map((a: Array[Int]) => a.map((b: Int) => HexDump.int2hex(b)).mkString(" "))
+                                    linesOfHexDump.toList
                             }
                         case assignmentValue: AssignmentValue =>
                             if (assignmentValue.isLabel) {

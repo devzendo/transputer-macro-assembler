@@ -19,7 +19,7 @@ package org.devzendo.tma.output
 import java.io.File
 
 import org.devzendo.tma.ast.AST.SymbolName
-import org.devzendo.tma.ast.{DB, Line, Number, VariableAssignment}
+import org.devzendo.tma.ast._
 import org.devzendo.tma.codegen.{AssemblyModel, AssignmentValue, Storage}
 import org.devzendo.tma.util.TempFolder
 import org.junit.Test
@@ -337,6 +337,28 @@ class TestListingWriter extends TempFolder with AssertionsForJUnit with MustMatc
         model.allocateStorageForLine(line, 1, exprs)
         //                  12345678901234567890123456789012345
         val expectedLine = " 00000000 01 02 03 04 DB 1,2,3,4"
+        listingBodyLinesAre(expectedLine)
+    }
+
+    @Test
+    def storageMaxWordsPerLine(): Unit = {
+        val exprs = List(Number(0x0102), Number(0x0304))
+        val line = Line(1, "DW 0x0102,0x0304", None, Some(DW(exprs)))
+        model.addLine(line)
+        model.allocateStorageForLine(line, 2, exprs)
+        //                  12345678901234567890123456789012345
+        val expectedLine = " 00000000 0102 0304   DW 0x0102,0x0304"
+        listingBodyLinesAre(expectedLine)
+    }
+
+    @Test
+    def storageMaxDoubleWordsPerLine(): Unit = {
+        val exprs = List(Number(0x01020304))
+        val line = Line(1, "DD 0x01020304", None, Some(DD(exprs)))
+        model.addLine(line)
+        model.allocateStorageForLine(line, 4, exprs)
+        //                  12345678901234567890123456789012345
+        val expectedLine = " 00000000 01020304    DD 0x01020304"
         listingBodyLinesAre(expectedLine)
     }
 
