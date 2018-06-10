@@ -33,7 +33,7 @@ object ListingWriter {
                     1
                 } else {
                     storage.cellWidth match {
-                        case 1 => (storage.data.length + 4) / 5
+                        case 1 => (storage.data.length + 3) / 4
                         case 2 => (storage.data.length + 2) / 3
                         case 4 => storage.data.length
                     }
@@ -118,10 +118,20 @@ class ListingWriter(val outputFile: File) {
 
                 var address = ""
                 var assignment = ""
+                var storageLines: List[String] = List.empty
                 for (sourcedValue <- sourcedValues) {
                     logger.debug(s"sourcedValue $sourcedValue")
                     sourcedValue match {
-                        case storage: Storage => address = HexDump.int2hex(storage.address)
+                        case storage: Storage =>
+                            address = HexDump.int2hex(storage.address)
+                            storageLines = storage.cellWidth match {
+                                case 1 =>
+                                    val eachLinesInts = storage.data.sliding(4, 4)
+                                    val linesOfHexDump = eachLinesInts.map((a: Array[Int]) => a.map((b: Int) => HexDump.byte2hex(b.toByte)).mkString(" "))
+                                    linesOfHexDump.toList
+                                case 2 => List.empty
+                                case 4 => List.empty
+                            }
                         case assignmentValue: AssignmentValue =>
                             if (assignmentValue.isLabel) {
                                 address = HexDump.int2hex(assignmentValue.data)
@@ -134,10 +144,10 @@ class ListingWriter(val outputFile: File) {
                             }
                     }
                 }
-                val left = padToLength(" " + List(address, assignment).filter(_.nonEmpty).mkString(" "), 21)
+                val firstStorageLine = if (storageLines.isEmpty) "" else storageLines.head
+                val left = padToLength(" " + List(address, assignment, firstStorageLine).filter(_.nonEmpty).mkString(" "), 22)
                 logger.debug(s"address '$address' assignment '$assignment' left '$left'")
-                lineBuf.append(left) // TODO storage db/dw/dd
-                // TODO constant/variable assignment = values, going to need some model changes to store the value assigned on each line a la Storage
+                lineBuf.append(left)
                 lineBuf.append(line.text)
 
                 emitLineWithHeader(lineBuf.toString())

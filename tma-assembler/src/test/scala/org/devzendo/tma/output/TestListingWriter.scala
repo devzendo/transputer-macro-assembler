@@ -244,7 +244,7 @@ class TestListingWriter extends TempFolder with AssertionsForJUnit with MustMatc
     def lineTruncationWithLeftExpansionArea(): Unit = {
         model.columns = 70
         val line = Line(1, ";234567890123456789012345678901234567890123456789012345678901234567890", None, None)
-        val leftExpansionArea = " " * 21
+        val leftExpansionArea = " " * 22
         model.addLine(line)
 
         writer.encode(model)
@@ -252,7 +252,7 @@ class TestListingWriter extends TempFolder with AssertionsForJUnit with MustMatc
             invariants(la)
 
             val thirdLine = la.line(2)
-            thirdLine must be (leftExpansionArea + ";234567890123456789012345678901234567890123456789")
+            thirdLine must be (leftExpansionArea + ";23456789012345678901234567890123456789012345678")
         })
     }
 
@@ -266,10 +266,10 @@ class TestListingWriter extends TempFolder with AssertionsForJUnit with MustMatc
         import ListingWriter.numPrintableLinesForSourcedValue
         numPrintableLinesForSourcedValue(widthAndIntsToStorage(1, 0)) must be(1)
         numPrintableLinesForSourcedValue(widthAndIntsToStorage(1, 1)) must be(1)
-        numPrintableLinesForSourcedValue(widthAndIntsToStorage(1, 5)) must be(1)
-        numPrintableLinesForSourcedValue(widthAndIntsToStorage(1, 6)) must be(2)
-        numPrintableLinesForSourcedValue(widthAndIntsToStorage(1, 10)) must be(2)
-        numPrintableLinesForSourcedValue(widthAndIntsToStorage(1, 11)) must be(3)
+        numPrintableLinesForSourcedValue(widthAndIntsToStorage(1, 4)) must be(1)
+        numPrintableLinesForSourcedValue(widthAndIntsToStorage(1, 5)) must be(2)
+        numPrintableLinesForSourcedValue(widthAndIntsToStorage(1, 8)) must be(2)
+        numPrintableLinesForSourcedValue(widthAndIntsToStorage(1, 9)) must be(3)
 
         numPrintableLinesForSourcedValue(widthAndIntsToStorage(2, 0)) must be(1)
         numPrintableLinesForSourcedValue(widthAndIntsToStorage(2, 1)) must be(1)
@@ -293,7 +293,7 @@ class TestListingWriter extends TempFolder with AssertionsForJUnit with MustMatc
         model.addLine(line)
         model.setLabel(fnord, model.getDollar, line)
         //                  123456789012345678901234567890
-        val expectedLine = " 40000000            FNORD:"
+        val expectedLine = " 40000000             FNORD:"
         listingBodyLinesAre(expectedLine)
     }
 
@@ -303,7 +303,7 @@ class TestListingWriter extends TempFolder with AssertionsForJUnit with MustMatc
         model.addLine(line)
         model.setVariable(fnord, 65534, line)
         //                  12345678901234567890123456789012345
-        val expectedLine = " = FFFE              FNORD = 65534"
+        val expectedLine = " = FFFE               FNORD = 65534"
         listingBodyLinesAre(expectedLine)
     }
 
@@ -313,7 +313,7 @@ class TestListingWriter extends TempFolder with AssertionsForJUnit with MustMatc
         model.addLine(line)
         model.setVariable(fnord, 65536, line)
         //                  12345678901234567890123456789012345
-        val expectedLine = " = 00010000          FNORD = 65536"
+        val expectedLine = " = 00010000           FNORD = 65536"
         listingBodyLinesAre(expectedLine)
     }
 
@@ -325,7 +325,18 @@ class TestListingWriter extends TempFolder with AssertionsForJUnit with MustMatc
         model.addLine(line)
         model.allocateStorageForLine(line, 1, exprs)
         //                  12345678901234567890123456789012345
-        val expectedLine = " 40000000            DB 1,2,3" // TODO no storage bytes yet
+        val expectedLine = " 40000000 01 02 03    DB 1,2,3"
+        listingBodyLinesAre(expectedLine)
+    }
+
+    @Test
+    def storageMaxBytesPerLine(): Unit = {
+        val exprs = List(Number(1), Number(2), Number(3), Number(4))
+        val line = Line(1, "DB 1,2,3,4", None, Some(DB(exprs)))
+        model.addLine(line)
+        model.allocateStorageForLine(line, 1, exprs)
+        //                  12345678901234567890123456789012345
+        val expectedLine = " 00000000 01 02 03 04 DB 1,2,3,4"
         listingBodyLinesAre(expectedLine)
     }
 
