@@ -441,4 +441,25 @@ class TestListingWriter extends TempFolder with AssertionsForJUnit with MustMatc
             expectedLine6, expectedLine7)
     }
 
+    @Test
+    def constantsShownInSymbolTable(): Unit = {
+        val line1 = Line(1, "EQU FNORD 0x40000020", None, Some(ConstantAssignment(new SymbolName(fnord), Number(0x40000020))))
+        model.addLine(line1)
+        model.setConstant(fnord, 0x40000000, line1)
+        val line2 = Line(2, "EQL AARDVARK 0x40000000", None, Some(ConstantAssignment(new SymbolName("AARDVARK"), Number(0x40000010))))
+        model.addLine(line2)
+        model.setConstant("AARDVARK", 0x40000020, line2)
+
+        //                  123456789012345678901234567890
+        val expectedLine1 = "Symbol Table - by Name"
+        val expectedLine2 = "AARDVARK             40000020"
+        val expectedLine3 = "FNORD                40000000"
+        val expectedLine4 = ""
+        val expectedLine5 = "Symbol Table - by Address"
+        val expectedLine6 = "FNORD                40000000"
+        val expectedLine7 = "AARDVARK             40000020"
+        symbolTableBodyLinesAre(expectedLine1, expectedLine2, expectedLine3, expectedLine4, expectedLine5,
+            expectedLine6, expectedLine7)
+    }
+
 }

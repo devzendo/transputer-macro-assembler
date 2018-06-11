@@ -90,7 +90,7 @@ class ListingWriter(val outputFile: File) {
             })
 
             // The lines for the symbol table
-            val labels = model.getLabels
+            val labels = model.getSymbols
             val symbolTableEntries = labels.size
             printableLines
         }
@@ -180,7 +180,7 @@ class ListingWriter(val outputFile: File) {
             padOutToFullPages()
 
             // Secondly, the symbol table, sorted by name, then address.
-            val labels = model.getLabels()
+            val labels = model.getSymbols()
             if (labels.nonEmpty) {
                 val lineBuf = new StringBuilder()
 

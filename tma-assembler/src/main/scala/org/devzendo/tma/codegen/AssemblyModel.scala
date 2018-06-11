@@ -147,13 +147,6 @@ class AssemblyModel {
             case None => throw new AssemblyModelException("Label '" + name + "' has not been defined")
         }
     }
-    def getLabels(): List[SymbolTableEntry] = {
-        def toSTE(pair: (String, Value)): SymbolTableEntry = {
-            SymbolTableEntry(pair._1, pair._2.value)
-        }
-        labels.toList.map(toSTE)
-    }
-
     def label(name: String): Option[Int] = labels.get(name) match {
         case Some(label) => Some(label.value)
         case None => None
@@ -175,6 +168,16 @@ class AssemblyModel {
                 logger.debug("Label " + name + " = " + n)
                 resolveForwardReferences(name, n)
         }
+    }
+
+    def getSymbols(): List[SymbolTableEntry] = {
+        def toSTE(pair: (String, Value)): SymbolTableEntry = {
+            SymbolTableEntry(pair._1, pair._2.value)
+        }
+
+        val labelList = labels.toList
+        val constantList = constants.toList
+        (labelList ++ constantList).map(toSTE)
     }
 
 
