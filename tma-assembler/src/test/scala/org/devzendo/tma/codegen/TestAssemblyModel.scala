@@ -106,7 +106,7 @@ class TestAssemblyModel extends AssertionsForJUnit with MustMatchers {
         model.variable(fnord) must be(Some(69))
         model.constant(fnord) must be(None) // it's a variable, not a constant, nor a label
         model.label(fnord) must be(None)
-        model.getSymbols() must be(empty)
+        model.getSymbols must be(empty)
     }
 
     @Test
@@ -150,8 +150,8 @@ class TestAssemblyModel extends AssertionsForJUnit with MustMatchers {
         model.constant(fnord) must be(Some(69))
         model.variable(fnord) must be(None) // it's a constant, not a variable, nor a label
         model.label(fnord) must be(None)
-        model.getSymbols() must have size 1
-        model.getSymbols().head must be(SymbolTableEntry(fnord, 69))
+        model.getSymbols must have size 1
+        model.getSymbols.head must be(SymbolTableEntry(fnord, 69))
     }
 
     @Test
@@ -196,8 +196,8 @@ class TestAssemblyModel extends AssertionsForJUnit with MustMatchers {
         model.label(fnord) must be(Some(69))
         model.variable(fnord) must be(None) // it's a label, not a variable, nor a constant (semantically, though it is constant)
         model.constant(fnord) must be(None)
-        model.getSymbols() must have size 1
-        model.getSymbols().head must be(SymbolTableEntry(fnord, 69))
+        model.getSymbols must have size 1
+        model.getSymbols.head must be(SymbolTableEntry(fnord, 69))
     }
 
     @Test
