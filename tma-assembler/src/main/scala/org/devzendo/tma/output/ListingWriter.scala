@@ -74,10 +74,8 @@ class ListingWriter(val outputFile: File) {
 
     def encode(model: AssemblyModel): Unit = {
 
-        def calculatePrintableLines(): Int = {
+        def calculatePrintableListingLines(): Int = {
             var printableLines = 0
-
-            // The lines for the listing...
             model.foreachLineSourcedValues((_: Line, sourcedValues: List[SourcedValue]) => {
                 if (sourcedValues.nonEmpty) {
                     for (sourcedValue <- sourcedValues) {
@@ -88,10 +86,16 @@ class ListingWriter(val outputFile: File) {
                     printableLines += 1
                 }
             })
+            printableLines
+        }
 
-            // The lines for the symbol table
-            val labels = model.getSymbols
-            val symbolTableEntries = labels.size
+        def calculateSymbolTableLines(): Int = {
+            var printableLines = 0
+            val symbols = model.getSymbols()
+            if (symbols.nonEmpty) {
+                printableLines += 3 // 2 headers and a gap
+                printableLines += symbols.size * 2 // sorted by address and name
+            }
             printableLines
         }
 
@@ -101,11 +105,18 @@ class ListingWriter(val outputFile: File) {
         var lineNumber = 0
         var pageNumber = 1
 
-        val printableLines = calculatePrintableLines()
         val pageHeightWithoutHeader = model.rows - 2
-        val maxPageNumber = (printableLines + pageHeightWithoutHeader - 1) / pageHeightWithoutHeader
-        logger.debug(s"printable lines $printableLines maxPageNumber $maxPageNumber pageHeightWithoutHeader $pageHeightWithoutHeader")
-        // TODO not doing symbol table dump yet, that'll start on a new page
+
+        val printableListingLines = calculatePrintableListingLines()
+        val printableListingPages = (printableListingLines + pageHeightWithoutHeader - 1) / pageHeightWithoutHeader
+
+        val printableSymbolTableLines = calculateSymbolTableLines()
+        val printableSymbolTablePages = (printableSymbolTableLines + pageHeightWithoutHeader - 1) / pageHeightWithoutHeader
+
+        val maxPageNumber = printableListingPages + printableSymbolTablePages
+        logger.debug(s"printable listing lines $printableListingLines printable symbol table lines $printableSymbolTableLines")
+        logger.debug(s"printable listing pages $printableListingPages printable symbol table pages $printableSymbolTablePages")
+        logger.debug("maxPageNumber $maxPageNumber pageHeightWithoutHeader $pageHeightWithoutHeader")
 
         val printWriter = new PrintWriter(outputFile)
         try {
