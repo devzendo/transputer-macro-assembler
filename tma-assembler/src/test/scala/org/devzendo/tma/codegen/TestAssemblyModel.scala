@@ -193,6 +193,8 @@ class TestAssemblyModel extends AssertionsForJUnit with MustMatchers {
         model.label(fnord) must be(Some(69))
         model.variable(fnord) must be(None) // it's a label, not a variable, nor a constant (semantically, though it is constant)
         model.constant(fnord) must be(None)
+        model.getLabels() must have size 1
+        model.getLabels().head must be(SymbolTableEntry(fnord, 69))
     }
 
     @Test

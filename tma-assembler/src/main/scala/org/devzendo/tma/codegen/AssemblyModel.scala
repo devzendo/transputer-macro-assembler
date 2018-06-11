@@ -33,6 +33,8 @@ case class Storage(address: Int, cellWidth: Int, data: Array[Int], override val 
 // Constant and Variable assignments are recalled against the line that sets them to a particular value
 case class AssignmentValue(data: Int, override val line: Line, isLabel: Boolean) extends SourcedValue(line)
 
+case class SymbolTableEntry(name: String, value: Int)
+
 /*
  * A mutable structure holding the output of the CodeGenerator.
  */
@@ -145,6 +147,13 @@ class AssemblyModel {
             case None => throw new AssemblyModelException("Label '" + name + "' has not been defined")
         }
     }
+    def getLabels(): List[SymbolTableEntry] = {
+        def toSTE(pair: (String, Value)): SymbolTableEntry = {
+            SymbolTableEntry(pair._1, pair._2.value)
+        }
+        labels.toList.map(toSTE)
+    }
+
     def label(name: String): Option[Int] = labels.get(name) match {
         case Some(label) => Some(label.value)
         case None => None

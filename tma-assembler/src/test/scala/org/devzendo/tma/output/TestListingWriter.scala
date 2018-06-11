@@ -127,9 +127,26 @@ class TestListingWriter extends TempFolder with AssertionsForJUnit with MustMatc
         lineAccess(la => {
             invariants(la)
 
-            for (line <- 2 until 2 + expectedLines.length) {
+            for (line <- 2 until 2 + expectedLines.length) { // first page
                 val contentLine = la.line(line)
                 contentLine must be(expectedLines(line - 2))
+            }
+        })
+    }
+
+    private def symbolTableBodyLinesAre(expectedLines: String*): Unit = {
+        model.rows = 2 + expectedLines.length
+        writer.encode(model)
+        lineAccess(la => {
+            invariants(la)
+
+            for (line <- model.rows + 2 until model.rows + 2 + expectedLines.length) { // second page
+                //logger.debug(s"symbol table line $line")
+                val contentLine = la.line(line)
+                //logger.debug(s"actual '$contentLine'")
+                val expectedLine = expectedLines(line - 2 - model.rows)
+                //logger.debug(s"expected '$expectedLine'")
+                contentLine must be(expectedLine)
             }
         })
     }
@@ -399,6 +416,29 @@ class TestListingWriter extends TempFolder with AssertionsForJUnit with MustMatc
         val expectedLine2 = " 00000004 05060708"
         val expectedLine3 = " 00000008 090A0B0C"
         listingBodyLinesAre(expectedLine1, expectedLine2, expectedLine3)
+    }
+
+    @Test
+    def labelsShownInSymbolTable(): Unit = {
+        model.setDollarSilently(0x40000000)
+        val line1 = Line(1, "FNORD:", Some(fnord), None)
+        model.addLine(line1)
+        model.setLabel(fnord, model.getDollar, line1)
+        model.setDollarSilently(0x40000020)
+        val line2 = Line(2, "AARDVARK:", Some("AARDVARK"), None)
+        model.addLine(line2)
+        model.setLabel("AARDVARK", model.getDollar, line2)
+
+        //                  123456789012345678901234567890
+        val expectedLine1 = "Symbol Table - by Name"
+        val expectedLine2 = "AARDVARK             40000020"
+        val expectedLine3 = "FNORD                40000000"
+        val expectedLine4 = ""
+        val expectedLine5 = "Symbol Table - by Address"
+        val expectedLine6 = "FNORD                40000000"
+        val expectedLine7 = "AARDVARK             40000020"
+        symbolTableBodyLinesAre(expectedLine1, expectedLine2, expectedLine3, expectedLine4, expectedLine5,
+            expectedLine6, expectedLine7)
     }
 
 }

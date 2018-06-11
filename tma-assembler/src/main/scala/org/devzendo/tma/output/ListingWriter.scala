@@ -76,6 +76,8 @@ class ListingWriter(val outputFile: File) {
 
         def calculatePrintableLines(): Int = {
             var printableLines = 0
+
+            // The lines for the listing...
             model.foreachLineSourcedValues((_: Line, sourcedValues: List[SourcedValue]) => {
                 if (sourcedValues.nonEmpty) {
                     for (sourcedValue <- sourcedValues) {
@@ -86,6 +88,10 @@ class ListingWriter(val outputFile: File) {
                     printableLines += 1
                 }
             })
+
+            // The lines for the symbol table
+            val labels = model.getLabels
+            val symbolTableEntries = labels.size
             printableLines
         }
 
@@ -103,6 +109,7 @@ class ListingWriter(val outputFile: File) {
 
         val printWriter = new PrintWriter(outputFile)
         try {
+            // First, the Listing...
             model.foreachLineSourcedValues((line: Line, sourcedValues: List[SourcedValue]) => {
                 logger.info(s"line $line")
                 for (sv <- sourcedValues) {
@@ -171,6 +178,33 @@ class ListingWriter(val outputFile: File) {
             })
 
             padOutToFullPages()
+
+            // Secondly, the symbol table, sorted by name, then address.
+            val labels = model.getLabels()
+            if (labels.nonEmpty) {
+                val lineBuf = new StringBuilder()
+
+                emitLineWithHeader("Symbol Table - by Name")
+                val labelsByName = labels.sortWith(_.name < _.name)
+                for (l <- labelsByName) {
+                    lineBuf.clear()
+                    lineBuf.append(padToLength(l.name, 21))
+                    lineBuf.append(HexDump.int2hex(l.value))
+                    emitLineWithHeader(lineBuf.toString())
+                }
+
+                emitLineWithHeader("")
+                emitLineWithHeader("Symbol Table - by Address")
+                val labelsByAddress = labels.sortWith(_.value < _.value)
+                for (l <- labelsByAddress) {
+                    lineBuf.clear()
+                    lineBuf.append(padToLength(l.name, 21))
+                    lineBuf.append(HexDump.int2hex(l.value))
+                    emitLineWithHeader(lineBuf.toString())
+                }
+
+                padOutToFullPages()
+            }
 
         } finally {
             printWriter.close()
