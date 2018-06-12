@@ -27,7 +27,6 @@ Remaining work:
 
 * nice-to-haves...
   * handling conversion of exceptions that the macro manager might throw when expanding
-  * better case insensitivity of keywords https://stackoverflow.com/questions/38070885/how-to-handle-case-insensitive-keywords-with-scala-parser-combinators
   * macros shouldn't be able to replace keywords
 
 * later....

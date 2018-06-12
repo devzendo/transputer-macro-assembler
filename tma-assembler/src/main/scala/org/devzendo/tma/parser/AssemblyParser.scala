@@ -82,7 +82,7 @@ class AssemblyParser(val debugParser: Boolean, val macroManager: MacroManager) {
         def line: Parser[List[Line]] = macroEnd | macroStart | macroBody
 
         def macroEnd: Parser[List[Line]] =
-            """(endm|ENDM)""".r ^^ {
+            """(?i)ENDM""".r ^^ {
                 _ =>
                     if (debugParser) logger.debug("in endm")
                     macroManager.endMacro()
@@ -96,7 +96,7 @@ class AssemblyParser(val debugParser: Boolean, val macroManager: MacroManager) {
         }
 
         def macroWord: Parser[String] =
-            """(macro|MACRO)""".r ^^ ( _ => "MACRO" )
+            """(?i)MACRO""".r ^^ ( _ => "MACRO" )
 
         def macroBody: Parser[List[Line]] =
         """.*""".r ^^ {
@@ -230,7 +230,7 @@ class AssemblyParser(val debugParser: Boolean, val macroManager: MacroManager) {
         def data: Parser[Statement] = dbDup | dwDup | ddDup | db | dw | dd
 
         def db: Parser[DB] = (
-          """(db|DB)""".r  ~> repsep(expression | characterExpression, ",")
+          """(?i)DB""".r  ~> repsep(expression | characterExpression, ",")
           ) ^^ {
             exprs =>
                 if (debugParser) logger.debug("in db, exprs:" + exprs)
@@ -241,7 +241,7 @@ class AssemblyParser(val debugParser: Boolean, val macroManager: MacroManager) {
         }
 
         def dup: Parser[Expression] = (
-          """(dup|DUP)\s*\(""".r ~> (expression | characterExpression) <~ """\)""".r
+          """(?i)DUP\s*\(""".r ~> (expression | characterExpression) <~ """\)""".r
         ) ^^ {
             repeatedExpr =>
                 if (debugParser) logger.debug("in dup, repeatedExpr:" + repeatedExpr)
@@ -249,7 +249,7 @@ class AssemblyParser(val debugParser: Boolean, val macroManager: MacroManager) {
         }
 
         def dbDup: Parser[DBDup] = (
-          """(db|DB)""".r ~> expression ~ dup
+          """(?i)DB""".r ~> expression ~ dup
           ) ^^ {
             case countExpr ~ repeatedExpr =>
                 if (debugParser) logger.debug("in dbDup, countExpr:" + countExpr + " repeatedExpr:" + repeatedExpr)
@@ -257,7 +257,7 @@ class AssemblyParser(val debugParser: Boolean, val macroManager: MacroManager) {
         }
 
         def dw: Parser[DW] = (
-          """(dw|DW)""".r  ~> repsep(expression, ",")
+          """(?i)DW""".r  ~> repsep(expression, ",")
           ) ^^ {
             exprs =>
                 if (debugParser) logger.debug("in dw, exprs:" + exprs)
@@ -268,7 +268,7 @@ class AssemblyParser(val debugParser: Boolean, val macroManager: MacroManager) {
         }
 
         def dwDup: Parser[DWDup] = (
-          """(db|DW)""".r ~> expression ~ dup
+          """(?i)DW""".r ~> expression ~ dup
           ) ^^ {
             case countExpr ~ repeatedExpr =>
                 if (debugParser) logger.debug("in dwDup, countExpr:" + countExpr + " repeatedExpr:" + repeatedExpr)
@@ -276,7 +276,7 @@ class AssemblyParser(val debugParser: Boolean, val macroManager: MacroManager) {
         }
 
         def dd: Parser[DD] = (
-          """(dd|DD)""".r  ~> repsep(expression, ",")
+          """(?i)DD""".r  ~> repsep(expression, ",")
           ) ^^ {
             exprs =>
                 if (debugParser) logger.debug("in dd, exprs:" + exprs)
@@ -287,7 +287,7 @@ class AssemblyParser(val debugParser: Boolean, val macroManager: MacroManager) {
         }
 
         def ddDup: Parser[DDDup] = (
-          """(dd|DD)""".r ~> expression ~ dup
+          """(?i)DD""".r ~> expression ~ dup
           ) ^^ {
             case countExpr ~ repeatedExpr =>
                 if (debugParser) logger.debug("in ddDup, countExpr:" + countExpr + " repeatedExpr:" + repeatedExpr)
@@ -295,7 +295,7 @@ class AssemblyParser(val debugParser: Boolean, val macroManager: MacroManager) {
         }
 
         def title: Parser[Title] = (
-          """(title|TITLE)""".r  ~> """.*""".r
+          """(?i)TITLE""".r  ~> """.*""".r
         ) ^^ {
             text =>
                 if (debugParser) logger.debug("in title, text:" + text)
@@ -303,14 +303,14 @@ class AssemblyParser(val debugParser: Boolean, val macroManager: MacroManager) {
         }
 
         def page: Parser[Page] = (
-          """(page|PAGE)""".r  ~> wholeNumber ~ "," ~ wholeNumber
+          """(?i)PAGE""".r  ~> wholeNumber ~ "," ~ wholeNumber
           ) ^^ {
             case rows ~ _ ~ columns =>
                 if (debugParser) logger.debug("in page, rows:" + rows + ", columns:" + columns)
                 Page(rows.toInt, columns.toInt)
         }
 
-        def processor: Parser[Processor] = """\.(386|T800)""".r ^^ {
+        def processor: Parser[Processor] = """(?i)\.(386|T800)""".r ^^ {
             cpuString =>
                 val cpu = cpuString.substring(1)
                 if (debugParser) {
@@ -320,7 +320,7 @@ class AssemblyParser(val debugParser: Boolean, val macroManager: MacroManager) {
         }
 
         def align: Parser[Align] = (
-          """(align|ALIGN)""".r  ~> wholeNumber
+          """(?i)ALIGN""".r  ~> wholeNumber
           ) ^^ {
             alignment =>
                 if (debugParser) logger.debug("in align, alignment:" + alignment)
@@ -328,19 +328,19 @@ class AssemblyParser(val debugParser: Boolean, val macroManager: MacroManager) {
         }
 
         def end: Parser[End] = (
-          """(end|END)""".r  ~> opt(expression)
+          """(?i)END""".r  ~> opt(expression)
           ) ^^ {
             expr =>
                 if (debugParser) logger.debug("in end, expression:" + expr)
                 End(expr)
         }
 
-        def condif1: Parser[If1] = """(if1|IF1)""".r ^^ ( _ => If1() )
-        def condelse: Parser[Else] = """(else|ELSE)""".r ^^ ( _ => Else() )
-        def condendif: Parser[Endif] = """(endif|ENDIF)""".r ^^ ( _ => Endif() )
+        def condif1: Parser[If1] = """(?i)IF1""".r ^^ ( _ => If1() )
+        def condelse: Parser[Else] = """(?i)ELSE""".r ^^ ( _ => Else() )
+        def condendif: Parser[Endif] = """(?i)ENDIF""".r ^^ ( _ => Endif() )
 
         def ignored: Parser[Ignored] = ( ignoredKeyword ~ """.*""".r ) ^^ { _ => Ignored() }
-        def ignoredKeyword: Regex = """(main|MAIN|assume|ASSUME|\.LIST|\.NOLIST)""".r
+        def ignoredKeyword: Regex = """(?i)(MAIN|ASSUME|\.LIST|\.NOLIST)""".r
 
         def expression: Parser[Expression] = (
           term ~ rep("+" ~ term | "-" ~ term)
@@ -437,25 +437,25 @@ class AssemblyParser(val debugParser: Boolean, val macroManager: MacroManager) {
         })
 
         def equ: Parser[String] =
-            """(equ|EQU)""".r ^^ ( _ => "EQU" )
+            """(?i)EQU""".r ^^ ( _ => "EQU" )
 
         def shr: Parser[String] =
-            """(>>|shr|SHR)""".r ^^ ( _ => "SHR" )
+            """(?i)(>>|SHR)""".r ^^ ( _ => "SHR" )
 
         def shl: Parser[String] =
-            """(<<|shl|SHL)""".r ^^ ( _ => "SHL" )
+            """(?i)(<<|SHL)""".r ^^ ( _ => "SHL" )
 
         def and: Parser[String] =
-            """(&&|and|AND)""".r ^^ ( _ => "AND" )
+            """(?i)(&&|AND)""".r ^^ ( _ => "AND" )
 
         def or: Parser[String] =
-            """(\|\||or|OR)""".r ^^ ( _ => "OR" )
+            """(?i)(\|\||OR)""".r ^^ ( _ => "OR" )
 
         def org: Parser[String] =
-            """(org|ORG)""".r ^^ ( _ => "ORG" )
+            """(?i)ORG""".r ^^ ( _ => "ORG" )
 
         def macroWord: Parser[String] =
-            """(macro|MACRO)""".r ^^ ( _ => "MACRO" )
+            """(?i)MACRO""".r ^^ ( _ => "MACRO" )
 
         def comment: Parser[Comment] = doubleComment | singleComment
 
