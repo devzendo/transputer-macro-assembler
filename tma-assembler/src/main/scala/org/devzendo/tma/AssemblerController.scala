@@ -28,7 +28,7 @@ import scala.collection.mutable
 import scala.io.Source
 
 class AssemblerController(macroManager: MacroManager, parser: AssemblyParser, codegen: CodeGenerator) {
-    val logger: Logger = org.log4s.getLogger
+    private val logger: Logger = org.log4s.getLogger
 
     // PARSING PHASE ---------------------------------------------------------------------------------------------------
 
@@ -36,7 +36,7 @@ class AssemblerController(macroManager: MacroManager, parser: AssemblyParser, co
     private val parsedLinesSoFar = mutable.ArrayBuffer[Line]()
 
     // Input is either read from a text file, and parsed, to form the parsedLines list....
-    def parseFile(inputFile: File) = {
+    def parseFile(inputFile: File): Unit = {
         Source.fromFile(inputFile).getLines().zipWithIndex.foreach((p: (String, Int)) => parseTextLine(p._2, p._1))
     }
 
@@ -56,7 +56,7 @@ class AssemblerController(macroManager: MacroManager, parser: AssemblyParser, co
     }
 
     // Obtain any parsing errors that have been accumulated. If there are errors, the main code will log them and exit.
-    def getParseExceptions(): List[AssemblyParserException] = parseErrors.toList
+    def getParseExceptions: List[AssemblyParserException] = parseErrors.toList
 
     // CODE GENERATION PHASE -------------------------------------------------------------------------------------------
 
@@ -76,7 +76,7 @@ class AssemblerController(macroManager: MacroManager, parser: AssemblyParser, co
 
     // Obtain any code generation errors that have been accumulated. If there are errors, the main code will log them
     // and exit.
-    def getCodeGenerationExceptions(): List[CodeGenerationException] = codegen.getCodeGenerationExceptions
+    def getCodeGenerationExceptions: List[CodeGenerationException] = codegen.getCodeGenerationExceptions
 
     // OUTPUT PHASE ----------------------------------------------------------------------------------------------------
 

@@ -22,7 +22,7 @@ import org.devzendo.tma.codegen.{CodeGenerationException, CodeGenerator}
 import org.devzendo.tma.parser.{AssemblyParser, AssemblyParserException, MacroManager}
 
 class AssemblerMain(val argList: List[String]) {
-    val logger = org.log4s.getLogger
+    private val logger = org.log4s.getLogger
 
     var argIndex = 0
     var asmFile: Option[File] = None
@@ -60,25 +60,22 @@ class AssemblerMain(val argList: List[String]) {
 
         logger.debug("ARG: [" + f + "]")
         f match {
-            case "--help" => { usage(); exit() }
-            case "-?" => { usage(); exit() }
-            case "--version"  => { version(); exit() }
-            case "-p" | "--parser"  => { debugParser = true }
-            case "-c" | "--codegen"  => { debugCodegen = true }
+            case "--help" => usage(); exit()
+            case "-?" => usage(); exit()
+            case "--version"  => version(); exit()
+            case "-p" | "--parser"  => debugParser = true
+            case "-c" | "--codegen"  => debugCodegen = true
 
-            case "-o" | "--output" => {
+            case "-o" | "--output" =>
                 outputFile = expectFileName()
-            }
 
-            case "-b" | "--binary" => {
+            case "-b" | "--binary" =>
                 binaryFile = expectFileName()
-            }
 
-            case "-l" | "--listing" => {
+            case "-l" | "--listing" =>
                 listingFile = expectFileName()
-            }
 
-            case _ => {
+            case _ =>
                 if (f.startsWith("-")) {
                     logger.error(s"Unknown command line option: '$f'")
                     logger.error("")
@@ -86,7 +83,6 @@ class AssemblerMain(val argList: List[String]) {
                     quit()
                 }
                 asmFile = existingFile("assembly", f)
-            }
         }
 
         argIndex += 1
@@ -112,7 +108,7 @@ class AssemblerMain(val argList: List[String]) {
         val endParseTime = System.currentTimeMillis()
         logger.debug(s"Parsing complete in ${endParseTime - startParseTime} ms")
 
-        val parserExceptions = controller.getParseExceptions()
+        val parserExceptions = controller.getParseExceptions
         if (parserExceptions.nonEmpty) {
             logger.error("Parse errors:")
             parserExceptions.foreach( (f: AssemblyParserException) => logger.error(f.getMessage))
@@ -124,7 +120,7 @@ class AssemblerMain(val argList: List[String]) {
         val endCodegenTime = System.currentTimeMillis()
         logger.debug(s"Code generation complete in ${endCodegenTime - startCodegenTime} ms")
 
-        val codeGenerationExceptions = controller.getCodeGenerationExceptions()
+        val codeGenerationExceptions = controller.getCodeGenerationExceptions
         if (codeGenerationExceptions.nonEmpty) {
             logger.error("Code generation errors:")
             codeGenerationExceptions.foreach( (f: CodeGenerationException) => logger.error(f.getMessage))
@@ -139,7 +135,7 @@ class AssemblerMain(val argList: List[String]) {
 
     // -----------------------------------------------------------------------------------------------------------------
 
-    def errorQuit(str: String) = {
+    def errorQuit(str: String): Unit = {
         logger.error(str)
         quit()
     }

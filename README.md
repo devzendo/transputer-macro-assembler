@@ -24,7 +24,6 @@ Parser, macro expansion, code generation and output of
 binary file and listing are done.
 
 Remaining work:
-* documentation of syntax
 
 * nice-to-haves...
   * handling conversion of exceptions that the macro manager might throw when expanding

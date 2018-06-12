@@ -42,7 +42,7 @@ class TestAssemblerController extends AssertionsForJUnit with MustMatchers {
         controller.parseTextLine(3, "bigmac macro") // ok
         controller.parseTextLine(4, "endm") // ok
         controller.parseTextLine(5, "bigmac macro") // duplicate macro
-        val errors = controller.getParseExceptions().map((e: AssemblyParserException) => e.getMessage )
+        val errors = controller.getParseExceptions.map((e: AssemblyParserException) => e.getMessage )
         errors must be(List(
             "1: Unknown statement 'blarg'",
             "2: Unknown statement 'fnord'",
@@ -106,7 +106,7 @@ class TestAssemblerController extends AssertionsForJUnit with MustMatchers {
 
         controller.generateModel()
 
-        val errors = controller.getCodeGenerationExceptions().map((e: CodeGenerationException) => e.getMessage )
+        val errors = controller.getCodeGenerationExceptions.map((e: CodeGenerationException) => e.getMessage )
         errors must be(List(
             "1: Origin cannot be set to a Character expression 'Characters(blah)'",
             "2: Undefined symbol(s) 'fnorg'",
