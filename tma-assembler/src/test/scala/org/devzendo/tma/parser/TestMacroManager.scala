@@ -147,6 +147,16 @@ class TestMacroManager extends AssertionsForJUnit with MustMatchers {
         macroManager.expandMacro(macroName, List.empty)
     }
 
+    @Test
+    def macroArgumentHaveDollarReplacedWithSlashDollarToPermitCorrectReplacement: Unit = {
+        macroManager.startMacro(macroName, List(new MacroParameterName("FOO")))
+        macroManager.addMacroLine("Replaced: FOO")
+        macroManager.endMacro()
+
+        val lines = macroManager.expandMacro(macroName, List(new MacroArgument("PACK$"))) // the $ is important
+        lines must be(List("Replaced: PACK$"))
+    }
+
     private def setupSampleNonNestedMacro(): Unit = {
         // Exhaustively testing each delimiter is done in the 'punctuation' tests; a few are illustrated here
         macroManager.startMacro(macroName, macroParameterNames)

@@ -100,7 +100,7 @@ class MacroManager(val debugParser: Boolean) {
         def getArg(i: Int): MacroArgument = {
             val emptyArg = new MacroArgument("")
             if (i < arguments.length) {
-                arguments(i)
+                arguments(i).replace("$", "\\$")
             } else {
                 emptyArg
             }
@@ -117,7 +117,15 @@ class MacroManager(val debugParser: Boolean) {
         // Yuk, mutability!
         def expandLine(instr: String): String = {
             var str = instr
-            definition.parameterNames.foreach( parameterName => str = paramNameToPattern(parameterName).matcher(str).replaceAll(paramToArgMap(parameterName)))
+            if (debugParser) logger.debug(s"starting to expand |$instr|")
+            definition.parameterNames.foreach( parameterName => {
+                val pattern = paramNameToPattern(parameterName)
+                val argument = paramToArgMap(parameterName)
+                if (debugParser) logger.debug(s"expanding parameter name $parameterName by pattern $pattern to argument $argument in |$str|")
+                str = pattern.matcher(str).replaceAll(argument)
+                if (debugParser) logger.debug(s"expanded to |$str|")
+            })
+            if (debugParser) logger.debug(s"finished expanding with |$str|")
             str
         }
         val expansion = definition.textLines map { expandLine }
