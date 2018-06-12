@@ -18,13 +18,12 @@ Project](https://devzendo.github.io/parachute) and its future languages.
 Status
 ------
 Project started 19 April 2018.
-In development; unfinished; not yet at its first release (as of end-of-May 2018).
+In development; unfinished; not yet at its first release (as of mid-June 2018).
 
-Currently working on listing writer. Parser, macro expansion, code generation and output of
-binary file are done.
+Parser, macro expansion, code generation and output of
+binary file and listing are done.
 
 Remaining work:
-* write listing file & symbol map
 * documentation of syntax
 
 * nice-to-haves...
@@ -72,10 +71,55 @@ Syntax
 ------
 Since the initial project using this assembler is eForth, and eForth has
 traditionally been written using Microsoft Macro Assembler 5.1, the syntax
-follows that assembler. Only a very small subset of MASM's language is needed.
+accepted by this assembler is the very small subset of MASM need by eForth.
+
+For identifier syntax, see [The Java Language Spec](http://docs.oracle.com/javase/specs/jls/se7/html/jls-3.html#jls-3.8)
 
 The following fragment illustrates most of the key syntax:
 ```
+LABEL:    ; A label starting a line with a colon; a semicolon introduces a comment.
+          EQU MYCONST 42 ; Here's a constant; you can't re-assign them.
+          MYVAR = 69     ; Here's a variable; you can re-assign them.
+                         ; Constant, variable, and label names follow the rules for
+                         ; Java identifiers: this means a letter, currency symbol or connecting
+                         ; punctuation symbol (_), followed by zero or more letters or numbers.
+          ORG 0x40000000 ; Set the memory location to assemble at ($) to this address,
+                         ; here given in hex. The default for the $ variable is 0.
+          DB 1,2,3,'hi'  ; Assemble three bytes and a string at $ (0x40000000).
+                         ; Arguments to data assemblers can be decimal numbers (e.g. 14),
+                         ; hexadecimal numbers (e.g. 0x20, 20H), or labels, constants or
+                         ; variables. DB also supports single- or double-quoted strings
+                         ; of characters. Values are limited to unsigned 0-255.
+          DW 0x1234      ; Assemble one or more words, separated by commas. Can be decimal
+                         ; or hex as per DB. Cannot use character strings. Range 0-65535. 
+          DD 0xAA55AA55  ; Assemble one or more double words, separated by commas. Decimal
+                         ; or hex, range 0-4294967295.
+          DB 5 DUP 7     ; Assemble 5 instances of the byte 7. Same as DB 7,7,7,7,7. Can
+                         ; also use DW count DUP n, and DD count DUP n.
+          TITLE My Title ; Sets the title given in the listing.
+          PAGE 80,25     ; Sets the page size in the listing.
+          .386           ; Sets the instruction set and endianness to 386.
+          .T800          ; Sets the instruction set and endianness to T800.
+                         ; (Currently only the endianness is set; build macros up
+                         ; to generate DBs from opcodes)
+          ALIGN 4        ; Increase $ if necessary to the next address that's a multiple
+                         ; of the argument.
+          IF1            ; Mark out a section that will only be assembled during pass 1.
+          ELSE           ; Mark out a section that will only be assembled during pass 2.
+          ENDIF          ; End the pass1/pass2 section.
+          END            ; Marks the end of the source file. Must be present; no statements
+                         ; are allowed after this.
+          name MACRO param1,param2,param3...
+                         ; Start definition of a macro with name 'name', and the list of
+                         ; named parameters. Can supply zero or more parameters.
+                         ; The parameters can be referred to in the body of the macro,
+                         ; which follows....
+          ENDM           ; End macro definition; must follow MACRO.
+          name 1,2,3     ; Invoke macro called 'name', substituting 1 for param1, 2 for param2, 3 for param 3.
+          MAIN           ; Ignored
+          ASSUME         ; Ignored
+          .LIST          ; Ignored
+          .NOLIST        ; Ignored               
 ```
 
 Getting Started
