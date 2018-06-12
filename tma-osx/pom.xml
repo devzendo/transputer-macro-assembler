@@ -70,9 +70,17 @@
 
     <dependencies>
         <dependency>
+            <!-- This is shaded, and includes the scala library, which will be found to be a transitive, so knock
+             that out. -->
             <groupId>org.devzendo</groupId>
             <artifactId>tma-assembler</artifactId>
             <version>0.0.1-SNAPSHOT</version>
+            <exclusions>
+                <exclusion>
+                    <groupId>org.scala-lang</groupId>
+                    <artifactId>scala-library</artifactId>
+                </exclusion>
+            </exclusions>
         </dependency>
     </dependencies>
 </project>
