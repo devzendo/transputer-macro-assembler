@@ -426,12 +426,12 @@ class AssemblyParser(val debugParser: Boolean, val macroManager: MacroManager) {
             (java.lang.Long.parseLong(x) & 0xffffffff).asInstanceOf[Int]
         })
 
-        def hexIntegerOx: Parser[Int] = """0[xX]-?\p{XDigit}+(?!\.)""".r ^^ ( x => {
+        def hexIntegerOx: Parser[Int] = """0[xX]-?\p{XDigit}+\b""".r ^^ ( x => {
             if (debugParser) logger.debug("in hexIntegerOx(" + x + ")")
             (java.lang.Long.parseLong(x.substring(2), 16) & 0xffffffff).asInstanceOf[Int]
         })
 
-        def hexIntegerH: Parser[Int] = """-?\p{XDigit}+[hH](?!\.)""".r ^^ ( x => {
+        def hexIntegerH: Parser[Int] = """-?\p{XDigit}+[hH]\b""".r ^^ ( x => {
             if (debugParser) logger.debug("in hexIntegerH(" + x + ")")
             (java.lang.Long.parseLong(x.substring(0, x.length - 1), 16) & 0xffffffff).asInstanceOf[Int]
         })

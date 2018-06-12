@@ -98,6 +98,12 @@ class TestAssemblyParser extends AssertionsForJUnit with MustMatchers {
     }
 
     @Test
+    def hMustBeWordEndOfConstantEndingInH(): Unit = {
+        singleLineParsesToStatement("C\t\tEQU\tCHARIN",
+            ConstantAssignment("C", SymbolArg("CHARIN")))
+    }
+
+    @Test
     def equHexConstantEndingInH(): Unit = {
         singleLineParsesToStatement("MASKK\t\tEQU\t07F1FH\t\t\t;lexicon bit mask",
             ConstantAssignment("MASKK", Number(0x07f1f)))
