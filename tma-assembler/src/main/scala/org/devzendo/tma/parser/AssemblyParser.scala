@@ -257,7 +257,7 @@ class AssemblyParser(val debugParser: Boolean, val macroManager: MacroManager) {
         }
 
         def dw: Parser[DW] = (
-          """(?i)DW""".r  ~> repsep(expression, ",")
+          """(?i)DW""".r  ~> repsep(expression | characterExpression, ",")
           ) ^^ {
             exprs =>
                 if (debugParser) logger.debug("in dw, exprs:" + exprs)
@@ -276,7 +276,7 @@ class AssemblyParser(val debugParser: Boolean, val macroManager: MacroManager) {
         }
 
         def dd: Parser[DD] = (
-          """(?i)DD""".r  ~> repsep(expression, ",")
+          """(?i)DD""".r  ~> repsep(expression | characterExpression, ",")
           ) ^^ {
             exprs =>
                 if (debugParser) logger.debug("in dd, exprs:" + exprs)

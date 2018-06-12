@@ -385,6 +385,40 @@ class TestCodeGenerator extends AssertionsForJUnit with MustMatchers {
     }
 
     @Test
+    def dwCharacters(): Unit = {
+        val cellWidth = 2
+        val dwStatement = DW(List(Characters("Ab0")))
+        val line = Line(1, "", None, Some(dwStatement))
+        val model = generateFromLine(line)
+
+        val storages = model.getSourcedValuesForLineNumber(1)
+        storages must have size 1
+        val storage = singleStorage(storages)
+        storage.address must be(0)
+        storage.cellWidth must be(2)
+        storage.data.toList must be(List(65, 98, 48))
+        storage.line must be(line)
+        model.getDollar must be(0 + (cellWidth * 3))
+    }
+
+    @Test
+    def dwMixedNumbersAndCharacters(): Unit = {
+        val cellWidth = 2
+        val dwStatement = DW(List(Number(5), Characters("abc"), Number(7)))
+        val line = Line(1, "", None, Some(dwStatement))
+        val model = generateFromLine(line)
+
+        val storages = model.getSourcedValuesForLineNumber(1)
+        storages must have size 1
+        val storage = singleStorage(storages)
+        storage.address must be(0)
+        storage.cellWidth must be(2)
+        storage.data.toList must be(List(5, 97, 98, 99, 7))
+        storage.line must be(line)
+        model.getDollar must be(0 + (cellWidth * 5))
+    }
+
+    @Test
     def ddNumbers(): Unit = {
         val cellWidth = 4
         val ddStatement = DD(List(Number(42), Number(69)))
@@ -399,6 +433,40 @@ class TestCodeGenerator extends AssertionsForJUnit with MustMatchers {
         storage.data.toList must be(List(42, 69))
         storage.line must be(line)
         model.getDollar must be(0 + (cellWidth * 2))
+    }
+
+    @Test
+    def ddCharacters(): Unit = {
+        val cellWidth = 4
+        val ddStatement = DD(List(Characters("Ab0")))
+        val line = Line(1, "", None, Some(ddStatement))
+        val model = generateFromLine(line)
+
+        val storages = model.getSourcedValuesForLineNumber(1)
+        storages must have size 1
+        val storage = singleStorage(storages)
+        storage.address must be(0)
+        storage.cellWidth must be(4)
+        storage.data.toList must be(List(65, 98, 48))
+        storage.line must be(line)
+        model.getDollar must be(0 + (cellWidth * 3))
+    }
+
+    @Test
+    def ddMixedNumbersAndCharacters(): Unit = {
+        val cellWidth = 4
+        val ddStatement = DD(List(Number(5), Characters("abc"), Number(7)))
+        val line = Line(1, "", None, Some(ddStatement))
+        val model = generateFromLine(line)
+
+        val storages = model.getSourcedValuesForLineNumber(1)
+        storages must have size 1
+        val storage = singleStorage(storages)
+        storage.address must be(0)
+        storage.cellWidth must be(4)
+        storage.data.toList must be(List(5, 97, 98, 99, 7))
+        storage.line must be(line)
+        model.getDollar must be(0 + (cellWidth * 5))
     }
 
     @Test

@@ -402,6 +402,16 @@ class TestAssemblyParser extends AssertionsForJUnit with MustMatchers {
     }
 
     @Test
+    def dwSingleQuotedCharacters(): Unit = {
+        singleLineParsesToStatement("DW\t'Unga Bunga'", DW(List(Characters("Unga Bunga"))))
+    }
+
+    @Test
+    def dwDoubleQuotedCharacters(): Unit = {
+        singleLineParsesToStatement("DW\t\"Unga Bunga\"", DW(List(Characters("Unga Bunga"))))
+    }
+
+    @Test
     def dwSingleOverflow(): Unit = {
         // This is allowed by the parser - it could be some expression we don't know the final value of, so
         // don't disallow it here, deal with it in code generation.
@@ -443,6 +453,16 @@ class TestAssemblyParser extends AssertionsForJUnit with MustMatchers {
     @Test
     def ddDuplicate(): Unit = {
         singleLineParsesToStatement("DD\t4 DUP(3)", DDDup(Number(4), Number(3)))
+    }
+
+    @Test
+    def ddSingleQuotedCharacters(): Unit = {
+        singleLineParsesToStatement("DD\t'Unga Bunga'", DD(List(Characters("Unga Bunga"))))
+    }
+
+    @Test
+    def ddDoubleQuotedCharacters(): Unit = {
+        singleLineParsesToStatement("DD\t\"Unga Bunga\"", DD(List(Characters("Unga Bunga"))))
     }
 
     // ddSingleOverflow cannot be expressed since we use Ints, and 0x100000000 doesn't fit in one.

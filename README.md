@@ -85,11 +85,11 @@ LABEL:    ; A label starting a line with a colon; a semicolon introduces a comme
                          ; here given in hex. The default for the $ variable is 0.
           DB 1,2,3,'hi'  ; Assemble three bytes and a string at $ (0x40000000).
                          ; Arguments to data assemblers can be decimal numbers (e.g. 14),
-                         ; hexadecimal numbers (e.g. 0x20, 20H), or labels, constants or
-                         ; variables. DB also supports single- or double-quoted strings
+                         ; hexadecimal numbers (e.g. 0x20, 20H), labels, constants,
+                         ; variables, or supports single- or double-quoted strings
                          ; of characters. Values are limited to unsigned 0-255.
           DW 0x1234      ; Assemble one or more words, separated by commas. Can be decimal
-                         ; or hex as per DB. Cannot use character strings. Range 0-65535. 
+                         ; or hex as per DB. Range 0-65535. 
           DD 0xAA55AA55  ; Assemble one or more double words, separated by commas. Decimal
                          ; or hex, range 0-4294967295.
           DB 5 DUP 7     ; Assemble 5 instances of the byte 7. Same as DB 7,7,7,7,7. Can
