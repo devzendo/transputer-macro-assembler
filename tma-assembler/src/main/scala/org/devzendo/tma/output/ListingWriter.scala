@@ -91,7 +91,7 @@ class ListingWriter(val outputFile: File) {
 
         def calculateSymbolTableLines(): Int = {
             var printableLines = 0
-            val symbols = model.getSymbols()
+            val symbols = model.getSymbols
             if (symbols.nonEmpty) {
                 printableLines += 3 // 2 headers and a gap
                 printableLines += symbols.size * 2 // sorted by address and name
@@ -191,7 +191,7 @@ class ListingWriter(val outputFile: File) {
             padOutToFullPages()
 
             // Secondly, the symbol table, sorted by name, then address.
-            val labels = model.getSymbols()
+            val labels = model.getSymbols
             if (labels.nonEmpty) {
                 val lineBuf = new StringBuilder()
 
