@@ -341,7 +341,7 @@ class TestAssemblyParser extends AssertionsForJUnit with MustMatchers {
 
     @Test
     def dbSingleQuotedCharacters(): Unit = {
-        singleLineParsesToStatement("DB\t'Unga Bunga'", DB(List(Characters("Unga Bunga"))))
+        singleLineParsesToStatement("DB\t' Unga Bunga '", DB(List(Characters(" Unga Bunga "))))
     }
 
     @Test
@@ -350,13 +350,23 @@ class TestAssemblyParser extends AssertionsForJUnit with MustMatchers {
     }
 
     @Test
+    def dbSingleQuotedBlankString(): Unit = {
+        singleLineParsesToStatement("DB\t'  '", DB(List(Characters("  "))))
+    }
+
+    @Test
     def dbDoubleQuotedCharacters(): Unit = {
-        singleLineParsesToStatement("DB\t\"Unga Bunga\"", DB(List(Characters("Unga Bunga"))))
+        singleLineParsesToStatement("DB\t\" Unga Bunga \"", DB(List(Characters(" Unga Bunga "))))
     }
 
     @Test
     def dbDoubleQuotedEmptyString(): Unit = {
         singleLineParsesToStatement("DB\t\"\"", DB(List(Characters(""))))
+    }
+
+    @Test
+    def dbDoubleQuotedBlankString(): Unit = {
+        singleLineParsesToStatement("DB\t\"  \"", DB(List(Characters("  "))))
     }
 
     @Test
@@ -694,6 +704,64 @@ class TestAssemblyParser extends AssertionsForJUnit with MustMatchers {
             MacroInvocation(new MacroName("$CODE"), List(new MacroArgument("3"), new MacroArgument("'URD'"), new MacroArgument("urdcode")))
         ))
         lines
+    }
+
+    @Test
+    def macroInvocationWithSingleQuotedStringArguments(): Unit = {
+        val textLines = List(
+            "D$\tMACRO\tFUNCT,STRNG",
+            "\tDD\tFUNCT",
+            "\t_LEN\t= $",
+            "\tDB\t0,STRNG",
+            "\tENDM",
+            "\t\tD$\tABORQ,' compile only'"
+        )
+
+        val lines = parseLines(textLines)
+        dumpLines(lines)
+        val stmts = lines.map {
+            _.stmt.get
+        }
+        stmts must be(List(
+            MacroStart(new MacroName("D$"), List(new MacroParameterName("FUNCT"), new MacroParameterName("STRNG"))),
+            MacroBody("DD\tFUNCT"),
+            MacroBody("_LEN\t= $"),
+            MacroBody("DB\t0,STRNG"),
+            MacroEnd(),
+            MacroInvocation(new MacroName("D$"), List(new MacroArgument("ABORQ"), new MacroArgument("' compile only'"))),
+            DD(List(SymbolArg("ABORQ"))),
+            VariableAssignment(new SymbolName("_LEN"), SymbolArg("$")),
+            DB(List(Number(0), Characters(" compile only"))) // space at start is important
+        ))
+    }
+
+    @Test
+    def macroInvocationWithDoubleQuotedStringArguments(): Unit = {
+        val textLines = List(
+            "D$\tMACRO\tFUNCT,STRNG",
+            "\tDD\tFUNCT",
+            "\t_LEN\t= $",
+            "\tDB\t0,STRNG",
+            "\tENDM",
+            "\t\tD$\tABORQ,\" compile only \""
+        )
+
+        val lines = parseLines(textLines)
+        dumpLines(lines)
+        val stmts = lines.map {
+            _.stmt.get
+        }
+        stmts must be(List(
+            MacroStart(new MacroName("D$"), List(new MacroParameterName("FUNCT"), new MacroParameterName("STRNG"))),
+            MacroBody("DD\tFUNCT"),
+            MacroBody("_LEN\t= $"),
+            MacroBody("DB\t0,STRNG"),
+            MacroEnd(),
+            MacroInvocation(new MacroName("D$"), List(new MacroArgument("ABORQ"), new MacroArgument("\" compile only \""))),
+            DD(List(SymbolArg("ABORQ"))),
+            VariableAssignment(new SymbolName("_LEN"), SymbolArg("$")),
+            DB(List(Number(0), Characters(" compile only "))) // space at start and end is important
+        ))
     }
 
     @Test

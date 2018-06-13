@@ -140,7 +140,11 @@ class AssemblyParser(val debugParser: Boolean, val macroManager: MacroManager) {
           opt(label) ~ macroInvocation <~ opt(comment)
           ) ^^ {
             case optLabel ~ macroInvocation =>
-                if (debugParser) logger.debug("in macroInvocationLine, macroInvocation is " + macroInvocation)
+                if (debugParser) {
+                    logger.debug("in macroInvocationLine, macroInvocation is " + macroInvocation)
+                    macroInvocation.args.foreach( (ma: MacroArgument) => logger.debug(s"macro argument |$ma|"))
+                }
+
                 val macroInvocationLine = Line(lineNumber, text, optLabel, Some(macroInvocation))
 
                 val expansion = macroManager.expandMacro(macroInvocation.name, macroInvocation.args)
@@ -213,11 +217,30 @@ class AssemblyParser(val debugParser: Boolean, val macroManager: MacroManager) {
                 possibleMacro
         }
 
-        def macroArgument: Parser[MacroArgument] = """[^\s,;]+""".r ^^ {
+        def macroArgument: Parser[MacroArgument] = (macroStringArgument | """[^\s,;]+""".r) ^^ {
             argument =>
                 if (debugParser) logger.debug("in macroArgument, argument is [" + argument + "]")
                 new MacroArgument(argument)
         }
+
+        // The difference between these two and singleQuotedString is that these include the terminating quotes in the
+        // parsed output. Macros must preserve this into their expansion.
+        def singleQuotedMacroStringArgument: Parser[String] =
+            """'([^'\x00-\x1F\x7F\\]|\\[\\'"bfnrt]|\\u[a-fA-F0-9]{4})*'""".r  ^^ {
+                contents => {
+                    if (debugParser) logger.debug("in singleQuotedMacroStringArgument, contents is: |" + contents + "|")
+                    contents
+                }
+            }
+        def doubleQuotedMacroStringArgument: Parser[String] =
+            """"([^"\x00-\x1F\x7F\\]|\\[\\'"bfnrt]|\\u[a-fA-F0-9]{4})*"""".r ^^ {
+                contents => {
+                    if (debugParser) logger.debug("in doubleQuotedMacroStringArgument, contents is: |" + contents + "|")
+                    contents
+                }
+            }
+
+        def macroStringArgument: Parser[String] = singleQuotedMacroStringArgument | doubleQuotedMacroStringArgument
 
         def origin: Parser[Org] = (
           org ~> expression
@@ -349,17 +372,19 @@ class AssemblyParser(val debugParser: Boolean, val macroManager: MacroManager) {
         }
 
         def singleQuotedString: Parser[Characters] =
-            "'" ~> """([^'\x00-\x1F\x7F\\]|\\[\\'"bfnrt]|\\u[a-fA-F0-9]{4})*""".r <~ "'"  ^^ {
+            """'([^'\x00-\x1F\x7F\\]|\\[\\'"bfnrt]|\\u[a-fA-F0-9]{4})*'""".r  ^^ {
                 contents => {
-                    if (debugParser) logger.debug("in singleQuotedString, contents is: |" + contents + "|")
-                    Characters(contents)
+                    val stringBody = contents.substring(1, contents.length - 1)
+                    if (debugParser) logger.debug("in singleQuotedString, contents is: |" + stringBody + "|")
+                    Characters(stringBody)
                 }
             }
         def doubleQuotedString: Parser[Characters] =
-            "\"" ~> """([^"\x00-\x1F\x7F\\]|\\[\\'"bfnrt]|\\u[a-fA-F0-9]{4})*""".r <~ "\"" ^^ {
+            """"([^"\x00-\x1F\x7F\\]|\\[\\'"bfnrt]|\\u[a-fA-F0-9]{4})*"""".r ^^ {
                 contents => {
-                    if (debugParser) logger.debug("in doubleQuotedString, contents is: |" + contents + "|")
-                    Characters(contents)
+                    val stringBody = contents.substring(1, contents.length - 1)
+                    if (debugParser) logger.debug("in doubleQuotedString, contents is: |" + stringBody + "|")
+                    Characters(stringBody)
                 }
             }
 
