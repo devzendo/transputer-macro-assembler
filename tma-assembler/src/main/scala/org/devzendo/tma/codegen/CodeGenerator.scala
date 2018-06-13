@@ -261,7 +261,8 @@ class CodeGenerator(debugCodegen: Boolean) {
         try {
             model.checkUnresolvedForwardReferences() // will throw if there are any
         } catch {
-            case cge: CodeGenerationException => codeGenerationErrors += cge
+            case cge: CodeGenerationException => codeGenerationErrors += cge // doesn't throw these
+            case ame: AssemblyModelException => codeGenerationErrors += new CodeGenerationException(0, ame.getMessage)
         }
 
         logger.info("Pass 2: Updating model from " + p2Structures.size + " pass 2 fixup(s)")

@@ -510,7 +510,7 @@ class TestCodeGenerator extends AssertionsForJUnit with MustMatchers {
     def checkForUnresolvedForwardReferencesAtCreateModelTime(): Unit = {
         // Set up the model with an unresolved forward reference, that'll cause the unresolved forward reference check
         // to throw. (Only if that check is called in createModel)
-        thrown.expect(classOf[AssemblyModelException])
+        thrown.expect(classOf[CodeGenerationException])
         thrown.expectMessage("Forward references remain unresolved at end of Pass 1: (FNORD: #1)")
 
         val dbStatement = DB(List(SymbolArg(fnord)))
