@@ -87,17 +87,18 @@ class AssemblyModel {
     }
 
     def getVariable(name: String): Int = {
-        variables.get(name) match {
+        variables.get(name.toUpperCase) match {
             case Some(vr) => vr.value
             case None => throw new AssemblyModelException("Variable '" + name + "' has not been defined")
         }
     }
-    def variable(name: String): Option[Int] = variables.get(name) match {
+    def variable(name: String): Option[Int] = variables.get(name.toUpperCase) match {
         case Some(con) => Some(con.value)
         case None => None
     }
 
-    def setVariable(name: String, n: Int, line: Line): Unit = {
+    def setVariable(oddcasename: String, n: Int, line: Line): Unit = {
+        val name = oddcasename.toUpperCase
         constants.get(name) match {
             case Some(con) => throw new AssemblyModelException("Variable '" + name + "' cannot override existing constant; initially defined on line " + con.definitionLine)
             case None => // drop through
@@ -113,16 +114,17 @@ class AssemblyModel {
     }
 
     def getConstant(name: String): Int = {
-        constants.get(name) match {
+        constants.get(name.toUpperCase) match {
             case Some(con) => con.value
             case None => throw new AssemblyModelException("Constant '" + name + "' has not been defined")
         }
     }
-    def constant(name: String): Option[Int] = constants.get(name) match {
+    def constant(name: String): Option[Int] = constants.get(name.toUpperCase) match {
         case Some(con) => Some(con.value)
         case None => None
     }
-    def setConstant(name: String, n: Int, line: Line): Unit = {
+    def setConstant(oddcasename: String, n: Int, line: Line): Unit = {
+        val name = oddcasename.toUpperCase
         variables.get(name) match {
             case Some(vr) => throw new AssemblyModelException("Constant '" + name + "' cannot override existing variable; last stored on line " + vr.definitionLine)
             case None => // drop through
@@ -142,16 +144,17 @@ class AssemblyModel {
     }
 
     def getLabel(name: String): Int = {
-        labels.get(name) match {
+        labels.get(name.toUpperCase) match {
             case Some(con) => con.value
             case None => throw new AssemblyModelException("Label '" + name + "' has not been defined")
         }
     }
-    def label(name: String): Option[Int] = labels.get(name) match {
+    def label(name: String): Option[Int] = labels.get(name.toUpperCase) match {
         case Some(label) => Some(label.value)
         case None => None
     }
-    def setLabel(name: String, n: Int, line: Line): Unit = {
+    def setLabel(oddcasename: String, n: Int, line: Line): Unit = {
+        val name = oddcasename.toUpperCase
         variables.get(name) match {
             case Some(vr) => throw new AssemblyModelException("Label '" + name + "' cannot override existing variable; last stored on line " + vr.definitionLine)
             case None => // drop through
@@ -224,7 +227,8 @@ class AssemblyModel {
         })))
     }
 
-    def definedValue(name: SymbolName): Boolean = {
+    def definedValue(oddcasename: SymbolName): Boolean = {
+        val name = oddcasename.toUpperCase
         variables.contains(name) || constants.contains(name) || labels.contains(name)
     }
 

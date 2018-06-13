@@ -110,6 +110,14 @@ class TestAssemblyModel extends AssertionsForJUnit with MustMatchers {
     }
 
     @Test
+    def variableNamesAreCaseInsensitive(): Unit = {
+        model.setVariable("fnord", 69, genDummyLine(1))
+        model.getVariable("FNORD") must be(69)
+        model.getVariable("fnord") must be(69)
+        model.getVariable("FnORd") must be(69)
+    }
+
+    @Test
     def variableCanBeRedefined(): Unit = {
         model.setVariable(fnord, 32, genDummyLine(0))
         model.setVariable(fnord, 69, genDummyLine(0))
@@ -152,6 +160,15 @@ class TestAssemblyModel extends AssertionsForJUnit with MustMatchers {
         model.label(fnord) must be(None)
         model.getSymbols must have size 1
         model.getSymbols.head must be(SymbolTableEntry(fnord, 69))
+    }
+
+    @Test
+    def constantNamesAreCaseInsensitive(): Unit = {
+        model.setConstant("fnord", 69, genDummyLine(1))
+        model.getConstant("FNORD") must be(69)
+        model.getConstant("fnord") must be(69)
+        model.getConstant("FnORd") must be(69)
+        model.getSymbols.head must be(SymbolTableEntry("FNORD", 69))
     }
 
     @Test
@@ -198,6 +215,15 @@ class TestAssemblyModel extends AssertionsForJUnit with MustMatchers {
         model.constant(fnord) must be(None)
         model.getSymbols must have size 1
         model.getSymbols.head must be(SymbolTableEntry(fnord, 69))
+    }
+
+    @Test
+    def labelNamesAreCaseInsensitive(): Unit = {
+        model.setLabel("fnord", 69, genDummyLine(1))
+        model.getLabel("FNORD") must be(69)
+        model.getLabel("fnord") must be(69)
+        model.getLabel("FnORd") must be(69)
+        model.getSymbols.head must be(SymbolTableEntry("FNORD", 69))
     }
 
     @Test
