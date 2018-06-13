@@ -35,7 +35,7 @@ class AssemblyParser(val debugParser: Boolean, val macroManager: MacroManager) {
         def sanitizedInput = nullToEmpty(line).trim()
 
         if (debugParser) {
-            logger.debug(s"parsing ${lineNumber + 1}|$sanitizedInput|")
+            logger.debug(s"parsing $lineNumber|$sanitizedInput|")
         }
         if (lineNumber < 1) {
             throw new AssemblyParserException(lineNumber, "Line numbers must be positive")

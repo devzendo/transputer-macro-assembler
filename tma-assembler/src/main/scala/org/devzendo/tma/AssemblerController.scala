@@ -37,7 +37,8 @@ class AssemblerController(macroManager: MacroManager, parser: AssemblyParser, co
 
     // Input is either read from a text file, and parsed, to form the parsedLines list....
     def parseFile(inputFile: File): Unit = {
-        Source.fromFile(inputFile).getLines().zipWithIndex.foreach((p: (String, Int)) => parseTextLine(p._2, p._1))
+        // line numbers for humans start at 1, hence p._2 + 1
+        Source.fromFile(inputFile).getLines().zipWithIndex.foreach((p: (String, Int)) => parseTextLine(p._2 + 1, p._1))
     }
 
     def parseTextLine(lineNumber: Int, text: String): Unit = {
