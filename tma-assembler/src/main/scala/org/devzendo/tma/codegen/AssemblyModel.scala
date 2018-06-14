@@ -215,7 +215,8 @@ class AssemblyModel {
     }
 
     // precondition: name is defined as a variable/constant/label
-    private def lookupValue(name: SymbolName): Int = {
+    private def lookupValue(oddcasename: SymbolName): Int = {
+        val name = oddcasename.toUpperCase
         def getFallback(map: mutable.HashMap[String, Value], key: String)(fallback: => Int): Int = {
             map.get(key) match {
                 case Some(x) => x.value
