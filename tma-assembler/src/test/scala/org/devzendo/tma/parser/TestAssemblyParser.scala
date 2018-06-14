@@ -30,7 +30,7 @@ class TestAssemblyParser extends AssertionsForJUnit with MustMatchers {
     val logger: Logger = org.log4s.getLogger
 
     val macroManager = new MacroManager(true)
-    val parser = new AssemblyParser(true, macroManager)
+    val parser = new AssemblyParser(true, true, macroManager)
     var lineNumber = 1
 
     private val parsedLinesSoFar = mutable.ArrayBuffer[Line]()
@@ -843,7 +843,7 @@ class TestAssemblyParser extends AssertionsForJUnit with MustMatchers {
     }
 
     @Test
-    def labelAtMacroInvocationOccursOnFirstLineOfExpansion(): Unit = {
+    def labelAtMacroInvocationOccursOnFirstLineOfExpansionAndIsRemovedFromInvocation(): Unit = {
         parseLines(List(
             "FOO\tMACRO\tFIRST,SECOND",
             "\tDB\tFIRST",
@@ -853,7 +853,7 @@ class TestAssemblyParser extends AssertionsForJUnit with MustMatchers {
         val lines = parseLine("LLL:\tFOO\t1,2")
         dumpLines(lines)
         lines must be (List(
-            Line(5, "LLL:\tFOO\t1,2", Some(new Label("LLL")), Some(MacroInvocation(new MacroName("FOO"), List( new MacroArgument("1"), new MacroArgument("2"))))),
+            Line(5, "LLL:\tFOO\t1,2", None, Some(MacroInvocation(new MacroName("FOO"), List( new MacroArgument("1"), new MacroArgument("2"))))),
             Line(5, "DB\t1", Some(new Label("LLL")), Some(DB(List(Number(1))))),
             Line(5, "DB\t2", None, Some(DB(List(Number(2)))))
         ))
@@ -893,7 +893,7 @@ class TestAssemblyParser extends AssertionsForJUnit with MustMatchers {
         val lines = parseLine("XXX:\tFOO\t1,2")
         dumpLines(lines)
         lines must be (List(
-            Line(5, "XXX:\tFOO\t1,2", Some(new Label("XXX")), Some(MacroInvocation(new MacroName("FOO"), List( new MacroArgument("1"), new MacroArgument("2"))))),
+            Line(5, "XXX:\tFOO\t1,2", None, Some(MacroInvocation(new MacroName("FOO"), List( new MacroArgument("1"), new MacroArgument("2"))))),
             Line(5, "LLL:\tDB\t1", Some(new Label("XXX")), Some(DB(List(Number(1))))), // Yes, the text says LLL: but the Line's Label is what matters.
             Line(5, "DB\t2", None, Some(DB(List(Number(2)))))
         ))

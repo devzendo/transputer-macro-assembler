@@ -31,7 +31,7 @@ class TestAssemblerController extends AssertionsForJUnit with MustMatchers {
     var _thrown: ExpectedException = ExpectedException.none
 
     val macroManager = new MacroManager(true)
-    val parser = new AssemblyParser(true, macroManager)
+    val parser = new AssemblyParser(true, true, macroManager)
     val codegen = new CodeGenerator(true)
     val controller = new AssemblerController(macroManager, parser, codegen)
 

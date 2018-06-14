@@ -25,10 +25,8 @@ binary file and listing are done.
 
 Remaining work:
 * bugs & limitations...
-  * labels defined on a macro invocation get themselves redefined.. (e.g. PNAM1)
   * it should be possible to set constants to as-yet-undefined values e.g. temp1
   * dist equ (rx1-from1)
-  * constants, variables and labels should be case-insensitive
 * nice-to-haves...
   * handling conversion of exceptions that the macro manager might throw when expanding
   * macros shouldn't be able to replace keywords

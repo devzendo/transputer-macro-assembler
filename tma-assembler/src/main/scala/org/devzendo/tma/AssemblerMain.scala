@@ -30,6 +30,8 @@ class AssemblerMain(val argList: List[String]) {
     var binaryFile: Option[File] = None
     var listingFile: Option[File] = None
     var debugParser = false
+    var debugExpansion = false
+    var showParserOutput = false
     var debugCodegen = false
 
     def existingFile(fileType: String, f: String): Option[File] = {
@@ -64,6 +66,8 @@ class AssemblerMain(val argList: List[String]) {
             case "-?" => usage(); exit()
             case "--version"  => version(); exit()
             case "-p" | "--parser"  => debugParser = true
+            case "-e" | "--expansion"  => debugExpansion = true
+            case "-P" | "--parserOutput"  => showParserOutput = true
             case "-c" | "--codegen"  => debugCodegen = true
 
             case "-o" | "--output" =>
@@ -96,8 +100,8 @@ class AssemblerMain(val argList: List[String]) {
     }
 
     def start(): Unit = {
-        val macroManager = new MacroManager(debugParser)
-        val parser = new AssemblyParser(debugParser, macroManager)
+        val macroManager = new MacroManager(debugExpansion)
+        val parser = new AssemblyParser(debugParser, showParserOutput, macroManager)
         val codegen = new CodeGenerator(debugCodegen)
         val controller = new AssemblerController(macroManager, parser, codegen)
         val asm = asmFile.get
@@ -149,7 +153,10 @@ class AssemblerMain(val argList: List[String]) {
         logger.info("-o|--output output.o     - create an ELF output file")
         logger.info("-b|--binary output       - create a binary output file")
         logger.info("-l|--listing output.lst  - create a listing file")
+        logger.info("Diagnostics:")
+        logger.info("-e|--expansion           - enable macro expansion diagnostics")
         logger.info("-p|--parser              - enable parser diagnostics")
+        logger.info("-P|--showParserOutput    - show parser text input and AST output")
         logger.info("-c|--codegen             - enable code generation diagnostics")
         logger.info("Logging output control options:")
         logger.info("--debug                  - set the log level to debug (default is info)")

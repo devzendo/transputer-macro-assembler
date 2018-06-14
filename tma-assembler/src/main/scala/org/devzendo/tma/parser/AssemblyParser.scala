@@ -25,7 +25,7 @@ import org.log4s.Logger
 import scala.util.matching.Regex
 import scala.util.parsing.combinator._
 
-class AssemblyParser(val debugParser: Boolean, val macroManager: MacroManager) {
+class AssemblyParser(val debugParser: Boolean, val showParserOutput: Boolean, val macroManager: MacroManager) {
 
     val logger: Logger = org.log4s.getLogger
 
@@ -35,7 +35,11 @@ class AssemblyParser(val debugParser: Boolean, val macroManager: MacroManager) {
         def sanitizedInput = nullToEmpty(line).trim()
 
         if (debugParser) {
-            logger.debug(s"parsing $lineNumber|$sanitizedInput|")
+            logger.debug(s"parsing IME ${inMacroExpansion} $lineNumber|$sanitizedInput|")
+        }
+        if (showParserOutput) {
+            val lineType = if (inMacroExpansion) "IME" else "TXT"
+            logger.info(s"$lineType $lineNumber|$sanitizedInput|")
         }
         if (lineNumber < 1) {
             throw new AssemblyParserException(lineNumber, "Line numbers must be positive")
@@ -48,6 +52,27 @@ class AssemblyParser(val debugParser: Boolean, val macroManager: MacroManager) {
                     val rLines = r.asInstanceOf[List[Line]] // unsure why r is not right type
                     if (debugParser) {
                         logger.debug("returning " + rLines)
+                    }
+
+                    if (showParserOutput) {
+                        logger.info(s"${rLines.size} lines output...")
+                        for (rL <- rLines) {
+                            val sb = new StringBuilder()
+                            sb.append("AST ")
+                            sb.append(rL.number)
+                            sb.append("|")
+                            for (label <- rL.label) {
+                                sb.append("LBL ")
+                                sb.append(label)
+                                sb.append(":")
+                            }
+                            for (stmt <- rL.stmt) {
+                                sb.append(stmt)
+                            }
+                            sb.append("|")
+                            logger.info(sb.toString())
+                            logger.info("")
+                        }
                     }
                     rLines
 
@@ -145,7 +170,10 @@ class AssemblyParser(val debugParser: Boolean, val macroManager: MacroManager) {
                     macroInvocation.args.foreach( (ma: MacroArgument) => logger.debug(s"macro argument |$ma|"))
                 }
 
-                val macroInvocationLine = Line(lineNumber, text, optLabel, Some(macroInvocation))
+                // Ensure that any label in the original macro invocation is not passed through to the code generator.
+                // That would cause it to set the label twice (which it can't). Any label will be passed through to
+                // the first expanded parsed line.
+                val macroInvocationLine = Line(lineNumber, text, None, Some(macroInvocation))
 
                 val expansion = macroManager.expandMacro(macroInvocation.name, macroInvocation.args)
                 if (debugParser) expansion.foreach( (f: String) => logger.debug("expanded macro: |" + f + "|"))

@@ -24,7 +24,7 @@ import org.log4s.Logger
 
 import scala.collection.mutable
 
-class MacroManager(val debugParser: Boolean) {
+class MacroManager(val debugExpansion: Boolean) {
     val logger: Logger = org.log4s.getLogger
 
     private val macros = mutable.Map[MacroName, MacroDefinition]()
@@ -88,7 +88,7 @@ class MacroManager(val debugParser: Boolean) {
     }
 
     def expandMacro(macroName: MacroName, arguments: List[MacroArgument]): List[String] = {
-        if (debugParser) logger.debug("expandMacro(" + macroName + ", " + arguments + ")")
+        if (debugExpansion) logger.debug("expandMacro(" + macroName + ", " + arguments + ")")
         val definition = macros.getOrElse(macroName, {
             throw new IllegalStateException("Macro '" + macroName + "' does not exist")
         })
@@ -112,24 +112,24 @@ class MacroManager(val debugParser: Boolean) {
         val paramNameToPattern = paramAndIndex.foldLeft(Map[MacroParameterName, Pattern]()) {
             (m, pi) => m + (pi._1 -> parameterNamePatterns.getOrElseUpdate(pi._1, formMatchPattern(pi._1)))
         }
-        if (debugParser) for (elem <- paramAndIndex) { logger.debug("  arg #" + elem._2 + " " + elem._1 + "=" + paramToArgMap(elem._1)) }
+        if (debugExpansion) for (elem <- paramAndIndex) { logger.debug("  arg #" + elem._2 + " " + elem._1 + "=" + paramToArgMap(elem._1)) }
 
         // Yuk, mutability!
         def expandLine(instr: String): String = {
             var str = instr
-            if (debugParser) logger.debug(s"starting to expand |$instr|")
+            if (debugExpansion) logger.debug(s"starting to expand |$instr|")
             definition.parameterNames.foreach( parameterName => {
                 val pattern = paramNameToPattern(parameterName)
                 val argument = paramToArgMap(parameterName)
-                if (debugParser) logger.debug(s"expanding parameter name $parameterName by pattern $pattern to argument $argument in |$str|")
+                if (debugExpansion) logger.debug(s"expanding parameter name $parameterName by pattern $pattern to argument $argument in |$str|")
                 str = pattern.matcher(str).replaceAll(argument)
-                if (debugParser) logger.debug(s"expanded to |$str|")
+                if (debugExpansion) logger.debug(s"expanded to |$str|")
             })
-            if (debugParser) logger.debug(s"finished expanding with |$str|")
+            if (debugExpansion) logger.debug(s"finished expanding with |$str|")
             str
         }
         val expansion = definition.textLines map { expandLine }
-        if (debugParser) for (lineAndNumber <- expansion.zipWithIndex) { logger.debug("line: #" + lineAndNumber._2 + "=|" + lineAndNumber._1 + "|")}
+        if (debugExpansion) for (lineAndNumber <- expansion.zipWithIndex) { logger.debug("line: #" + lineAndNumber._2 + "=|" + lineAndNumber._1 + "|")}
         expansion
     }
 }
