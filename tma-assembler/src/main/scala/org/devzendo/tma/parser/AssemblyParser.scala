@@ -77,7 +77,7 @@ class AssemblyParser(val debugParser: Boolean, val showParserOutput: Boolean, va
                     rLines
 
                 case x =>
-                    logger.error(s"$lineNumber: ${x.toString}") // mostly a useless, hard to understand error...
+                    logger.debug(s"$lineNumber: ${x.toString}") // mostly a useless, hard to understand error...
                     throw new AssemblyParserException(lineNumber, "Unknown statement '" + sanitizedInput + "'")
             }
 

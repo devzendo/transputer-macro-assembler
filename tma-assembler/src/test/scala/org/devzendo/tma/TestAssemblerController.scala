@@ -82,13 +82,11 @@ class TestAssemblerController extends AssertionsForJUnit with MustMatchers {
 
     @Test // indirect, avoids mocks, and the interface extraction they'd necessitate just to test.
     def callsEndCheck(): Unit = {
-        thrown.expect(classOf[CodeGenerationException])
-        thrown.expectMessage("1: End of input reached with no End statement")
-
         controller.parseTextLine(1, "title 'hello world'")
         // NO end statement
         // not much of a program! tests that the end check is called on codegen though..
         controller.generateModel()
+        controller.getCodeGenerationExceptions.head.getMessage must be("1: End of input reached with no End statement")
     }
 
     @Test

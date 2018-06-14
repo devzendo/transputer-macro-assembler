@@ -27,6 +27,7 @@ Remaining work:
 * bugs & limitations...
   * it should be possible to set constants to as-yet-undefined values e.g. temp1
   * dist equ (rx1-from1)
+  * in macrolabel.asm, is the _CODE-_LEN-1 evaluated correctly (it gives 7; should it be 6?)
 * nice-to-haves...
   * handling conversion of exceptions that the macro manager might throw when expanding
   * macros shouldn't be able to replace keywords

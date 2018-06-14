@@ -248,7 +248,7 @@ class CodeGenerator(debugCodegen: Boolean) {
     private val codeGenerationErrors = mutable.ArrayBuffer[CodeGenerationException]()
 
     def createModel(lines: List[Line]): AssemblyModel = {
-        logger.info("Pass 1: Creating model from " + lines.size + " line(s)")
+        logger.info("Pass 1: Creating model from " + lines.size + " macro-expanded line(s)")
         lines.foreach { l: Line =>
             try {
                 processLine(l)
@@ -265,7 +265,7 @@ class CodeGenerator(debugCodegen: Boolean) {
             case ame: AssemblyModelException => codeGenerationErrors += new CodeGenerationException(0, ame.getMessage)
         }
 
-        logger.info("Pass 2: Updating model from " + p2Structures.size + " pass 2 fixup(s)")
+        logger.info("Pass 2: Updating model from " + p2Structures.size + " fixups")
         try {
             pass2()
         } catch {
@@ -280,7 +280,7 @@ class CodeGenerator(debugCodegen: Boolean) {
 
     def endCheck(): Unit = {
         if (!model.hasEndBeenSeen) {
-            throw new CodeGenerationException(lastLineNumber, "End of input reached with no End statement")
+            codeGenerationErrors += new CodeGenerationException(lastLineNumber, "End of input reached with no End statement")
         }
     }
 }

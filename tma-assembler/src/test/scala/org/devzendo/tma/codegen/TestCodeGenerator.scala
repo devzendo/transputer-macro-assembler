@@ -160,11 +160,9 @@ class TestCodeGenerator extends AssertionsForJUnit with MustMatchers {
 
     @Test
     def endMissing(): Unit = {
-        thrown.expect(classOf[CodeGenerationException])
-        thrown.expectMessage("1: End of input reached with no End statement")
-
         generateFromLines(List(Line(1, "", None, None)))
         codegen.endCheck()
+        codegen.getCodeGenerationExceptions.head.getMessage must be("1: End of input reached with no End statement")
     }
 
     @Test
