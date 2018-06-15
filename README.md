@@ -31,6 +31,7 @@ Remaining work:
 * nice-to-haves...
   * handling conversion of exceptions that the macro manager might throw when expanding
   * macros shouldn't be able to replace keywords
+  * exception handling - is... odd..... use Try instead of throwing? Easier collection of phase errors?
 
 * later....
   * honour the Cpu directive, to switch in Transputer family native instructions, rather than db-generating macros

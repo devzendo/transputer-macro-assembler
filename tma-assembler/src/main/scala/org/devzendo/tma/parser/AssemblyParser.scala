@@ -34,6 +34,28 @@ class AssemblyParser(val debugParser: Boolean, val showParserOutput: Boolean, va
 
         def sanitizedInput = nullToEmpty(line).trim()
 
+        def logParserOutput(rLines: List[Line]) = {
+            logger.info(s"${rLines.size} lines output...")
+            for (rL <- rLines) {
+                val sb = new StringBuilder()
+                sb.append("AST ")
+                sb.append(rL.number)
+                sb.append("|")
+                for (label <- rL.label) {
+                    sb.append("LBL ")
+                    sb.append(label)
+                    sb.append(":")
+                }
+                for (stmt <- rL.stmt) {
+                    sb.append(stmt)
+                }
+                sb.append("|")
+                logger.info(sb.toString())
+                logger.info("")
+            }
+        }
+
+
         if (debugParser) {
             logger.debug(s"parsing IME ${inMacroExpansion} $lineNumber|$sanitizedInput|")
         }
@@ -44,6 +66,7 @@ class AssemblyParser(val debugParser: Boolean, val showParserOutput: Boolean, va
         if (lineNumber < 1) {
             throw new AssemblyParserException(lineNumber, "Line numbers must be positive")
         }
+
         if (sanitizedInput.length > 0) {
             val parser = if (macroManager.isInMacroBody) new MacroBodyCombinatorParser(lineNumber) else new StatementCombinatorParser(lineNumber, inMacroExpansion)
             val parserOutput = parser.parseProgram(sanitizedInput)
@@ -55,24 +78,7 @@ class AssemblyParser(val debugParser: Boolean, val showParserOutput: Boolean, va
                     }
 
                     if (showParserOutput) {
-                        logger.info(s"${rLines.size} lines output...")
-                        for (rL <- rLines) {
-                            val sb = new StringBuilder()
-                            sb.append("AST ")
-                            sb.append(rL.number)
-                            sb.append("|")
-                            for (label <- rL.label) {
-                                sb.append("LBL ")
-                                sb.append(label)
-                                sb.append(":")
-                            }
-                            for (stmt <- rL.stmt) {
-                                sb.append(stmt)
-                            }
-                            sb.append("|")
-                            logger.info(sb.toString())
-                            logger.info("")
-                        }
+                        logParserOutput(rLines)
                     }
                     rLines
 
@@ -89,7 +95,6 @@ class AssemblyParser(val debugParser: Boolean, val showParserOutput: Boolean, va
 
     private def nullToEmpty(input: String): String = {
         if (input == null) "" else input
-
     }
 
     private trait LineParser extends JavaTokenParsers {
