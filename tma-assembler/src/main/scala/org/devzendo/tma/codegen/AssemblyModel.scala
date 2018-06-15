@@ -62,9 +62,15 @@ class AssemblyModel {
     private val sourcedValuesForLineNumbers = mutable.HashMap[Int, mutable.ArrayBuffer[SourcedValue]]() // indexed by line number
     // And it's a map, since it's likely to be sparsely populated (not every line generates Storage)
 
-    // Any forward references are noted here, and resolution done on definition of the forwardly-referenced symbol
-    // (either a variable, constant, or label). Forward references are only resolved for Storages, not AssignmentValues.
+    // Forward references are only resolved for Storages and Constants.
+
+    // Any forward references to Storages are noted here, and resolution done on definition of the forwardly-referenced
+    // symbol (either a variable, constant, or label).
     private val storageForwardReferenceFixups = mutable.HashMap[String, mutable.HashSet[Storage]]()
+
+    // Any forward references to Constants are noted here, and resolution done on definition of the forwardly-referenced
+    // symbol (either a variable, constant, or label).
+    private val constantForwardReferenceFixups = mutable.HashMap[String, mutable.HashSet[(String, Expression)]]()
 
     private var endSeen = false
 
@@ -391,9 +397,17 @@ class AssemblyModel {
         })
     }
 
+    def recordConstantForwardReferences(undefinedSymbols: Set[String], constantName: String, constantExpr: Expression): Unit = {
+        val constantExprTuple = (constantName, constantExpr)
+        for (undefinedSymbol <- undefinedSymbols) {
+            constantForwardReferenceFixups.getOrElseUpdate(undefinedSymbol.toUpperCase, mutable.HashSet[(String, Expression)]()) += constantExprTuple
+        }
+        logger.debug(constantForwardReferenceFixups.toString())
+    }
+
     private def recordStorageForwardReferences(undefinedSymbols: Set[String], storageToReEvaluate: Storage): Unit = {
         for (undefinedSymbol <- undefinedSymbols) {
-            storageForwardReferenceFixups.getOrElseUpdate(undefinedSymbol, mutable.HashSet[Storage]()) += storageToReEvaluate
+            storageForwardReferenceFixups.getOrElseUpdate(undefinedSymbol.toUpperCase, mutable.HashSet[Storage]()) += storageToReEvaluate
         }
     }
 
@@ -420,7 +434,11 @@ class AssemblyModel {
     }
 
     def storageForwardReferences(symbol: String): Set[Storage] = {
-        storageForwardReferenceFixups.getOrElse(symbol, Set.empty).toSet
+        storageForwardReferenceFixups.getOrElse(symbol.toUpperCase, Set.empty).toSet
+    }
+
+    def constantForwardReferences(symbol: String): Set[(String, Expression)] = {
+        constantForwardReferenceFixups.getOrElse(symbol.toUpperCase, Set.empty).toSet
     }
 
     def checkUnresolvedForwardReferences(): Unit = {

@@ -712,7 +712,7 @@ class TestAssemblyModel extends AssertionsForJUnit with MustMatchers {
     @Test
     def remainingForwardReferencesAtEndOfFirstPassCausesFailure(): Unit = {
         thrown.expect(classOf[AssemblyModelException])
-        thrown.expectMessage("Forward references remain unresolved at end of Pass 1: (aardvark: #1; FNORD: #3, #4; foo: #5; zygote: #1)")
+        thrown.expectMessage("Forward references remain unresolved at end of Pass 1: (AARDVARK: #1; FNORD: #3, #4; FOO: #5; ZYGOTE: #1)")
 
         val line1 = Line(1, "irrelevant", None, Some(DB(List(SymbolArg("aardvark"), SymbolArg("zygote")))))
         model.allocateStorageForLine(line1, 1, List(SymbolArg("aardvark"), SymbolArg("zygote")))

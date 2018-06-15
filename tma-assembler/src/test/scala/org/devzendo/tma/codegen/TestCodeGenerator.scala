@@ -246,10 +246,13 @@ class TestCodeGenerator extends AssertionsForJUnit with MustMatchers {
     }
 
     @Test
-    def constantAssignmentToUndefinedSymbolFails(): Unit = {
-        thrown.expect(classOf[CodeGenerationException])
-        thrown.expectMessage("1: Constant cannot be set to an undefined symbol 'Set(undef)'")
-        generateFromStatement(ConstantAssignment(new SymbolName(fnord),SymbolArg("undef")))
+    def constantAssignmentToUndefinedSymbolRecordsFixup(): Unit = {
+        val model = generateFromStatement(ConstantAssignment(new SymbolName(fnord),SymbolArg("undef")))
+
+        val tupleSet = model.constantForwardReferences("undef")
+        tupleSet must have size 1
+        tupleSet.head._1 must be(fnord) // the undefined constant
+        tupleSet.head._2 must be(SymbolArg("undef")) // the expression containing undefined symbols that'd be resolved later
     }
 
     @Test
