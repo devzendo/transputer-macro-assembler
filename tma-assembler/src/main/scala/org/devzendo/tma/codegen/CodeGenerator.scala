@@ -36,6 +36,7 @@ class CodeGenerator(debugCodegen: Boolean) {
     private[codegen] var currentP2Structure = new Pass2Structure()
 
     private var lastLineNumber = 0
+    private var passNumber = 1
 
     def getLastLineNumber: Int = lastLineNumber
 
@@ -81,7 +82,9 @@ class CodeGenerator(debugCodegen: Boolean) {
         val lineNumber = line.number
         logger.debug("Line " + lineNumber + " Statement: " + stmt)
 
-        if (model.hasEndBeenSeen) {
+        // Pass 2 fixups run after pass 1 (duh!), and require processing of statements after this check would have
+        // triggered in pass 1.
+        if (model.hasEndBeenSeen && passNumber == 1) {
             throw new CodeGenerationException(lineNumber, "No statements allowed after End statement")
         }
 
@@ -222,6 +225,7 @@ class CodeGenerator(debugCodegen: Boolean) {
     }
 
     private def pass2(): Unit = {
+        passNumber = 2
         for (p2 <- p2Structures) {
             val p2Lines = p2.getPass2Lines
             // Only bother processing lines, and setting $ if there are any lines - can't set $ without a line number

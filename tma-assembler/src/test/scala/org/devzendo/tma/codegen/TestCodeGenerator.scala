@@ -166,7 +166,7 @@ class TestCodeGenerator extends AssertionsForJUnit with MustMatchers {
     }
 
     @Test
-    def endWithSubsequentCode(): Unit = {
+    def endWithSubsequentCodeInPass1Disallowed(): Unit = {
         thrown.expect(classOf[CodeGenerationException])
         thrown.expectMessage("2: No statements allowed after End statement")
 
@@ -175,6 +175,21 @@ class TestCodeGenerator extends AssertionsForJUnit with MustMatchers {
             Line(2, "", None, Some(DB(List(Number(5)))))
         ))
         // no need to call endCheck, code gen will fail before then
+    }
+
+    @Test
+    def endWithSubsequentCodeInPass2FixupsAllowed(): Unit = {
+        val model = generateFromLines(List(
+            Line(1, "", None, Some(If1())),
+            Line(2, "", None, Some(DD(List(Number(0))))),
+            Line(3, "", None, Some(Else())),
+            Line(4, "", None, Some(DD(List(SymbolArg(fnord))))), // should get fixed up in pass 2
+            Line(5, "", None, Some(Endif())),
+            Line(6, "", None, Some(ConstantAssignment(new SymbolName(fnord), Number(11)))),
+            Line(7, "", None, Some(End(None)))
+        ))
+
+        codegen.endCheck()
     }
 
     @Test
