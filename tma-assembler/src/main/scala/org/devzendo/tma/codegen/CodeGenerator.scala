@@ -159,6 +159,13 @@ class CodeGenerator(debugCodegen: Boolean) {
         val either = model.evaluateExpression(expr)
         either match {
             case Left(undefineds) => throw new CodeGenerationException(lineNumber, "Constant cannot be set to an undefined symbol '" + undefineds + "'")
+                /*
+                    // map each undefined to (name, expr)
+                    recordConstantForwardReferences(undefineds, name, expr)
+                    // every undefined that gets defined re-evaluates (name, expr) and if it resolves to a value, the constant is set to it.
+                    // the undefined is then removed from the constant-name -> (name, expr) map.
+                    // when all undefineds are defined and the constant is set, there will be no more mappings to (name, expr)
+                 */
             case Right(value) =>
                 logger.debug("Constant " + name + " = " + value)
                 model.setConstant(name, value, line)

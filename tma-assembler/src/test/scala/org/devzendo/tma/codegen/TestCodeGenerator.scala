@@ -248,8 +248,8 @@ class TestCodeGenerator extends AssertionsForJUnit with MustMatchers {
     @Test
     def constantAssignmentToUndefinedSymbolFails(): Unit = {
         thrown.expect(classOf[CodeGenerationException])
-        thrown.expectMessage("1: Constant cannot be set to an undefined symbol 'Set(FNORD)'")
-        generateFromStatement(ConstantAssignment(new SymbolName(fnord),SymbolArg(fnord)))
+        thrown.expectMessage("1: Constant cannot be set to an undefined symbol 'Set(undef)'")
+        generateFromStatement(ConstantAssignment(new SymbolName(fnord),SymbolArg("undef")))
     }
 
     @Test
