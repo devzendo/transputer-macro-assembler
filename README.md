@@ -25,8 +25,8 @@ binary file and listing are done.
 
 Remaining work:
 * bugs & limitations...
-  * it should be possible to set constants to as-yet-undefined values e.g. temp1
-  * dist equ (rx1-from1)
+  * it should be possible to set constants to as-yet-undefined values e.g. temp1 - fwdconstant.asm
+  * dist equ (rx1-from1) - fwdconstant2.asm
   * in macrolabel.asm, is the _CODE-_LEN-1 evaluated correctly (it gives 7; should it be 6?)
 * nice-to-haves...
   * handling conversion of exceptions that the macro manager might throw when expanding

@@ -64,7 +64,7 @@ class AssemblyModel {
 
     // Any forward references are noted here, and resolution done on definition of the forwardly-referenced symbol
     // (either a variable, constant, or label). Forward references are only resolved for Storages, not AssignmentValues.
-    private val forwardReferenceFixups = mutable.HashMap[String, mutable.HashSet[Storage]]()
+    private val storageForwardReferenceFixups = mutable.HashMap[String, mutable.HashSet[Storage]]()
 
     private var endSeen = false
 
@@ -336,7 +336,7 @@ class AssemblyModel {
                 case Right(value) => value
                 case Left(undefineds) =>
                     logger.debug("Symbol(s) (" + undefineds + ") are not yet defined on line " + lineNumber)
-                    recordForwardReferences(undefineds, storage)
+                    recordStorageForwardReferences(undefineds, storage)
                     0
             }
             storage.data(tuple._2) = storeValue
@@ -391,15 +391,15 @@ class AssemblyModel {
         })
     }
 
-    private def recordForwardReferences(undefinedSymbols: Set[String], storageToReEvaluate: Storage): Unit = {
+    private def recordStorageForwardReferences(undefinedSymbols: Set[String], storageToReEvaluate: Storage): Unit = {
         for (undefinedSymbol <- undefinedSymbols) {
-            forwardReferenceFixups.getOrElseUpdate(undefinedSymbol, mutable.HashSet[Storage]()) += storageToReEvaluate
+            storageForwardReferenceFixups.getOrElseUpdate(undefinedSymbol, mutable.HashSet[Storage]()) += storageToReEvaluate
         }
     }
 
     private def resolveForwardReferences(symbolName: String, value: Int): Unit = {
         // TODO mark the storage as having had a forward reference resolved, so the R can be shown in the listing
-        val storages = forwardReferences(symbolName)
+        val storages = storageForwardReferences(symbolName)
         if (storages.nonEmpty) {
             logger.debug("Resolving references to symbol '" + symbolName + "' with value " + value)
             for (storage <- storages) {
@@ -415,23 +415,23 @@ class AssemblyModel {
                 })
 
             }
-            forwardReferenceFixups.remove(symbolName)
+            storageForwardReferenceFixups.remove(symbolName)
         }
     }
 
-    def forwardReferences(symbol: String): Set[Storage] = {
-        forwardReferenceFixups.getOrElse(symbol, Set.empty).toSet
+    def storageForwardReferences(symbol: String): Set[Storage] = {
+        storageForwardReferenceFixups.getOrElse(symbol, Set.empty).toSet
     }
 
     def checkUnresolvedForwardReferences(): Unit = {
-        if (forwardReferenceFixups.nonEmpty) {
+        if (storageForwardReferenceFixups.nonEmpty) {
             // If there are any undefined symbols, sort them alphabetically, and list them with the line numbers they're
             // referenced on (sorted numerically). e.g. (aardvark: #1; FNORD: #3, #4; foo: #5; zygote: #1)
-            val undefinedSymbolNamesSorted = forwardReferenceFixups.keySet.toList.sortWith((a: String, b: String) => {
+            val undefinedSymbolNamesSorted = storageForwardReferenceFixups.keySet.toList.sortWith((a: String, b: String) => {
                 a.compareToIgnoreCase(b) < 0
             })
             val allStorageNamesAndLineReferences = undefinedSymbolNamesSorted.map((usn: String) => {
-                val storageSet = forwardReferenceFixups(usn)
+                val storageSet = storageForwardReferenceFixups(usn)
                 val storageLinesSorted = storageSet.map(_.line.number).toList.sorted
                 val storageLineReferences = storageLinesSorted.map("#" + _).mkString(", ")
                 val storageNameAndLineReferences = usn + ": " + storageLineReferences

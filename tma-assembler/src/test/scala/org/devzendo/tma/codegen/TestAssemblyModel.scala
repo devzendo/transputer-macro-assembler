@@ -477,8 +477,8 @@ class TestAssemblyModel extends AssertionsForJUnit with MustMatchers {
         val exprs = List(SymbolArg(fnord), SymbolArg("foo"))
         val storage = model.allocateStorageForLine(Line(3, "irrelevant", None, Some(DB(exprs))), 1, exprs)
 
-        model.forwardReferences(fnord) must be (Set(storage))
-        model.forwardReferences("foo") must be (Set(storage))
+        model.storageForwardReferences(fnord) must be (Set(storage))
+        model.storageForwardReferences("foo") must be (Set(storage))
     }
 
     @Test
@@ -487,8 +487,8 @@ class TestAssemblyModel extends AssertionsForJUnit with MustMatchers {
         val storage = model.allocateStorageForLine(Line(3, "irrelevant", None, Some(DB(exprs))), 1, exprs)
         model.setVariable(fnord, 73, genDummyLine(4))
 
-        model.forwardReferences(fnord) must be (Set.empty)
-        model.forwardReferences("foo") must be (Set(storage))
+        model.storageForwardReferences(fnord) must be (Set.empty)
+        model.storageForwardReferences("foo") must be (Set(storage))
     }
 
     @Test
@@ -498,7 +498,7 @@ class TestAssemblyModel extends AssertionsForJUnit with MustMatchers {
         model.setVariable(fnord, 73, genDummyLine(4))
 
         storage.data must be(Array[Int](73))
-        model.forwardReferences(fnord) must be (Set.empty)
+        model.storageForwardReferences(fnord) must be (Set.empty)
     }
 
     @Test
@@ -508,7 +508,7 @@ class TestAssemblyModel extends AssertionsForJUnit with MustMatchers {
         model.setConstant(fnord, 73, genDummyLine(4))
 
         storage.data must be(Array[Int](73))
-        model.forwardReferences(fnord) must be (Set.empty)
+        model.storageForwardReferences(fnord) must be (Set.empty)
     }
 
     @Test
@@ -518,7 +518,7 @@ class TestAssemblyModel extends AssertionsForJUnit with MustMatchers {
         model.setLabel(fnord, 73, genDummyLine(4))
 
         storage.data must be(Array[Int](73))
-        model.forwardReferences(fnord) must be (Set.empty)
+        model.storageForwardReferences(fnord) must be (Set.empty)
     }
 
     @Test
@@ -608,7 +608,7 @@ class TestAssemblyModel extends AssertionsForJUnit with MustMatchers {
     def storageOfDbDupWithForwardReferenceIsRecordedForLaterFixup(): Unit = {
         val line = Line(3, "irrelevant", None, Some(DBDup(Number(5), SymbolArg(fnord))))
         val storage = model.allocateStorageForLine(line, 1, Number(5), SymbolArg(fnord))
-        model.forwardReferences(fnord) must be (Set(storage))
+        model.storageForwardReferences(fnord) must be (Set(storage))
     }
 
     @Test
@@ -618,7 +618,7 @@ class TestAssemblyModel extends AssertionsForJUnit with MustMatchers {
         model.setVariable(fnord, 73, genDummyLine(4))
 
         storage.data must be(Array[Int](73, 73, 73, 73, 73))
-        model.forwardReferences(fnord) must be (Set.empty)
+        model.storageForwardReferences(fnord) must be (Set.empty)
     }
 
     @Test
