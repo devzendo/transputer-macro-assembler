@@ -98,7 +98,7 @@ class TestAssemblerController extends AssertionsForJUnit with MustMatchers {
         controller.addParsedLine(Line(4, "", None, Some(ConstantAssignment("valid", Number(5))))) // perfectly valid
         controller.addParsedLine(Line(5, "", Some("valid"), Some(DB(List(Number(5)))))) // label can't override constant...
         // ... AssemblyModelException converted to CodeGenerationException
-        controller.addParsedLine(Line(6, "", None, Some(ConstantAssignment("unres", SymbolArg("missing"))))) // unresolved forward reference
+        controller.addParsedLine(Line(6, "", None, Some(VariableAssignment("unres", SymbolArg("missing"))))) // unresolved forward reference
         controller.addParsedLine(Line(7, "", None, Some(End(None))))
         controller.addParsedLine(Line(8, "", None, Some(ConstantAssignment("valid", Number(5))))) // no statements allowed after End
 
@@ -110,7 +110,7 @@ class TestAssemblerController extends AssertionsForJUnit with MustMatchers {
             "2: Undefined symbol(s) 'fnorg'",
             "3: Constant cannot be set to a Character expression 'Characters(foo)'",
             "5: Label 'VALID' cannot override existing constant; initially defined on line 4",
-            "6: Constant cannot be set to an undefined symbol 'Set(missing)'",
+            "6: Variable cannot be set to an undefined symbol 'Set(missing)'",
             "8: No statements allowed after End statement"
         ))
     }
