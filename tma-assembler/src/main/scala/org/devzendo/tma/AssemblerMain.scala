@@ -120,7 +120,7 @@ class AssemblerMain(val argList: List[String]) {
         }
 
         val startCodegenTime = System.currentTimeMillis()
-        controller.generateModel()
+        val model = controller.generateModel()
         val endCodegenTime = System.currentTimeMillis()
         logger.debug(s"Code generation complete in ${endCodegenTime - startCodegenTime} ms")
 
@@ -132,7 +132,7 @@ class AssemblerMain(val argList: List[String]) {
         }
 
         val startOutputTime = System.currentTimeMillis()
-        controller.output(outputFile, binaryFile, listingFile)
+        controller.output(model, outputFile, binaryFile, listingFile)
         val endOutputTime = System.currentTimeMillis()
         logger.debug(s"Output complete in ${endOutputTime - startOutputTime} ms")
     }

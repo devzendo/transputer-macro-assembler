@@ -61,8 +61,6 @@ class AssemblerController(macroManager: MacroManager, parser: AssemblyParser, co
 
     // CODE GENERATION PHASE -------------------------------------------------------------------------------------------
 
-    var model: AssemblyModel = new AssemblyModel()
-
     def generateModel(): AssemblyModel = {
         if (parsedLinesSoFar.isEmpty) {
             throw new RuntimeException("No parsed input")
@@ -70,7 +68,7 @@ class AssemblerController(macroManager: MacroManager, parser: AssemblyParser, co
         if (parseErrors.nonEmpty) {
             throw new RuntimeException("Parse errors; cannot continue")
         }
-        model = codegen.createModel(parsedLinesSoFar.toList)
+        val model = codegen.createModel(parsedLinesSoFar.toList)
         codegen.endCheck()
         model
     }
@@ -81,7 +79,7 @@ class AssemblerController(macroManager: MacroManager, parser: AssemblyParser, co
 
     // OUTPUT PHASE ----------------------------------------------------------------------------------------------------
 
-    def output(outputFile: Option[File], binaryFile: Option[File], listingFile: Option[File]): Unit = {
+    def output(model: AssemblyModel, outputFile: Option[File], binaryFile: Option[File], listingFile: Option[File]): Unit = {
         // TODO throw if model not generated...
         outputFile.foreach(new ELFWriter(_).encode(model))
         binaryFile.foreach(new BinaryWriter(_).encode(model))

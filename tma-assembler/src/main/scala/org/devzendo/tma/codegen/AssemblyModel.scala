@@ -44,7 +44,7 @@ case class UnresolvableSymbol(line: Line, symbolType: UnresolvableSymbolType.Val
 /*
  * A mutable structure holding the output of the CodeGenerator.
  */
-class AssemblyModel {
+class AssemblyModel(debugCodegen: Boolean) {
     val logger: Logger = org.log4s.getLogger
 
     private val dollar = "$"
@@ -347,7 +347,9 @@ class AssemblyModel {
             val storeValue = evaluateExpression(tuple._1) match {
                 case Right(value) => value
                 case Left(undefineds) =>
-                    logger.debug("Symbol(s) (" + undefineds + ") are not yet defined on line " + lineNumber)
+                    if (debugCodegen) {
+                        logger.info("Symbol(s) (" + undefineds + ") are not yet defined on line " + lineNumber)
+                    }
                     recordStorageForwardReferences(undefineds, storage)
                     0
             }

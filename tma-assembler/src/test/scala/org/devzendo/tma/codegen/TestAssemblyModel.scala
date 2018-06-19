@@ -35,7 +35,7 @@ class TestAssemblyModel extends AssertionsForJUnit with MustMatchers {
     def thrown: ExpectedException = _thrown
     var _thrown: ExpectedException = ExpectedException.none
 
-    val model = new AssemblyModel
+    val model = new AssemblyModel(true)
 
 
     @Test

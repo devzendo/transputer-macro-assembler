@@ -68,7 +68,7 @@ class TestBinaryWriter extends TempFolder with AssertionsForJUnit with MustMatch
 
     @Test
     def fileSizeAndContents(): Unit = {
-        val model = new AssemblyModel()
+        val model = new AssemblyModel(true)
 
         model.setDollar(0x4000, genDummyLine(1))
 
@@ -103,7 +103,7 @@ class TestBinaryWriter extends TempFolder with AssertionsForJUnit with MustMatch
 
     @Test
     def originAtZeroContents(): Unit = {
-        val model = new AssemblyModel()
+        val model = new AssemblyModel(true)
 
         val exprs1 = List(Number(1), Number(2))
         model.allocateStorageForLine(Line(2, "", None, Some(DB(exprs1))), 1, exprs1)
@@ -125,7 +125,7 @@ class TestBinaryWriter extends TempFolder with AssertionsForJUnit with MustMatch
 
     @Test
     def overlappingStorage(): Unit = {
-        val model = new AssemblyModel()
+        val model = new AssemblyModel(true)
 
         model.setDollar(0x4000, genDummyLine(1))
 
@@ -156,7 +156,7 @@ class TestBinaryWriter extends TempFolder with AssertionsForJUnit with MustMatch
 
     @Test
     def littleEndianWord(): Unit = {
-        val model = new AssemblyModel()
+        val model = new AssemblyModel(true)
 
         model.endianness = Endianness.Little
 
@@ -186,7 +186,7 @@ class TestBinaryWriter extends TempFolder with AssertionsForJUnit with MustMatch
 
     @Test
     def bigEndianWord(): Unit = {
-        val model = new AssemblyModel()
+        val model = new AssemblyModel(true)
 
         model.endianness = Endianness.Big
 
@@ -216,7 +216,7 @@ class TestBinaryWriter extends TempFolder with AssertionsForJUnit with MustMatch
 
     @Test
     def littleEndianDoubleWord(): Unit = {
-        val model = new AssemblyModel()
+        val model = new AssemblyModel(true)
 
         model.endianness = Endianness.Little
 
@@ -247,7 +247,7 @@ class TestBinaryWriter extends TempFolder with AssertionsForJUnit with MustMatch
 
     @Test
     def bigEndianDoubleWord(): Unit = {
-        val model = new AssemblyModel()
+        val model = new AssemblyModel(true)
 
         model.endianness = Endianness.Big
 

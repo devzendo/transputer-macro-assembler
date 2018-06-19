@@ -26,7 +26,7 @@ import scala.collection.mutable
 class CodeGenerator(debugCodegen: Boolean) {
     val logger: Logger = org.log4s.getLogger
 
-    private val model = new AssemblyModel
+    private val model = new AssemblyModel(debugCodegen)
 
     object GenerationMode extends Enumeration {
         val Assembly, If1Seen, ElseSeen = Value

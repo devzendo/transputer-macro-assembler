@@ -32,7 +32,7 @@ class TestListingWriter extends TempFolder with AssertionsForJUnit with MustMatc
 
     private val listingFile: File = File.createTempFile("out.", ".lst", temporaryDirectory)
     private val writer: ListingWriter = new ListingWriter(listingFile)
-    private val model = new AssemblyModel()
+    private val model = new AssemblyModel(true)
     private val fnord = "FNORD"
 
     model.rows = 25
