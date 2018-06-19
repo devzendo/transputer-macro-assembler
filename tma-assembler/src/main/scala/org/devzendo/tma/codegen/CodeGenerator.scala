@@ -175,9 +175,6 @@ class CodeGenerator(debugCodegen: Boolean) {
                 }
                 model.recordSymbolForwardReferences(undefineds, name, expr, line, UnresolvableSymbolType.Constant)
             case Right(value) =>
-                if (debugCodegen) {
-                    logger.info("Constant " + name + " = " + value)
-                }
                 model.setConstant(name, value, line)
         }
     }
@@ -195,9 +192,6 @@ class CodeGenerator(debugCodegen: Boolean) {
                 }
                 model.recordSymbolForwardReferences(undefineds, name, expr, line, UnresolvableSymbolType.Variable)
             case Right(value) =>
-                if (debugCodegen) {
-                    logger.info("Variable " + name + " = " + value)
-                }
                 model.setVariable(name, value, line)
         }
     }
@@ -298,7 +292,7 @@ class CodeGenerator(debugCodegen: Boolean) {
             case ame: AssemblyModelException => codeGenerationErrors += new CodeGenerationException(0, ame.getMessage)
         }
 
-        logger.info("Pass 2: Updating model from " + p2Structures.size + " fixups")
+        logger.info("Pass 2: Updating model with " + p2Structures.size + " pass 2 section(s)")
         try {
             pass2()
         } catch {

@@ -16,6 +16,7 @@
 
 package org.devzendo.tma.codegen
 
+import org.devzendo.commoncode.string.HexDump
 import org.devzendo.tma.ast.AST.SymbolName
 import org.devzendo.tma.ast._
 import org.log4s.Logger
@@ -121,7 +122,9 @@ class AssemblyModel(debugCodegen: Boolean) {
         }
         variables.put(name, Value(n, line.number))
         sourcedValuesForLineNumber(line.number) += AssignmentValue(n, line, isLabel = false)
-        logger.debug("Variable " + name + " = " + n)
+        if (debugCodegen) {
+            logger.info("Variable " + name + " = " + n)
+        }
         resolveForwardReferences(name, n)
     }
 
@@ -150,7 +153,9 @@ class AssemblyModel(debugCodegen: Boolean) {
             case None =>
                 constants.put(name, Value(n, line.number))
                 sourcedValuesForLineNumber(line.number) += AssignmentValue(n, line, isLabel = false)
-                logger.debug("Constant " + name + " = " + n)
+                if (debugCodegen) {
+                    logger.info("Constant " + name + " = " + n)
+                }
                 resolveForwardReferences(name, n)
         }
     }
@@ -180,7 +185,9 @@ class AssemblyModel(debugCodegen: Boolean) {
             case None =>
                 labels.put(name, Value(n, line.number))
                 sourcedValuesForLineNumber(line.number) += AssignmentValue(n, line, isLabel = true)
-                logger.debug("Label " + name + " = " + n)
+                if (debugCodegen) {
+                    logger.info("Label " + name + " = " + n)
+                }
                 resolveForwardReferences(name, n)
         }
     }
@@ -357,9 +364,33 @@ class AssemblyModel(debugCodegen: Boolean) {
         })
 
         validateDataSizes(lineNumber, storage.data, cellWidth)
+        dumpStorage(storage)
         incrementDollar(cellWidth * characterExpandedExprs.size)
 
         storage
+    }
+
+    private def dumpStorage(storage: Storage) = {
+        if (debugCodegen) {
+            def widthToDx(width: Int) = width match {
+                case 1 => "DB"
+                case 2 => "DW"
+                case 4 => "DD"
+            }
+
+            def data(width: Int, data: Array[Int]) = {
+                val hexnumStrings = data.map((d: Int) => {
+                    width match {
+                        case 1 => HexDump.byte2hex(d.toByte)
+                        case 2 => HexDump.short2hex(d.toShort)
+                        case 4 => HexDump.int2hex(d)
+                    }
+                })
+                hexnumStrings.mkString(" ")
+            }
+            // This diagnostic does not honour endianness.
+            logger.info(s"Storage @ ${HexDump.int2hex(storage.address)} ${widthToDx(storage.cellWidth)} (${data(storage.cellWidth, storage.data)})")
+        }
     }
 
     private def sourcedValuesForLineNumber(lineNumber: Int) = {
@@ -413,6 +444,9 @@ class AssemblyModel(debugCodegen: Boolean) {
     def recordSymbolForwardReferences(undefinedSymbols: Set[String], unresolvableSymbolName: String, unresolvableExpr: Expression, line: Line, symbolType: UnresolvableSymbolType.Value): Unit = {
         val unresolvableSymbol = UnresolvableSymbol(line, symbolType, unresolvableSymbolName, unresolvableExpr)
         for (undefinedSymbol <- undefinedSymbols) {
+            if (debugCodegen) {
+                logger.info(s"Recording symbol forward reference to $undefinedSymbol")
+            }
             symbolForwardReferenceFixups.getOrElseUpdate(undefinedSymbol.toUpperCase, mutable.HashSet[UnresolvableSymbol]()) += unresolvableSymbol
         }
         logger.debug(symbolForwardReferenceFixups.toString())
@@ -420,8 +454,12 @@ class AssemblyModel(debugCodegen: Boolean) {
 
     private def recordStorageForwardReferences(undefinedSymbols: Set[String], storageToReEvaluate: Storage): Unit = {
         for (undefinedSymbol <- undefinedSymbols) {
+            if (debugCodegen) {
+                logger.info(s"Recording storage forward reference to $undefinedSymbol")
+            }
             storageForwardReferenceFixups.getOrElseUpdate(undefinedSymbol.toUpperCase, mutable.HashSet[Storage]()) += storageToReEvaluate
         }
+        logger.debug(storageForwardReferenceFixups.toString())
     }
 
     // The Symbol (Label/Variable/Constant) symbolName has been resolved to a value. Where it had been recorded as
@@ -434,9 +472,13 @@ class AssemblyModel(debugCodegen: Boolean) {
         // Resolve forward references to Storages...
         val storages = storageForwardReferences(symbolName)
         if (storages.nonEmpty) {
-            logger.debug("Resolving Storage references to symbol '" + symbolName + "' with value " + value)
+            if (debugCodegen) {
+                logger.info("Resolving Storage references to symbol '" + symbolName + "' with value " + value)
+            }
             for (storage <- storages) {
-                logger.debug("Resolving on line " + storage.line.number)
+                if (debugCodegen) {
+                    logger.info("Resolving on line " + storage.line.number)
+                }
 
                 // Re-evaluate expressions, storing, and removing the forward reference.
                 storage.exprs.zipWithIndex.foreach((tuple: (Expression, Int)) => {
@@ -446,7 +488,7 @@ class AssemblyModel(debugCodegen: Boolean) {
                     }
                     storage.data(tuple._2) = storeValue
                 })
-
+                dumpStorage(storage)
             }
             storageForwardReferenceFixups.remove(symbolName)
         }
@@ -454,9 +496,13 @@ class AssemblyModel(debugCodegen: Boolean) {
         // Resolve forward references to UnresolvableSymbols...
         val unresolvableSymbolExprs = unresolvableSymbolForwardReferences(symbolName)
         if (unresolvableSymbolExprs.nonEmpty) {
-            logger.debug("Resolving Symbol references to symbol '" + symbolName + "' with value " + value)
+            if (debugCodegen) {
+                logger.info("Resolving Symbol references to symbol '" + symbolName + "' with value " + value)
+            }
             for (unresolvableSymbolExpr <- unresolvableSymbolExprs) {
-                logger.debug("Resolving " + unresolvableSymbolExpr.symbolType + " " + unresolvableSymbolExpr.name + " on line " + unresolvableSymbolExpr.line.number)
+                if (debugCodegen) {
+                    logger.info("Resolving " + unresolvableSymbolExpr.symbolType + " " + unresolvableSymbolExpr.name + " on line " + unresolvableSymbolExpr.line.number)
+                }
 
                 // Re-evaluate expressions, setting variable or constant, and removing the forward reference.
                 evaluateExpression(unresolvableSymbolExpr.expr) match {
