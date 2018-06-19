@@ -142,6 +142,65 @@ class TestAssemblyModel extends AssertionsForJUnit with MustMatchers {
         model.setVariable(fnord, 17, genDummyLine(2))
     }
 
+    @Test
+    def variableSetWithUnresolvedSymbolsGetsResolvedAsTheSymbolsAreDefined(): Unit = {
+        // A = B + (C * 2)
+        // where B and C are undefined
+        val unresolvableExpr = Binary(Add(), SymbolArg("B"), Binary(Mult(), SymbolArg("C"), Number(2)))
+        val line = Line(1, "A = B + (C * 2)", None, Some(VariableAssignment(new SymbolName("A"), unresolvableExpr)))
+        // When codegen processes the =, it'll do...
+        model.recordSymbolForwardReferences(Set("B", "C"), "A", unresolvableExpr, line, UnresolvableSymbolType.Variable)
+        // which will record A as an unresolvable symbol keyed by (i.e. resolvable when) B and C are defined.
+        if (true) { // just for fresh scope
+            val symbolsB = model.unresolvableSymbolForwardReferences("B")
+            symbolsB must have size 1
+            symbolsB.head.name must be("A")
+            symbolsB.head.line must be(line)
+            symbolsB.head.symbolType must be(UnresolvableSymbolType.Variable)
+            symbolsB.head.expr must be(unresolvableExpr)
+
+            val symbolsC = model.unresolvableSymbolForwardReferences("C")
+            symbolsC must have size 1
+            symbolsC.head.name must be("A")
+            // won't bother checking the rest of the detail that was checked above..
+
+            model.getSymbols must be(empty)
+        }
+
+        // Now let's define B. Then only C will be unresolvable. B should exist, A and C should not.
+        val bLine = Line(2, "B EQU 3", None, Some(ConstantAssignment(new SymbolName("B"), Number(3))))
+        model.setConstant("B", 3, bLine)
+        if (true) { // just for fresh scope
+            val symbolsB = model.unresolvableSymbolForwardReferences("B")
+            symbolsB must be(empty)
+
+            val symbolsC = model.unresolvableSymbolForwardReferences("C")
+            symbolsC must have size 1
+            symbolsC.head.name must be("A")
+
+            val symbolSet = model.getSymbols.toSet
+            symbolSet must be(Set(SymbolTableEntry("B", 3)))
+        }
+
+        // Now let's define C, then everything should exist, and there should be nothing in the unresolveable map.
+        val cLine = Line(3, "C EQU 4", None, Some(ConstantAssignment(new SymbolName("C"), Number(4))))
+        model.setConstant("C", 4, cLine)
+        if (true) { // just for fresh scope
+            val symbolsB = model.unresolvableSymbolForwardReferences("B")
+            symbolsB must be(empty)
+
+            val symbolsC = model.unresolvableSymbolForwardReferences("C")
+            symbolsC must be(empty)
+
+            val symbolSet = model.getSymbols.toSet
+            symbolSet must be(Set(
+                SymbolTableEntry("B", 3),
+                SymbolTableEntry("C", 4)
+            )) // A isn't in there, as it's a variable. Symbols (as shown on the Listing) are only Constants and Labels
+            model.getVariable("A") must be(11)
+        }
+    }
+
     // Constants -------------------------------------------------------------------------------------------------------
 
     @Test
@@ -196,6 +255,66 @@ class TestAssemblyModel extends AssertionsForJUnit with MustMatchers {
 
         model.setLabel(fnord, 69, genDummyLine(1))
         model.setConstant(fnord, 17, genDummyLine(2))
+    }
+
+    @Test
+    def constantSetWithUnresolvedSymbolsGetsResolvedAsTheSymbolsAreDefined(): Unit = {
+        // A EQU B + (C * 2)
+        // where B and C are undefined
+        val unresolvableExpr = Binary(Add(), SymbolArg("B"), Binary(Mult(), SymbolArg("C"), Number(2)))
+        val line = Line(1, "A EQU B + (C * 2)", None, Some(ConstantAssignment(new SymbolName("A"), unresolvableExpr)))
+        // When codegen processes the EQU, it'll do...
+        model.recordSymbolForwardReferences(Set("B", "C"), "A", unresolvableExpr, line, UnresolvableSymbolType.Constant)
+        // which will record A as an unresolvable symbol keyed by (i.e. resolvable when) B and C are defined.
+        if (true) { // just for fresh scope
+            val symbolsB = model.unresolvableSymbolForwardReferences("B")
+            symbolsB must have size 1
+            symbolsB.head.name must be("A")
+            symbolsB.head.line must be(line)
+            symbolsB.head.symbolType must be(UnresolvableSymbolType.Constant)
+            symbolsB.head.expr must be(unresolvableExpr)
+
+            val symbolsC = model.unresolvableSymbolForwardReferences("C")
+            symbolsC must have size 1
+            symbolsC.head.name must be("A")
+            // won't bother checking the rest of the detail that was checked above..
+
+            model.getSymbols must be(empty)
+        }
+
+        // Now let's define B. Then only C will be unresolvable. B should exist, A and C should not.
+        val bLine = Line(2, "B EQU 3", None, Some(ConstantAssignment(new SymbolName("B"), Number(3))))
+        model.setConstant("B", 3, bLine)
+        if (true) { // just for fresh scope
+            val symbolsB = model.unresolvableSymbolForwardReferences("B")
+            symbolsB must be(empty)
+
+            val symbolsC = model.unresolvableSymbolForwardReferences("C")
+            symbolsC must have size 1
+            symbolsC.head.name must be("A")
+
+            val symbolSet = model.getSymbols.toSet
+            symbolSet must be(Set(SymbolTableEntry("B", 3)))
+        }
+
+        // Now let's define C, then everything should exist, and there should be nothing in the unresolveable map.
+        val cLine = Line(3, "C EQU 4", None, Some(ConstantAssignment(new SymbolName("C"), Number(4))))
+        model.setConstant("C", 4, cLine)
+        if (true) { // just for fresh scope
+            val symbolsB = model.unresolvableSymbolForwardReferences("B")
+            symbolsB must be(empty)
+
+            val symbolsC = model.unresolvableSymbolForwardReferences("C")
+            symbolsC must be(empty)
+
+            val symbolSet = model.getSymbols.toSet
+            symbolSet must be(Set(
+                SymbolTableEntry("A", 11),
+                SymbolTableEntry("B", 3),
+                SymbolTableEntry("C", 4)
+            ))
+            model.getConstant("A") must be(11)
+        }
     }
 
     // Labels ----------------------------------------------------------------------------------------------------------
@@ -712,7 +831,7 @@ class TestAssemblyModel extends AssertionsForJUnit with MustMatchers {
     @Test
     def remainingForwardReferencesAtEndOfFirstPassCausesFailure(): Unit = {
         thrown.expect(classOf[AssemblyModelException])
-        thrown.expectMessage("Forward references remain unresolved at end of Pass 1: (AARDVARK: #1; FNORD: #3, #4; FOO: #5; ZYGOTE: #1)")
+        thrown.expectMessage("Storage forward references remain unresolved at end of Pass 1: (AARDVARK: #1; FNORD: #3, #4; FOO: #5; ZYGOTE: #1)")
 
         val line1 = Line(1, "irrelevant", None, Some(DB(List(SymbolArg("aardvark"), SymbolArg("zygote")))))
         model.allocateStorageForLine(line1, 1, List(SymbolArg("aardvark"), SymbolArg("zygote")))

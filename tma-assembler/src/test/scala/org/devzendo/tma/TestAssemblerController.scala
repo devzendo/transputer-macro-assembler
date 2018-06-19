@@ -110,8 +110,8 @@ class TestAssemblerController extends AssertionsForJUnit with MustMatchers {
             "2: Undefined symbol(s) 'fnorg'",
             "3: Constant cannot be set to a Character expression 'Characters(foo)'",
             "5: Label 'VALID' cannot override existing constant; initially defined on line 4",
-            "6: Variable cannot be set to an undefined symbol 'Set(missing)'",
-            "8: No statements allowed after End statement"
+            "8: No statements allowed after End statement",
+            "0: Symbol forward references remain unresolved at end of Pass 1: (MISSING: #6)"
         ))
     }
 }

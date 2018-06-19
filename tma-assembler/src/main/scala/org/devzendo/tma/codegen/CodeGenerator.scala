@@ -160,14 +160,7 @@ class CodeGenerator(debugCodegen: Boolean) {
         either match {
             case Left(undefineds) =>
                 logger.debug("Cannot set constant " + name + " to expression " + expr + " due to undefined symbols " + undefineds + " on line number " + lineNumber)
-                model.recordConstantForwardReferences(undefineds, name, expr)
-                /*
-                    // map each undefined to (name, expr)
-                    recordConstantForwardReferences(undefineds, name, expr)
-                    // every undefined that gets defined re-evaluates (name, expr) and if it resolves to a value, the constant is set to it.
-                    // the undefined is then removed from the constant-name -> (name, expr) map.
-                    // when all undefineds are defined and the constant is set, there will be no more mappings to (name, expr)
-                 */
+                model.recordSymbolForwardReferences(undefineds, name, expr, line, UnresolvableSymbolType.Constant)
             case Right(value) =>
                 logger.debug("Constant " + name + " = " + value)
                 model.setConstant(name, value, line)
@@ -181,7 +174,9 @@ class CodeGenerator(debugCodegen: Boolean) {
         }
         val either = model.evaluateExpression(expr)
         either match {
-            case Left(undefineds) => throw new CodeGenerationException(lineNumber, "Variable cannot be set to an undefined symbol '" + undefineds + "'")
+            case Left(undefineds) =>
+                logger.debug("Cannot set variable " + name + " to expression " + expr + " due to undefined symbols " + undefineds + " on line number " + lineNumber)
+                model.recordSymbolForwardReferences(undefineds, name, expr, line, UnresolvableSymbolType.Variable)
             case Right(value) =>
                 logger.debug("Variable " + name + " = " + value)
                 model.setVariable(name, value, line)

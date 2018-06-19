@@ -17,7 +17,7 @@
 package org.devzendo.tma.codegen
 
 import org.devzendo.tma.ast.AST.{Label, MacroArgument, MacroName, SymbolName}
-import org.devzendo.tma.ast.{Line, _}
+import org.devzendo.tma.ast.{ConstantAssignment, Line, _}
 import org.junit.rules.ExpectedException
 import org.junit.{Rule, Test}
 import org.log4s.Logger
@@ -246,13 +246,25 @@ class TestCodeGenerator extends AssertionsForJUnit with MustMatchers {
     }
 
     @Test
-    def constantAssignmentToUndefinedSymbolRecordsFixup(): Unit = {
-        val model = generateFromStatement(ConstantAssignment(new SymbolName(fnord),SymbolArg("undef")))
+    def constantAssignmentToUndefinedSymbolFails(): Unit = {
+        // Can't test the detail of this in code gen - the assembly model is where the mechanism is, see
+        // TestAssemblyModel::constantSetWithUnresolvedSymbolsGetsResolvedAsTheSymbolsAreDefined
+        thrown.expect(classOf[CodeGenerationException])
+        thrown.expectMessage("0: Symbol forward references remain unresolved at end of Pass 1: (UNDEF: #1)")
+        generateFromStatement(ConstantAssignment(new SymbolName(fnord),SymbolArg("undef")))
+    }
 
-        val tupleSet = model.constantForwardReferences("undef")
-        tupleSet must have size 1
-        tupleSet.head._1 must be(fnord) // the undefined constant
-        tupleSet.head._2 must be(SymbolArg("undef")) // the expression containing undefined symbols that'd be resolved later
+    @Test
+    def constantAssignmentToUndefinedSymbolIsFixedUpOnDefinition(): Unit = {
+        val model = generateFromStatements(List(
+            ConstantAssignment(new SymbolName(fnord),SymbolArg("undef")),
+            ConstantAssignment(new SymbolName("undef"),Number(42)))
+        )
+
+        val tupleSet = model.unresolvableSymbolForwardReferences("undef")
+        tupleSet must have size 0
+
+        model.getConstant("fnord") must be(42)
     }
 
     @Test
@@ -271,9 +283,24 @@ class TestCodeGenerator extends AssertionsForJUnit with MustMatchers {
 
     @Test
     def variableAssignmentToUndefinedSymbolFails(): Unit = {
+        // Can't test the detail of this in code gen - the assembly model is where the mechanism is, see
+        // TestAssemblyModel::variableSetWithUnresolvedSymbolsGetsResolvedAsTheSymbolsAreDefined
         thrown.expect(classOf[CodeGenerationException])
-        thrown.expectMessage("1: Variable cannot be set to an undefined symbol 'Set(FNORD)'")
-        generateFromStatement(VariableAssignment(new SymbolName(fnord),SymbolArg(fnord)))
+        thrown.expectMessage("0: Symbol forward references remain unresolved at end of Pass 1: (UNDEF: #1)")
+        generateFromStatement(VariableAssignment(new SymbolName(fnord),SymbolArg("undef")))
+    }
+
+    @Test
+    def variableAssignmentToUndefinedSymbolIsFixedUpOnDefinition(): Unit = {
+        val model = generateFromStatements(List(
+            VariableAssignment(new SymbolName(fnord),SymbolArg("undef")),
+            ConstantAssignment(new SymbolName("undef"),Number(42)))
+        )
+
+        val tupleSet = model.unresolvableSymbolForwardReferences("undef")
+        tupleSet must have size 0
+
+        model.getVariable("fnord") must be(42)
     }
 
     @Test
@@ -523,14 +550,27 @@ class TestCodeGenerator extends AssertionsForJUnit with MustMatchers {
     }
 
     @Test
-    def checkForUnresolvedForwardReferencesAtCreateModelTime(): Unit = {
-        // Set up the model with an unresolved forward reference, that'll cause the unresolved forward reference check
-        // to throw. (Only if that check is called in createModel)
+    def checkForUnresolvedStorageForwardReferencesAtCreateModelTime(): Unit = {
+        // Set up the model with an unresolved storage forward reference, that'll cause the unresolved forward reference
+        // check to throw. (Only if that check is called in createModel)
         thrown.expect(classOf[CodeGenerationException])
-        thrown.expectMessage("Forward references remain unresolved at end of Pass 1: (FNORD: #1)")
+        thrown.expectMessage("Storage forward references remain unresolved at end of Pass 1: (FNORD: #1)")
 
         val dbStatement = DB(List(SymbolArg(fnord)))
         val line = Line(1, "", None, Some(dbStatement))
+
+        generateFromLine(line)
+    }
+
+    @Test
+    def checkForUnresolvedSymbolForwardReferencesAtCreateModelTime(): Unit = {
+        // Set up the model with an unresolved symbol forward reference, that'll cause the unresolved forward reference
+        // check to throw. (Only if that check is called in createModel)
+        thrown.expect(classOf[CodeGenerationException])
+        thrown.expectMessage("Symbol forward references remain unresolved at end of Pass 1: (UNDEF: #1)")
+
+        val caStatement = ConstantAssignment(new SymbolName(fnord), SymbolArg("undef"))
+        val line = Line(1, "", None, Some(caStatement))
 
         generateFromLine(line)
     }
