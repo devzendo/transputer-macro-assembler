@@ -70,8 +70,6 @@ class ListingWriter(val outputFile: File) {
     private val headerLeft = s"DevZendo.org Macro Assembler ${Version.getPropertiesVersion()}"
     private val headerRight = LocalDateTime.now().format(DateTimeFormatter.ofPattern("kk/MM/yyyy HH:mm:ss"))
 
-
-
     def encode(model: AssemblyModel): Unit = {
 
         def calculatePrintableListingLines(): Int = {
@@ -122,13 +120,13 @@ class ListingWriter(val outputFile: File) {
         try {
             // First, the Listing...
             model.foreachLineSourcedValues((line: Line, sourcedValues: List[SourcedValue]) => {
-                logger.info(s"line $line")
+                logger.debug(s"line $line")
                 for (sv <- sourcedValues) {
                     sv match {
                         case st: Storage =>
-                            logger.info(s"  data ${st.data.toList} storage $st")
+                            logger.debug(s"  data ${st.data.toList} storage $st")
                         case av: AssignmentValue =>
-                            logger.info(s"  data ${av.data} assigned value $av")
+                            logger.debug(s"  data ${av.data} assigned value $av")
                     }
                 }
 
