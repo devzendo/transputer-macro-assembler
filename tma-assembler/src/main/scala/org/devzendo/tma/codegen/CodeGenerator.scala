@@ -16,6 +16,7 @@
 
 package org.devzendo.tma.codegen
 
+import org.devzendo.commoncode.string.HexDump
 import org.devzendo.tma.ast.AST.{Label, SymbolName}
 import org.devzendo.tma.ast._
 import org.log4s.Logger
@@ -47,7 +48,9 @@ class CodeGenerator(debugCodegen: Boolean) {
 
         try {
             if (generationMode == GenerationMode.ElseSeen && notEndif(line)) {
-                logger.debug("Adding line to Pass 2 Collection: " + line)
+                if (debugCodegen) {
+                    logger.info("Adding line to Pass 2 Collection: " + line)
+                }
                 currentP2Structure.addPass2Line(line)
             } else {
                 createLabel(line)
@@ -80,7 +83,9 @@ class CodeGenerator(debugCodegen: Boolean) {
 
     private def processStatement(line: Line, stmt: Statement): Unit = {
         val lineNumber = line.number
-        logger.debug("Line " + lineNumber + " Statement: " + stmt)
+        if (debugCodegen) {
+            logger.info("Line " + lineNumber + " Statement: " + stmt)
+        }
 
         // Pass 2 fixups run after pass 1 (duh!), and require processing of statements after this check would have
         // triggered in pass 1.
@@ -129,7 +134,11 @@ class CodeGenerator(debugCodegen: Boolean) {
         val dollar = model.getDollar
         val remainder = dollar % alignment
         if (remainder > 0) {
-            model.incrementDollar(alignment - remainder)
+            val newDollar = alignment - remainder
+            if (debugCodegen) {
+                logger.info("Align: from " + HexDump.int2hex(dollar) + " to " + HexDump.int2hex(newDollar))
+            }
+            model.incrementDollar(newDollar)
         }
     }
 
@@ -142,7 +151,9 @@ class CodeGenerator(debugCodegen: Boolean) {
         either match {
             case Left(undefineds) => throw new CodeGenerationException(lineNumber, "Undefined symbol(s) '" + undefineds.mkString(",") + "'")
             case Right(org) =>
-                logger.debug("Org: " + org)
+                if (debugCodegen) {
+                    logger.info("Org: " + HexDump.int2hex(org))
+                }
                 model.setDollar(org, line)
         }
     }
@@ -159,10 +170,14 @@ class CodeGenerator(debugCodegen: Boolean) {
         val either = model.evaluateExpression(expr)
         either match {
             case Left(undefineds) =>
-                logger.debug("Cannot set constant " + name + " to expression " + expr + " due to undefined symbols " + undefineds + " on line number " + lineNumber)
+                if (debugCodegen) {
+                    logger.info("Cannot set constant " + name + " to expression " + expr + " due to undefined symbols " + undefineds + " on line number " + lineNumber)
+                }
                 model.recordSymbolForwardReferences(undefineds, name, expr, line, UnresolvableSymbolType.Constant)
             case Right(value) =>
-                logger.debug("Constant " + name + " = " + value)
+                if (debugCodegen) {
+                    logger.info("Constant " + name + " = " + value)
+                }
                 model.setConstant(name, value, line)
         }
     }
@@ -175,10 +190,14 @@ class CodeGenerator(debugCodegen: Boolean) {
         val either = model.evaluateExpression(expr)
         either match {
             case Left(undefineds) =>
-                logger.debug("Cannot set variable " + name + " to expression " + expr + " due to undefined symbols " + undefineds + " on line number " + lineNumber)
+                if (debugCodegen) {
+                    logger.info("Cannot set variable " + name + " to expression " + expr + " due to undefined symbols " + undefineds + " on line number " + lineNumber)
+                }
                 model.recordSymbolForwardReferences(undefineds, name, expr, line, UnresolvableSymbolType.Variable)
             case Right(value) =>
-                logger.debug("Variable " + name + " = " + value)
+                if (debugCodegen) {
+                    logger.info("Variable " + name + " = " + value)
+                }
                 model.setVariable(name, value, line)
         }
     }
@@ -195,7 +214,9 @@ class CodeGenerator(debugCodegen: Boolean) {
 
     private def processIf1(): Unit = {
         val dollar = model.getDollar
-        logger.debug("Setting Pass 2 start address of " + dollar + " in If1")
+        if (debugCodegen) {
+            logger.info("Setting Pass 2 start address of " + dollar + " in If1")
+        }
         // We'll need the pass 1 current address, when processing the pass 2 lines.
         currentP2Structure.setStartAddress(dollar)
         // Assembly of statements continues normally...
@@ -207,7 +228,9 @@ class CodeGenerator(debugCodegen: Boolean) {
             throw new CodeGenerationException(line.number, "Else seen without prior If1")
         }
         val dollar = model.getDollar
-        logger.debug("Setting Pass 2 end address of " + dollar + " in Else; switching to Pass 2 Line Collection")
+        if (debugCodegen) {
+            logger.info("Setting Pass 2 end address of " + dollar + " in Else; switching to Pass 2 Line Collection")
+        }
         // How large is the pass 1 block? Store end address (current address after its contents have been assembled)
         // in current pass 2 structure..
         currentP2Structure.setEndAddress(dollar)
@@ -219,7 +242,9 @@ class CodeGenerator(debugCodegen: Boolean) {
         if (generationMode != GenerationMode.If1Seen && generationMode != GenerationMode.ElseSeen) {
             throw new CodeGenerationException(line.number, "Endif seen without prior If1")
         }
-        logger.debug("Storing collected Pass 2 Lines in Endif; switching to Pass 1 Line Assembly")
+        if (debugCodegen) {
+            logger.info("Storing collected Pass 2 Lines in Endif; switching to Pass 1 Line Assembly")
+        }
         // Collect the built pass 2 structure in a list for pass 2 processing..
         p2Structures += currentP2Structure
         // Create new current pass 2 structure
