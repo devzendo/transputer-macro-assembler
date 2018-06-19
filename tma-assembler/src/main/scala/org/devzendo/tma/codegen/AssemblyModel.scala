@@ -454,6 +454,9 @@ class AssemblyModel {
         if (unresolvableSymbolExprs.nonEmpty) {
             logger.debug("Resolving Symbol references to symbol '" + symbolName + "' with value " + value)
             for (unresolvableSymbolExpr <- unresolvableSymbolExprs) {
+                logger.debug("Resolving " + unresolvableSymbolExpr.symbolType + " " + unresolvableSymbolExpr.name + " on line " + unresolvableSymbolExpr.line.number)
+
+                // Re-evaluate expressions, setting variable or constant, and removing the forward reference.
                 evaluateExpression(unresolvableSymbolExpr.expr) match {
                     case Right(result) =>
                         unresolvableSymbolExpr.symbolType match {
