@@ -398,12 +398,7 @@ class AssemblyParser(val debugParser: Boolean, val showParserOutput: Boolean, va
         def ignored: Parser[Ignored] = ( ignoredKeyword ~ """.*""".r ) ^^ { _ => Ignored() }
         def ignoredKeyword: Regex = """(?i)(MAIN|ASSUME|\.LIST|\.NOLIST)""".r
 
-        def expression: Parser[Expression] = (
-          term ~ rep("+" ~ term | "-" ~ term)
-          ) ^^ {
-            case term ~ rep => formBinary(term, rep)
-        }
-
+        def characterExpression: Parser[Expression] = singleQuotedString | doubleQuotedString
         def singleQuotedString: Parser[Characters] =
             """'([^'\x00-\x1F\x7F\\]|\\[\\'"bfnrt]|\\u[a-fA-F0-9]{4})*'""".r  ^^ {
                 contents => {
@@ -421,7 +416,13 @@ class AssemblyParser(val debugParser: Boolean, val showParserOutput: Boolean, va
                 }
             }
 
-        def characterExpression: Parser[Expression] = singleQuotedString | doubleQuotedString
+
+
+        def expression: Parser[Expression] = (
+          term ~ rep("+" ~ term | "-" ~ term)
+          ) ^^ {
+            case term ~ rep => formBinary(term, rep)
+        }
 
         def formBinary(factor: Expression, rep: List[~[String, Expression]]): Expression = {
             if (rep.isEmpty) {
