@@ -226,79 +226,57 @@ class TestAssemblyParser extends AssertionsForJUnit with MustMatchers {
 
     @Test
     def shiftRightWithLowerCase(): Unit = {
-        singleLineParsesToStatement("UPP\t\tEQU\tEM shr 5",
-            ConstantAssignment("UPP",
-                Binary(ShiftRight(), SymbolArg("EM"), Number(5))))
+        expressionParses("EM shr 5", Binary(ShiftRight(), SymbolArg("EM"), Number(5)))
     }
 
     @Test
     def shiftRightSymbol(): Unit = {
-        singleLineParsesToStatement("UPP\t\tEQU\tEM >> 5",
-            ConstantAssignment("UPP",
-                Binary(ShiftRight(), SymbolArg("EM"), Number(5))))
+        expressionParses("EM >> 5", Binary(ShiftRight(), SymbolArg("EM"), Number(5)))
     }
 
     @Test
     def shiftLeft(): Unit = {
-        singleLineParsesToStatement("UPP\t\tEQU\tEM SHL 2",
-            ConstantAssignment("UPP",
-                Binary(ShiftLeft(), SymbolArg("EM"), Number(2))))
+        expressionParses("EM SHL 2", Binary(ShiftLeft(), SymbolArg("EM"), Number(2)))
     }
 
     @Test
     def shiftLeftWithLowerCase(): Unit = {
-        singleLineParsesToStatement("UPP\t\tEQU\tEM shl 2",
-            ConstantAssignment("UPP",
-                Binary(ShiftLeft(), SymbolArg("EM"), Number(2))))
+        expressionParses("EM shl 2", Binary(ShiftLeft(), SymbolArg("EM"), Number(2)))
     }
 
     @Test
     def shiftLeftSymbol(): Unit = {
-        singleLineParsesToStatement("UPP\t\tEQU\tEM << 2",
-            ConstantAssignment("UPP",
-                Binary(ShiftLeft(), SymbolArg("EM"), Number(2))))
+        expressionParses("EM << 2", Binary(ShiftLeft(), SymbolArg("EM"), Number(2)))
     }
 
     @Test
     def andWord(): Unit = {
-        singleLineParsesToStatement("UPP\t\tEQU\tEM AND 7",
-            ConstantAssignment("UPP",
-                Binary(And(), SymbolArg("EM"), Number(7))))
+        expressionParses("EM AND 7", Binary(And(), SymbolArg("EM"), Number(7)))
     }
 
     @Test
     def andWordWithLowerCase(): Unit = {
-        singleLineParsesToStatement("UPP\t\tEQU\tEM and 7",
-            ConstantAssignment("UPP",
-                Binary(And(), SymbolArg("EM"), Number(7))))
+        expressionParses("EM and 7", Binary(And(), SymbolArg("EM"), Number(7)))
     }
 
     @Test
     def andSymbol(): Unit = {
-        singleLineParsesToStatement("UPP\t\tEQU\tEM && 7",
-            ConstantAssignment("UPP",
-                Binary(And(), SymbolArg("EM"), Number(7))))
+        expressionParses("EM && 7", Binary(And(), SymbolArg("EM"), Number(7)))
     }
 
     @Test
     def orWord(): Unit = {
-        singleLineParsesToStatement("UPP\t\tEQU\tEM OR 7",
-            ConstantAssignment("UPP",
-                Binary(Or(), SymbolArg("EM"), Number(7))))
+        expressionParses("EM OR 7", Binary(Or(), SymbolArg("EM"), Number(7)))
     }
 
     @Test
     def orWordWithLowerCase(): Unit = {
-        singleLineParsesToStatement("UPP\t\tEQU\tEM or 7",
-            ConstantAssignment("UPP",
-                Binary(Or(), SymbolArg("EM"), Number(7))))
+        expressionParses("EM or 7", Binary(Or(), SymbolArg("EM"), Number(7)))
     }
 
     @Test
     def orSymbol(): Unit = {
-        singleLineParsesToStatement("UPP\t\tEQU\tEM || 7",
-            ConstantAssignment("UPP",
-                Binary(Or(), SymbolArg("EM"), Number(7))))
+        expressionParses("EM || 7", Binary(Or(), SymbolArg("EM"), Number(7)))
     }
 
     @Test
