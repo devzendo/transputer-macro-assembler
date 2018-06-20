@@ -18,15 +18,21 @@ Project](https://devzendo.github.io/parachute) and its future languages.
 Status
 ------
 Project started 19 April 2018.
-In development; unfinished; not yet at its first release (as of mid-June 2018).
+In active development; unfinished; not yet at its first release (as of mid-June 2018).
 
 Parser, macro expansion, code generation and output of
 binary file and listing are done.
 
 Remaining work:
 * bugs & limitations...
-  * use types to enforce case of symbols/fixups consistently
   * in macrolabel.asm, is the _CODE-_LEN-1 evaluated correctly (it gives 7; should it be 6?)
+  * in eForth's prfx macro, db	020h or (val modif cnt and 00fh)   - is not evaluated properly: if modif is shr, this
+    is higher precedence than and:
+    8: *, /, MOD, SHR, SHL
+    12: AND
+    13: OR, XOR
+* necessary refactorings...
+  * use types to enforce case of symbols/fixups consistently
 * nice-to-haves...
   * handling conversion of exceptions that the macro manager might throw when expanding
   * macros shouldn't be able to replace keywords
