@@ -213,11 +213,15 @@ class TestAssemblyParser extends AssertionsForJUnit with MustMatchers {
             VariableAssignment("_MASK", add))
     }
 
+
+    def expressionParses(exprString: String, expr: Expression): Unit = {
+        val lineString = "CONST EQU " + exprString
+        singleLineParsesToStatement(lineString, ConstantAssignment("CONST", expr))
+    }
+
     @Test
     def shiftRight(): Unit = {
-        singleLineParsesToStatement("UPP\t\tEQU\tEM SHR 5",
-            ConstantAssignment("UPP",
-                Binary(ShiftRight(), SymbolArg("EM"), Number(5))))
+        expressionParses("EM SHR 5", Binary(ShiftRight(), SymbolArg("EM"), Number(5)))
     }
 
     @Test
