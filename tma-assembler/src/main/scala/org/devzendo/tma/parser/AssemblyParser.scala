@@ -417,6 +417,31 @@ class AssemblyParser(val debugParser: Boolean, val showParserOutput: Boolean, va
             }
 
 
+        /*
+         * Precedence table (subset supported by this assembler):
+         * Operations in parentheses are performed before adjacent operations
+         * Binary operations of highest precedence are first
+         * Operations of equal precedence are performed left to right
+         * Unary operations of equal precedence are performed left to right
+         * 1:  ()
+         * 7:  +, - (unary)
+         * 8:  *, /, SHR, SHL
+         * 9:  +, - (binary)
+         * 11: NOT
+         * 12: AND
+         * 13: OR
+         */
+
+        private def opStrToOperator(opStr: String) = opStr.toUpperCase match {
+            case "*" => Mult()
+            case "/" => Div()
+            case "+" => Add()
+            case "-" => Sub()
+            case "SHR" => ShiftRight()
+            case "SHL" => ShiftLeft()
+            case "AND" => And()
+            case "OR" => Or()
+        }
 
         def expression: Parser[Expression] = (
           term ~ rep("+" ~ term | "-" ~ term)
@@ -429,19 +454,7 @@ class AssemblyParser(val debugParser: Boolean, val showParserOutput: Boolean, va
                 factor
             } else {
                 if (debugParser) logger.debug("in formBinary, op is: " + rep.head._1.toUpperCase())
-
-                val headOp = rep.head._1.toUpperCase match {
-                    case "*" => Mult()
-                    case "/" => Div()
-                    case "+" => Add()
-                    case "-" => Sub()
-                    case "SHR" => ShiftRight()
-                    case "SHL" => ShiftLeft()
-                    case "AND" => And()
-                    case "OR" => Or()
-                }
-                val headExpr = rep.head._2
-                Binary(headOp, factor, formBinary(headExpr, rep.tail))
+                Binary(opStrToOperator(rep.head._1), factor, formBinary(rep.head._2, rep.tail))
             }
         }
 
