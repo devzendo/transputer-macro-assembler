@@ -165,7 +165,7 @@ This code is released under the Apache 2.0 License: http://www.apache.org/licens
 
 Acknowledgements
 ----------------
-Christophe Henkelmann's excellent series on Parser Combinators:
+Christoph Henkelmann's excellent series on Parser Combinators:
 https://henkelmann.eu/tags/parser-combinators/
 
 Including his Java expression parser:

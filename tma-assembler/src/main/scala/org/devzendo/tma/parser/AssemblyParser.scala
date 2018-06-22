@@ -453,7 +453,7 @@ class AssemblyParser(val debugParser: Boolean, val showParserOutput: Boolean, va
             }
         }
 
-        // With thanks to Christophe Henkelmann for insights into parsing expression precedence..
+        // With thanks to Christoph Henkelmann for insights into parsing expression precedence..
         // https://github.com/chenkelmann/parser_example/blob/master/src/main/scala/eu/henkelmann/parser02/ExpressionParsers.scala
 
         def primary: Parser[Expression] = (
