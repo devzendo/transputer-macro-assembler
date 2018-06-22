@@ -162,3 +162,11 @@ License
 This code is released under the Apache 2.0 License: http://www.apache.org/licenses/LICENSE-2.0.html.
 (C) 2018 Matt Gumbley, DevZendo.org
 
+
+Acknowledgements
+----------------
+Christophe Henkelmann's excellent series on Parser Combinators:
+https://henkelmann.eu/tags/parser-combinators/
+
+Including his Java expression parser:
+https://github.com/chenkelmann/parser_example/blob/master/src/main/scala/eu/henkelmann/parser02/ExpressionParsers.scala

@@ -439,33 +439,35 @@ class AssemblyParser(val debugParser: Boolean, val showParserOutput: Boolean, va
             case "-" => Sub()
             case "SHR" => ShiftRight()
             case "SHL" => ShiftLeft()
+            case "!" | "~" => Not()
             case "AND" => And()
             case "OR" => Or()
         }
 
-        def expression: Parser[Expression] = (
-          term ~ rep("+" ~ term | "-" ~ term)
-          ) ^^ {
-            case term ~ rep => formBinary(term, rep)
-        }
-
-        def formBinary(factor: Expression, rep: List[~[String, Expression]]): Expression = {
+        private def formBinary(factor: Expression, rep: List[~[String, Expression]]): Expression = {
             if (rep.isEmpty) {
                 factor
             } else {
-                if (debugParser) logger.debug("in formBinary, op is: " + rep.head._1.toUpperCase())
+                if (debugParser) logger.debug("in formBinary, factor is " + factor + " op is: " + rep.head._1.toUpperCase() + " args are " + rep)
                 Binary(opStrToOperator(rep.head._1), factor, formBinary(rep.head._2, rep.tail))
             }
         }
 
-        def term: Parser[Expression] = (
-          factor ~ rep("*" ~ factor | "/" ~ factor | shr ~ factor | shl ~ factor | and ~ factor | or ~ factor)
-        ) ^^ {
-            case factor ~ rep => formBinary(factor, rep)
-        }
+        // With thanks to Christophe Henkelmann for insights into parsing expression precedence..
+        // https://github.com/chenkelmann/parser_example/blob/master/src/main/scala/eu/henkelmann/parser02/ExpressionParsers.scala
 
-        def factor: Parser[Expression] = (
-          opt("[!~-]".r) ~ factorBase
+        def primary: Parser[Expression] = (
+            integer ^^ ( n => Number(n))
+            | ident ^^ ( c => SymbolArg(c))
+            | "(" ~> expression <~ ")"
+          )
+
+        /*def unaryE: Parser[Expression] = primary | (( "~" | "!" | "+" | "-" ) ~ unaryE) ^^ {
+            case op ~ e => Unary(opStrToOperator(op), e)
+        }*/
+
+        def unaryE: Parser[Expression] = (
+          opt("[!~-]".r) ~ primary
           )  ^^ {
             case optUnary ~ term =>
                 optUnary match {
@@ -484,11 +486,21 @@ class AssemblyParser(val debugParser: Boolean, val showParserOutput: Boolean, va
                 }
         }
 
-        def factorBase: Parser[Expression] = (
-          integer ^^ ( n => Number(n))
-          | ident ^^ ( c => SymbolArg(c))
-          | "(" ~> expression <~ ")"
-        )
+        def multiplicationE: Parser[Expression] = (unaryE ~ rep(( "*" | "/" | shr | shl ) ~ unaryE)) ^^ { foldExpressions }
+
+        def additionE: Parser[Expression] = (multiplicationE ~ rep( ("+" | "-" ) ~ multiplicationE)) ^^ { foldExpressions }
+
+        def andE: Parser[Expression] = (additionE ~ rep(and ~ additionE)) ^^ { foldExpressions }
+
+        def orE: Parser[Expression] = (andE ~ rep(or ~ andE)) ^^ { foldExpressions }
+
+        def expression: Parser[Expression] = orE
+
+        def foldExpressions(result: StatementCombinatorParser.this.~[Expression,List[StatementCombinatorParser.this.~[String,Expression]]]): Expression =
+            result match {
+                case e ~ list => list.foldLeft(e) ((exp,el) => Binary(opStrToOperator(el._1), exp, el._2))
+        }
+
 
         def integer: Parser[Int] = hexIntegerOx | hexIntegerH | decimalInteger // order matters: 07F1FH could be 07 decimal
 

@@ -19,7 +19,7 @@ package org.devzendo.tma.parser
 import org.devzendo.tma.ast.AST._
 import org.devzendo.tma.ast._
 import org.junit.rules.ExpectedException
-import org.junit.{Rule, Test}
+import org.junit.{Ignore, Rule, Test}
 import org.log4s.Logger
 import org.scalatest.MustMatchers
 import org.scalatest.junit.AssertionsForJUnit
@@ -213,10 +213,14 @@ class TestAssemblyParser extends AssertionsForJUnit with MustMatchers {
             VariableAssignment("_MASK", add))
     }
 
-
     def expressionParses(exprString: String, expr: Expression): Unit = {
         val lineString = "CONST EQU " + exprString
-        singleLineParsesToStatement(lineString, ConstantAssignment("CONST", expr))
+        val line = parseSingleLine(lineString)
+        val stmt = line.stmt.get
+        stmt match {
+            case ConstantAssignment(_, caexpr) => expr must be(caexpr)
+            case _ => fail("Not a statement")
+        }
     }
 
     @Test
@@ -278,6 +282,105 @@ class TestAssemblyParser extends AssertionsForJUnit with MustMatchers {
     def orSymbol(): Unit = {
         expressionParses("EM || 7", Binary(Or(), SymbolArg("EM"), Number(7)))
     }
+
+    // Precendence tests -----------------------------------------------------------------------------------------------
+    /*
+     * Precedence table (subset supported by this assembler):
+     * Operations in parentheses are performed before adjacent operations
+     * Binary operations of highest precedence are first
+     * Operations of equal precedence are performed left to right
+     * Unary operations of equal precedence are performed left to right
+     * 1:  ()
+     * 7:  +, - (unary)
+     * 8:  *, /, SHR, SHL
+     * 9:  +, - (binary)
+     * 11: NOT
+     * 12: AND
+     * 13: OR
+     */
+    @Test
+    def parenthesesFirst(): Unit = {
+        expressionParses("2 + (3 + 4)", Binary(Add(), Number(2), Binary(Add(), Number(3), Number(4))))
+    }
+
+    // negation is handled by the parser so that -1 is a Number, whose value is -1, not a Unary(Negate(), Number(1))
+    @Test
+    @Ignore
+    def unaryNegate(): Unit = {
+        expressionParses("-2", Unary(Negate(), Number(2)))
+    }
+
+    // currently not parsing unary positive numbers. don't say +2, just say 2
+    @Test
+    @Ignore
+    def unaryPlus(): Unit = {
+        expressionParses("+2", Number(2))
+    }
+
+    @Test
+    @Ignore
+    def unaryNegateFirst(): Unit = {
+        expressionParses("-2 * 3", Binary(Mult(), Unary(Negate(), Number(2)), Number(3)))
+    }
+
+    @Test
+    def equalPrecendenceLeftToRightGroup8Forward(): Unit = {
+        val star = Binary(Mult(), Number(5), Number(4))
+        val slash = Binary(Div(), star, Number(3))
+        val shr = Binary(ShiftRight(), slash, Number(2))
+        val shl = Binary(ShiftLeft(), shr, Number(1))
+        expressionParses("5 * 4 / 3 >> 2 << 1", shl) // ((((5 * 4) / 3) >> 2) << 1)
+    }
+
+    @Test
+    def equalPrecendenceLeftToRightGroup8Backward(): Unit = {
+        val shl = Binary(ShiftLeft(), Number(1), Number(2))
+        val shr = Binary(ShiftRight(), shl, Number(3))
+        val slash = Binary(Div(), shr, Number(4))
+        val star = Binary(Mult(), slash, Number(5))
+        expressionParses("1 SHL 2 SHR 3 / 4 * 5", star) //  ((((1 << 2) >> 3) / 4) * 5)
+    }
+
+    @Test
+    def equalPrecedenceLeftToRightGroup9Forward(): Unit = {
+        val plus = Binary(Add(), Number(1), Number(2))
+        val minus = Binary(Sub(), plus, Number(3))
+        expressionParses("1 + 2 - 3", minus) // (1 + 2) - 3
+    }
+
+    @Test
+    def equalPrecedenceLeftToRightGroup9Backward(): Unit = {
+        // "Operations of equal precedence are performed left to right"
+        // So the chart gives +, - making me thing + would be performed first
+        // So that 3 - 2 + 1 would be parsed as 3 - (2 + 1), but left to right
+        // just means a parse from left to right in the string so 3, -, 2, + 1
+        // giving (effectively) (3 - 2) + 1
+        val minus = Binary(Sub(), Number(3), Number(2))
+        val plus = Binary(Add(), minus, Number(1))
+        expressionParses("3 - 2 + 1", plus) // 3 - (2 + 1) = 0
+        // (3 - 2) + 1 = 2 which is what java and masm gives
+    }
+
+    @Test
+    def binaryOperationsOfHigherPrecendenceEvaluatedFirstEx1(): Unit = {
+        val and = Binary(And(), Number(2), Number(3))
+        val or = Binary(Or(), Number(1), and)
+        expressionParses("1 OR 2 AND 3", or) // 1 OR (2 AND 3)
+    }
+
+    @Test
+    def binaryOperationsOfHigherPrecendenceEvaluatedFirstEx2(): Unit = {
+        val and = Binary(And(), Number(4), Number(5))
+        val star = Binary(Mult(), Number(1), Number(2))
+        val plus = Binary(Add(), star, Number(3))
+        val or = Binary(Or(), plus, and)
+        // precedence: * + AND OR
+        expressionParses("1 * 2 + 3 OR 4 AND 5", or) // ((1 * 2) + 3) OR (4 AND 5)
+    }
+
+
+    // -----------------------------------------------------------------------------------------------------------------
+
 
     @Test
     def orgDirectiveNumber(): Unit = {
@@ -780,7 +883,7 @@ class TestAssemblyParser extends AssertionsForJUnit with MustMatchers {
             Line(18, "ALIGN\t4", None, Some(Align(4))),
             Line(18, "DOVAR:", Some(new Label("DOVAR")), None),
             Line(18, "_CODE\t= $", None, Some(VariableAssignment(new SymbolName("_CODE"), SymbolArg("$")))),
-            Line(18, "_LEN\t= (COMPO+5 AND 01FH)/CELLL", None, Some(VariableAssignment(new SymbolName("_LEN"), Binary(Div(), Binary(Add(), SymbolArg("COMPO"), Binary(And(), Number(5), Number(31))), SymbolArg("CELLL"))))), /* TODO wrong precedence? */
+            Line(18, "_LEN\t= (COMPO+5 AND 01FH)/CELLL", None, Some(VariableAssignment(new SymbolName("_LEN"), Binary(Div(), Binary(And(), Binary(Add(), SymbolArg("COMPO"), Number(5)), Number(31)), SymbolArg("CELLL"))))),
             Line(18, "_NAME\t= _NAME-((_LEN+3)*CELLL)", None, Some(VariableAssignment(new SymbolName("_NAME"), Binary(Sub(), SymbolArg("_NAME"), Binary(Mult(), Binary(Add(), SymbolArg("_LEN"), Number(3)), SymbolArg("CELLL")))))),
             Line(18, "ORG\t_NAME", None, Some(Org(SymbolArg("_NAME")))),
             Line(18, "DD\t _CODE,_LINK", None, Some(DD(List(SymbolArg("_CODE"), SymbolArg("_LINK"))))),
@@ -790,7 +893,10 @@ class TestAssemblyParser extends AssertionsForJUnit with MustMatchers {
             Line(18, "align\t4", None, Some(Align(4))),
             Line(18, "db\t048h", None, Some(DB(List(Number(72)))))
         )
-        lines must be (expectedLines)
+        lines.length must be (expectedLines.length)
+        for (i <- 0 until expectedLines.length) {
+            lines(i) must be (expectedLines(i))
+        }
     }
 
     private def parseCodeMacro = {
