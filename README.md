@@ -156,6 +156,13 @@ Contact me, Matt Gumbley via matt.gumbley@devzendo.org, or @mattgumbley on
 Twitter.
 
 
+Building
+--------
+Just requires Java 8 and Maven 3.2.x.
+
+'mvn clean package' is all you need.
+
+
 License
 -------
 This code is released under the Apache 2.0 License: http://www.apache.org/licenses/LICENSE-2.0.html.
