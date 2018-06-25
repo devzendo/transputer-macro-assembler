@@ -5,10 +5,10 @@ irrespective of actual CPU instructions. You can build your set of 'opcodes'
 via macros and ALIGN/DB/DD/DW directives. Its input language is a small subset
 of Microsoft MASM 5.1.
 
-It also understands variants of the Transputer assembly language when the CPU
-directive selects a Transputer variant. Initially targetting the T800.
-
-The future intention is to also build ELF object files.
+Future intentions:
+* To natively understand variants of the Transputer assembly language when the CPU
+  directive selects a Transputer variant. Initially targetting the T800.
+* Build ELF object files.
 
 The assembler is to be used in the building of the
 [transputer-eforth](https://bitbucket.org/devzendo/transputer-eforth) eForth
@@ -18,14 +18,18 @@ Project](https://devzendo.github.io/parachute) and its future languages.
 Status
 ------
 Project started 19 April 2018.
+Successful eForth assembly verified 25 June 2018.
+ 
 In active development; unfinished; not yet at its first release (as of mid-June 2018).
 
 Parser, macro expansion, code generation and output of binary file and listing are done.
-The assembler has built a binary of eForth without any parsing/code gen errors - it remains to be seen whether this
-is exactly the same as MASM generates!
+
+The assembler has built a binary of eForth without any parsing/code gen errors - and a close inspection of the
+listing side-by-side with that produced by MASM suggests that I'm assembling identically to MASM!
+I can't generate a binary with MASM - linking fails - but the listing is sufficient for verification
 
 Remaining work:
-* necessary refactorings...
+  * binary map listing, showing symbols sorted by address and the binary dump at those addresses.
   * use types to enforce case of symbols/fixups consistently
 
 * nice-to-haves...
@@ -40,12 +44,12 @@ Remaining work:
   
 Rationale
 ---------
-I needed a macro assembler to assemble eForth (and in a reusable form for future
-Transputer language projects). I have MASM 6, which works fine,
-but is closed source, and in 2018, quite difficult to obtain legitimately. (I
-have Windows XP SP2, Visual C++ Studio 6.0, and the Processor Pack 5 - this
-latter is now unobtainium, so was retreived via the Wayback Machine - more
-recent versions of Windows, e.g. 7, do not install Visual Studio correctly)
+I needed a macro assembler to assemble eForth (and in a reusable form for future Transputer language projects). I have
+MASM 6, which works fine, but is closed source, and in 2018, quite difficult to obtain legitimately. I have Windows XP
+SP2, Visual C++ Studio 6.0, and the Processor Pack 5 (which contains MASM) - this latter is now considered
+'unobtainium' from Microsoft , so was retreived via the Wayback Machine - more recent versions of Windows, e.g. 7, do
+not install Visual Studio correctly. It is possible to install it in XP SP2 then copy the executables across to Windows
+7, which is what I did since XP is not registerable any more, apparently.
 
 Asking contributors to an open source project to buy copies of old commercial
 projects will be a blocker to contribution, and is against the open source
