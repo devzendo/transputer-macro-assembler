@@ -1,9 +1,14 @@
-Elementary Macro Assembler with Transputer Support
-==================================================
+transputer-macro-assembler
+==========================
 This is a simple byte-building macro assembler, that can build binary files,
 irrespective of actual CPU instructions. You can build your set of 'opcodes'
 via macros and ALIGN/DB/DD/DW directives. Its input language is a small subset
 of Microsoft MASM 5.1.
+
+(C) 2018 Matt J. Gumbley
+matt.gumbley@devzendo.org
+@mattgumbley @devzendo
+http://devzendo.github.io/parachute
 
 Future intentions:
 * To natively understand variants of the Transputer assembly language when the CPU
