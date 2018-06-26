@@ -34,6 +34,7 @@ listing side-by-side with that produced by MASM suggests that I'm assembling ide
 I can't generate a binary with MASM - linking fails - but the listing is sufficient for verification
 
 Remaining work:
+  * INCLUDE, in lieu of building linkable object files
   * binary map listing, showing symbols sorted by address and the binary dump at those addresses.
   * use types to enforce case of symbols/fixups consistently
 
