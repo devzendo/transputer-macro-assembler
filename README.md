@@ -10,11 +10,6 @@ matt.gumbley@devzendo.org
 @mattgumbley @devzendo
 http://devzendo.github.io/parachute
 
-Future intentions:
-* To natively understand variants of the Transputer assembly language when the CPU
-  directive selects a Transputer variant. Initially targetting the T800.
-* Build ELF object files.
-
 The assembler is to be used in the building of the
 [transputer-eforth](https://bitbucket.org/devzendo/transputer-eforth) eForth
 port, and also as the assembler used by the [Parachute
