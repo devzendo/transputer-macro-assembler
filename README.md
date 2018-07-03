@@ -29,18 +29,20 @@ listing side-by-side with that produced by MASM suggests that I'm assembling ide
 I can't generate a binary with MASM - linking fails - but the listing is sufficient for verification
 
 Remaining work:
-  * INCLUDE, in lieu of building linkable object files
-  * binary map listing, showing symbols sorted by address and the binary dump at those addresses.
+  * honour the Cpu directive, to switch in Transputer family native instructions, rather than db-generating macros
+  * Transputer pfix/nfix generation from direct opcodes
+  * local labels
+  * global and extern symbols
   * use types to enforce case of symbols/fixups consistently
+  * INCLUDE, in lieu of building linkable object files
 
 * nice-to-haves...
+  * binary map listing, showing symbols sorted by address and the binary dump at those addresses.
   * handling conversion of exceptions that the macro manager might throw when expanding
   * macros shouldn't be able to replace keywords
   * exception handling - is... odd..... use Try instead of throwing? Easier collection of phase errors?
 
 * later....
-  * honour the Cpu directive, to switch in Transputer family native instructions, rather than db-generating macros
-  * Transputer pfix/nfix generation from direct opcodes
   * ELF writing
   
 Rationale

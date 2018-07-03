@@ -55,6 +55,30 @@ class AssemblyParser(val debugParser: Boolean, val showParserOutput: Boolean, va
             }
         }
 
+        def tryEachParser(str: String, parsers: List[LineParser]): List[Line] = {
+            if (parsers.isEmpty) {
+                logger.debug(s"$lineNumber: $str") // mostly a useless, hard to understand error...
+                throw new AssemblyParserException(lineNumber, "Unknown statement '" + sanitizedInput + "'")
+            }
+            val parser = parsers.head
+            val parserOutput = parser.parseProgram(sanitizedInput)
+            parserOutput match {
+                case parser.Success(r, _) =>
+                    val rLines = r.asInstanceOf[List[Line]] // unsure why r is not right type
+                    if (debugParser) {
+                        logger.debug("returning " + rLines)
+                    }
+
+                    if (showParserOutput) {
+                        logParserOutput(rLines)
+                    }
+                    rLines
+
+                case parser.NoSuccess(x, _) =>
+                    tryEachParser(str, parsers.tail)
+            }
+        }
+
 
         if (debugParser) {
             logger.debug(s"parsing IME ${inMacroExpansion} $lineNumber|$sanitizedInput|")
@@ -69,24 +93,9 @@ class AssemblyParser(val debugParser: Boolean, val showParserOutput: Boolean, va
 
         if (sanitizedInput.length > 0) {
             val parser = if (macroManager.isInMacroBody) new MacroBodyCombinatorParser(lineNumber) else new StatementCombinatorParser(lineNumber, inMacroExpansion)
-            val parserOutput = parser.parseProgram(sanitizedInput)
-            parserOutput match {
-                case parser.Success(r, _) =>
-                    val rLines = r.asInstanceOf[List[Line]] // unsure why r is not right type
-                    if (debugParser) {
-                        logger.debug("returning " + rLines)
-                    }
-
-                    if (showParserOutput) {
-                        logParserOutput(rLines)
-                    }
-                    rLines
-
-                case x =>
-                    logger.debug(s"$lineNumber: ${x.toString}") // mostly a useless, hard to understand error...
-                    throw new AssemblyParserException(lineNumber, "Unknown statement '" + sanitizedInput + "'")
-            }
-
+            var parsers = collection.mutable.ArrayBuffer[LineParser](parser)
+            // add in the Processor specific parser
+            tryEachParser(sanitizedInput, parsers.toList)
         } else {
             val line = Line(lineNumber, sanitizedInput, None, None)
             List(line)
