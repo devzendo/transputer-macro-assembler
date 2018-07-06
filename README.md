@@ -179,3 +179,7 @@ https://henkelmann.eu/tags/parser-combinators/
 
 Including his Java expression parser:
 https://github.com/chenkelmann/parser_example/blob/master/src/main/scala/eu/henkelmann/parser02/ExpressionParsers.scala
+
+
+Thanks to Andrey Tyukin for assistance in composing parser combinators as traits:
+https://stackoverflow.com/questions/51199613/composing-scala-parser-combinators-at-runtime
