@@ -590,6 +590,29 @@ class TestAssemblyParser extends AssertionsForJUnit with MustMatchers {
     }
 
     @Test
+    def t800InstructionNotRecognisedIfProcessorNotSet(): Unit = {
+        thrown.expect(classOf[AssemblyParserException])
+        thrown.expectMessage("1: Unknown statement 'ldnlp 5'")
+        parser.parse("ldnlp 5", 1)
+    }
+
+    @Test
+    def t800InstructionRecognisedIfProcessorSet(): Unit = {
+        val textLines = List(
+            ".T800",
+            "CODE: ldnlp 3"
+        )
+
+        parseLines(textLines)
+        val lines = parsedLinesSoFar.toList
+
+        lines must be (List(
+            Line(1, ".T800", None, Some(Processor("T800"))),
+            Line(2, "CODE: ldnlp 3", Some("CODE"), Some(DirectInstruction("LDNLP", 5, Number(3))))
+        ))
+    }
+
+    @Test
     def align(): Unit = {
         singleLineParsesToStatement("ALIGN 4 ; cell boundary", Align(4))
     }

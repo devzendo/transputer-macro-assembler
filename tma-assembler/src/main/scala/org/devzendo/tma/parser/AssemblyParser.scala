@@ -29,12 +29,14 @@ class AssemblyParser(val debugParser: Boolean, val showParserOutput: Boolean, va
 
     val logger: Logger = org.log4s.getLogger
 
+    var processorToParse: Option[Processor] = None
+
     @throws(classOf[AssemblyParserException])
     def parse(line: String, lineNumber: Int, inMacroExpansion: Boolean = false): List[Line] = {
 
         def sanitizedInput = nullToEmpty(line).trim()
 
-        def logParserOutput(rLines: List[Line]) = {
+        def logParserOutput(rLines: List[Line]): Unit = {
             logger.info(s"${rLines.size} lines output...")
             for (rL <- rLines) {
                 val sb = new StringBuilder()
@@ -55,12 +57,23 @@ class AssemblyParser(val debugParser: Boolean, val showParserOutput: Boolean, va
             }
         }
 
-        def tryEachParser(str: String, parsers: List[LineParser]): List[Line] = {
-            if (parsers.isEmpty) {
-                logger.debug(s"$lineNumber: $str") // mostly a useless, hard to understand error...
-                throw new AssemblyParserException(lineNumber, "Unknown statement '" + sanitizedInput + "'")
-            }
-            val parser = parsers.head
+
+        if (debugParser) {
+            logger.debug(s"parsing IME $inMacroExpansion $lineNumber|$sanitizedInput|")
+        }
+        if (showParserOutput) {
+            val lineType = if (inMacroExpansion) "IME" else "TXT"
+            logger.info(s"$lineType $lineNumber|$sanitizedInput|")
+        }
+        if (lineNumber < 1) {
+            throw new AssemblyParserException(lineNumber, "Line numbers must be positive")
+        }
+
+        if (sanitizedInput.length > 0) {
+            val parser = if (macroManager.isInMacroBody) new MacroBodyCombinatorParser else new StatementCombinatorParser(inMacroExpansion)
+            parser.setLineNumber(lineNumber)
+            parser.setDebugParser(debugParser)
+
             val parserOutput = parser.parseProgram(sanitizedInput)
             parserOutput match {
                 case parser.Success(r, _) =>
@@ -75,27 +88,9 @@ class AssemblyParser(val debugParser: Boolean, val showParserOutput: Boolean, va
                     rLines
 
                 case parser.NoSuccess(x, _) =>
-                    tryEachParser(str, parsers.tail)
+                    logger.debug(s"$lineNumber: $sanitizedInput") // mostly a useless, hard to understand error...
+                    throw new AssemblyParserException(lineNumber, "Unknown statement '" + sanitizedInput + "'")
             }
-        }
-
-
-        if (debugParser) {
-            logger.debug(s"parsing IME ${inMacroExpansion} $lineNumber|$sanitizedInput|")
-        }
-        if (showParserOutput) {
-            val lineType = if (inMacroExpansion) "IME" else "TXT"
-            logger.info(s"$lineType $lineNumber|$sanitizedInput|")
-        }
-        if (lineNumber < 1) {
-            throw new AssemblyParserException(lineNumber, "Line numbers must be positive")
-        }
-
-        if (sanitizedInput.length > 0) {
-            val parser = if (macroManager.isInMacroBody) new MacroBodyCombinatorParser(lineNumber) else new StatementCombinatorParser(lineNumber, inMacroExpansion)
-            var parsers = collection.mutable.ArrayBuffer[LineParser](parser)
-            // add in the Processor specific parser
-            tryEachParser(sanitizedInput, parsers.toList)
         } else {
             val line = Line(lineNumber, sanitizedInput, None, None)
             List(line)
@@ -106,18 +101,7 @@ class AssemblyParser(val debugParser: Boolean, val showParserOutput: Boolean, va
         if (input == null) "" else input
     }
 
-    private trait LineParser extends JavaTokenParsers {
-        var text: String = ""
-
-        def line: Parser[List[Line]]
-
-        def parseProgram(input: String): ParseResult[List[Line]] = {
-            this.text = input
-            parseAll(line, input)
-        }
-    }
-
-    private class MacroBodyCombinatorParser(lineNumber: Int) extends LineParser {
+    private class MacroBodyCombinatorParser extends DiagnosableParser with LineParser {
         def line: Parser[List[Line]] = macroEnd | macroStart | macroBody
 
         def macroEnd: Parser[List[Line]] =
@@ -146,7 +130,13 @@ class AssemblyParser(val debugParser: Boolean, val showParserOutput: Boolean, va
         }
     }
 
-    private class StatementCombinatorParser(lineNumber: Int, inMacroExpansion: Boolean) extends LineParser {
+    private trait NoInstructionParser extends Parsers {
+        def noInstructionsAllowed: Parser[Statement] = failure("No instruction parser available")
+    }
+
+    private class StatementCombinatorParser(inMacroExpansion: Boolean) extends ExpressionParser with DiagnosableParser with LineParser
+        with T800InstructionParser with NoInstructionParser {
+
         def line: Parser[List[Line]] =  macroInvocationLine | statementLine
 
         def statementLine: Parser[List[Line]] = (
@@ -207,7 +197,7 @@ class AssemblyParser(val debugParser: Boolean, val showParserOutput: Boolean, va
         }
 
         def statement: Parser[Statement] = constantAssignment | variableAssignment | macroStart | origin | data |
-            title | page | processor | align | condif1 | condelse | condendif | end | ignored
+            title | page | processor | align | condif1 | condelse | condendif | end | opcode | ignored
 
         // Not sure why I can't use ~> and <~ here to avoid the equ?
         def constantAssignment: Parser[ConstantAssignment] = (
@@ -224,6 +214,16 @@ class AssemblyParser(val debugParser: Boolean, val showParserOutput: Boolean, va
             case ident ~ "=" ~ expression =>
                 if (debugParser) logger.debug("in variableAssignment, ident: " + ident + " expr:" + expression)
                 VariableAssignment(ident.asInstanceOf[String], expression)
+        }
+
+        def opcode: Parser[Statement] = {
+            // if (debugParser) logger.debug("in opcode, processorToParse: " + processorToParse)
+
+            processorToParse match {
+                case None => noInstructionsAllowed
+                case Some(Processor("T800")) => t800Instruction
+                case Some(Processor(_)) => noInstructionsAllowed
+            }
         }
 
         def macroStart: Parser[MacroStart] = (
@@ -268,7 +268,7 @@ class AssemblyParser(val debugParser: Boolean, val showParserOutput: Boolean, va
         // The difference between these two and singleQuotedString is that these include the terminating quotes in the
         // parsed output. Macros must preserve this into their expansion.
         def singleQuotedMacroStringArgument: Parser[String] =
-            """'([^'\x00-\x1F\x7F\\]|\\[\\'"bfnrt]|\\u[a-fA-F0-9]{4})*'""".r  ^^ {
+            """'([^'\x00-\x1F\x7F\\]|\\[\\'"bfnrt]|\\u[a-fA-F0-9]{4})*'""".r ^^ {
                 contents => {
                     if (debugParser) logger.debug("in singleQuotedMacroStringArgument, contents is: |" + contents + "|")
                     contents
@@ -381,7 +381,15 @@ class AssemblyParser(val debugParser: Boolean, val showParserOutput: Boolean, va
                 if (debugParser) {
                     logger.debug("in processor, cpu string is '" + cpu + "'")
                 }
-                Processor(cpu)
+                val out = Processor(cpu)
+                cpu match {
+                    case "386" =>
+                        logger.warn("386 Processor; only its endianness is understood, none of its instructions")
+                    case "T800" =>
+                        processorToParse = Some(out)
+                        logger.debug("Enabling T800 opcodes")
+                }
+                out
         }
 
         def align: Parser[Align] = (
@@ -425,124 +433,8 @@ class AssemblyParser(val debugParser: Boolean, val showParserOutput: Boolean, va
                 }
             }
 
-
-        /*
-         * Precedence table (subset supported by this assembler):
-         * Operations in parentheses are performed before adjacent operations
-         * Binary operations of highest precedence are first
-         * Operations of equal precedence are performed left to right
-         * Unary operations of equal precedence are performed left to right
-         * 1:  ()
-         * 7:  +, - (unary)
-         * 8:  *, /, SHR, SHL
-         * 9:  +, - (binary)
-         * 11: NOT
-         * 12: AND
-         * 13: OR
-         */
-
-        private def opStrToOperator(opStr: String) = opStr.toUpperCase match {
-            case "*" => Mult()
-            case "/" => Div()
-            case "+" => Add()
-            case "-" => Sub()
-            case "SHR" => ShiftRight()
-            case "SHL" => ShiftLeft()
-            case "!" | "~" => Not()
-            case "AND" => And()
-            case "OR" => Or()
-        }
-
-        private def formBinary(factor: Expression, rep: List[~[String, Expression]]): Expression = {
-            if (rep.isEmpty) {
-                factor
-            } else {
-                if (debugParser) logger.debug("in formBinary, factor is " + factor + " op is: " + rep.head._1.toUpperCase() + " args are " + rep)
-                Binary(opStrToOperator(rep.head._1), factor, formBinary(rep.head._2, rep.tail))
-            }
-        }
-
-        // With thanks to Christoph Henkelmann for insights into parsing expression precedence..
-        // https://github.com/chenkelmann/parser_example/blob/master/src/main/scala/eu/henkelmann/parser02/ExpressionParsers.scala
-
-        def primary: Parser[Expression] = (
-            integer ^^ ( n => Number(n))
-            | ident ^^ ( c => SymbolArg(c))
-            | "(" ~> expression <~ ")"
-          )
-
-        /*def unaryE: Parser[Expression] = primary | (( "~" | "!" | "+" | "-" ) ~ unaryE) ^^ {
-            case op ~ e => Unary(opStrToOperator(op), e)
-        }*/
-
-        def unaryE: Parser[Expression] = (
-          opt("[!~-]".r) ~ primary
-          )  ^^ {
-            case optUnary ~ term =>
-                optUnary match {
-                    // A negative number can just be that, no need to unary negate it..
-                    case Some("-") =>
-                        term match {
-                            case Number(n) =>
-                                Number(-1 * n)
-                            case _ =>
-                                Unary(Negate(), term)
-                        }
-                    case Some("~") | Some("!") => Unary(Not(), term)
-                    // regex ensures this can't happen
-                    case Some(x) => throw new AssemblyParserException(lineNumber, "Unexpected 'unary' operator: '" + x + "'")
-                    case None => term
-                }
-        }
-
-        def multiplicationE: Parser[Expression] = (unaryE ~ rep(( "*" | "/" | shr | shl ) ~ unaryE)) ^^ { foldExpressions }
-
-        def additionE: Parser[Expression] = (multiplicationE ~ rep( ("+" | "-" ) ~ multiplicationE)) ^^ { foldExpressions }
-
-        def andE: Parser[Expression] = (additionE ~ rep(and ~ additionE)) ^^ { foldExpressions }
-
-        def orE: Parser[Expression] = (andE ~ rep(or ~ andE)) ^^ { foldExpressions }
-
-        def expression: Parser[Expression] = orE
-
-        def foldExpressions(result: StatementCombinatorParser.this.~[Expression,List[StatementCombinatorParser.this.~[String,Expression]]]): Expression =
-            result match {
-                case e ~ list => list.foldLeft(e) ((exp,el) => Binary(opStrToOperator(el._1), exp, el._2))
-        }
-
-
-        def integer: Parser[Int] = hexIntegerOx | hexIntegerH | decimalInteger // order matters: 07F1FH could be 07 decimal
-
-        // The parseLong conversion here ensures I can represent the maximum unsigned 32-bit values.
-        def decimalInteger: Parser[Int] = """-?\d+(?!\.)""".r ^^ ( x => {
-            if (debugParser) logger.debug("in decimalInteger(" + x + ")")
-            (java.lang.Long.parseLong(x) & 0xffffffff).asInstanceOf[Int]
-        })
-
-        def hexIntegerOx: Parser[Int] = """0[xX]-?\p{XDigit}+\b""".r ^^ ( x => {
-            if (debugParser) logger.debug("in hexIntegerOx(" + x + ")")
-            (java.lang.Long.parseLong(x.substring(2), 16) & 0xffffffff).asInstanceOf[Int]
-        })
-
-        def hexIntegerH: Parser[Int] = """-?\p{XDigit}+[hH]\b""".r ^^ ( x => {
-            if (debugParser) logger.debug("in hexIntegerH(" + x + ")")
-            (java.lang.Long.parseLong(x.substring(0, x.length - 1), 16) & 0xffffffff).asInstanceOf[Int]
-        })
-
         def equ: Parser[String] =
             """(?i)EQU""".r ^^ ( _ => "EQU" )
-
-        def shr: Parser[String] =
-            """(?i)(>>|SHR)""".r ^^ ( _ => "SHR" )
-
-        def shl: Parser[String] =
-            """(?i)(<<|SHL)""".r ^^ ( _ => "SHL" )
-
-        def and: Parser[String] =
-            """(?i)(&&|AND)""".r ^^ ( _ => "AND" )
-
-        def or: Parser[String] =
-            """(?i)(\|\||OR)""".r ^^ ( _ => "OR" )
 
         def org: Parser[String] =
             """(?i)ORG""".r ^^ ( _ => "ORG" )
