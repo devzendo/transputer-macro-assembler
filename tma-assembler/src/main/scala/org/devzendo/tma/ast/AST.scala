@@ -79,7 +79,7 @@ case class Endif() extends Statement
 // These need to be produced in the Transputer-specific code generator if a Transputer CPU is selected with Processor..
 // Caveat: only the T800 encoding is considered here: don't know about other variants (T9000, Transterpreter, etc.)
 case class DirectInstruction(opcode: Opcode, opbyte: Int, expr: Expression) extends Statement // the opbyte would be a Byte, but Int makes it easier to express byte literals
-case class IndirectInstruction(opcode: Opcode, opbytes: Array[Int]) extends Statement
+case class IndirectInstruction(opcode: Opcode, opbytes: List[Int]) extends Statement
 
 case class Memory(address: Int, data: List[Byte])
 

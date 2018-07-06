@@ -80,15 +80,17 @@ trait T800InstructionParser extends ExpressionParser with DiagnosableParser {
                 IndirectInstruction(opcode._1, opcode._2)
         }
 
-    private def indirectOpcode: Parser[(String, Array[Int])] = rev | lb | /* ... */ mul | /* ... */ fpumulby2 // etc.
+    private def indirectOpcode: Parser[(String, List[Int])] = rev | lb | /* ... */ mul | /* ... */ fpumulby2 // etc.
 
     // Opcode to direct instructions. As per CWG, p 117
-    private def short(opcode: Int): Array[Int] = Array(0xf0 | (opcode & 0x0f)) // OPR(opcode)
-    private def long(opcode: Int): Array[Int] = {
-        Array(0x20 | ((opcode & 0xf0) >> 4),  // PFIX(opcode left-nybble)
-              0xf0 | (opcode & 0x0f))         // OPR(opcode right-nybble)
+    private def short(opcode: Int): List[Int] = List(0xf0 | (opcode & 0x0f)) // OPR(opcode)
+
+    private def long(opcode: Int): List[Int] = {
+        List(0x20 | ((opcode & 0xf0) >> 4),  // PFIX(opcode left-nybble)
+             0xf0 | (opcode & 0x0f))         // OPR(opcode right-nybble)
     }
-    private def seq(opcode: Int): Array[Int] = {
+
+    private def seq(opcode: Int): List[Int] = {
         val areg = collection.mutable.ArrayBuffer[Int]()
         if (opcode > 0x0f) {
             // Two nybbles into Areg
@@ -98,14 +100,14 @@ trait T800InstructionParser extends ExpressionParser with DiagnosableParser {
         areg += (0x40 | (opcode & 0x0f)) // LDC(opcode left-nybble)
 
         areg ++= long(0xAB) // FPENTRY
-        areg.toArray
+        areg.toList
     }
 
-    private def rev: Parser[(String, Array[Int])]       = """(?i)REV""".r       ^^ ( x => (x.toUpperCase, short(0x00)) )
-    private def lb: Parser[(String, Array[Int])]        = """(?i)LB""".r        ^^ ( x => (x.toUpperCase, short(0x01)) )
+    private def rev: Parser[(String, List[Int])]       = """(?i)REV""".r       ^^ ( x => (x.toUpperCase, short(0x00)) )
+    private def lb: Parser[(String, List[Int])]        = """(?i)LB""".r        ^^ ( x => (x.toUpperCase, short(0x01)) )
 
-    private def mul: Parser[(String, Array[Int])]       = """(?i)MUL""".r       ^^ ( x => (x.toUpperCase, long(0x53)) )
+    private def mul: Parser[(String, List[Int])]       = """(?i)MUL""".r       ^^ ( x => (x.toUpperCase, long(0x53)) )
 
-    private def fpumulby2: Parser[(String, Array[Int])] = """(?i)FPUMULBY2""".r ^^ ( x => (x.toUpperCase, seq(0x12)) )
+    private def fpumulby2: Parser[(String, List[Int])] = """(?i)FPUMULBY2""".r ^^ ( x => (x.toUpperCase, seq(0x12)) )
 
 }

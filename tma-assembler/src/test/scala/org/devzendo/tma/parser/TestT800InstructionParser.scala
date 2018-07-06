@@ -39,6 +39,8 @@ class TestT800InstructionParser extends AssertionsForJUnit with MustMatchers {
     def thrown: ExpectedException = _thrown
     var _thrown: ExpectedException = ExpectedException.none
 
+    // -----------------------------------------------------------------------------------------------------------------
+
     @Test
     def j(): Unit = {
         parser.parse("j 45") must be(DirectInstruction("J", 0, Number(45)))
@@ -118,6 +120,13 @@ class TestT800InstructionParser extends AssertionsForJUnit with MustMatchers {
     @Test
     def opr(): Unit = {
         parser.parse("opr 0x28") must be(DirectInstruction("OPR", 15, Number(0x28))) // will be expanded to pfix 02 opr 08
+    }
+
+    // -----------------------------------------------------------------------------------------------------------------
+
+    @Test
+    def rev(): Unit = {
+        parser.parse("rev") must be(IndirectInstruction("REV", List(0xf0)))
     }
 
 }

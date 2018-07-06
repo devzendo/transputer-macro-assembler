@@ -28,9 +28,11 @@ The assembler has built a binary of eForth without any parsing/code gen errors -
 listing side-by-side with that produced by MASM suggests that I'm assembling identically to MASM!
 I can't generate a binary with MASM - linking fails - but the listing is sufficient for verification
 
-Remaining work:
+Current work:
   * honour the Cpu directive, to switch in Transputer family native instructions, rather than db-generating macros
   * Transputer pfix/nfix generation from direct opcodes
+
+Remaining work:
   * local labels
   * global and extern symbols
   * use types to enforce case of symbols/fixups consistently
