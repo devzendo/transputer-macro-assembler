@@ -35,7 +35,7 @@ trait T800InstructionParser extends ExpressionParser with DiagnosableParser {
         }
     }
 
-    def parseStatement(line: String) = {
+    def parseStatement(line: String): (String, ParseResult[Statement]) = {
         val sanitizedInput = (if (line == null) "" else line).trim()
         val parseResult = parseAll(t800Instruction, sanitizedInput)
         (sanitizedInput, parseResult)
