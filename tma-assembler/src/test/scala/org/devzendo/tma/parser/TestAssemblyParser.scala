@@ -608,7 +608,7 @@ class TestAssemblyParser extends AssertionsForJUnit with MustMatchers {
 
         lines must be (List(
             Line(1, ".T800", None, Some(Processor("T800"))),
-            Line(2, "CODE: ldnlp 3", Some("CODE"), Some(DirectInstruction("LDNLP", 5, Number(3))))
+            Line(2, "CODE: ldnlp 3", Some("CODE"), Some(DirectInstruction("LDNLP", 0x50, Number(3))))
         ))
     }
 
