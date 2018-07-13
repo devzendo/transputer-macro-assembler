@@ -17,7 +17,7 @@
 package org.devzendo.tma.codegen
 
 import org.devzendo.commoncode.string.HexDump
-import org.devzendo.tma.ast.AST.{Label, SymbolName}
+import org.devzendo.tma.ast.AST.{Label, Opcode, SymbolName}
 import org.devzendo.tma.ast._
 import org.log4s.Logger
 
@@ -127,6 +127,8 @@ class CodeGenerator(debugCodegen: Boolean) {
             case If1() => processIf1()
             case Else() => processElse(line)
             case Endif() => processEndif(line)
+            case DirectInstruction(opcode, opbyte, expr) => processDirectInstruction(line, opcode, opbyte, expr)
+            case IndirectInstruction(opcode, opbytes) => processIndirectInstruction(line, opcode, opbytes)
         }
     }
 
@@ -270,6 +272,14 @@ class CodeGenerator(debugCodegen: Boolean) {
                 }
             }
         }
+    }
+
+    private def processDirectInstruction(line: Line, opcode: Opcode, opbyte: Int, expr: Expression): Unit = {
+        model.allocateEvaluatedInstructionStorageForLine(line, opbyte, expr)
+    }
+
+    private def processIndirectInstruction(line: Line, opcode: Opcode, opbytes: List[Int]): Unit = {
+        model.allocateInstructionStorageForLine(line, opbytes)
     }
 
     private val codeGenerationErrors = mutable.ArrayBuffer[CodeGenerationException]()

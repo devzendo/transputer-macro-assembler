@@ -846,4 +846,39 @@ class TestCodeGenerator extends AssertionsForJUnit with MustMatchers {
             index += 1
         })
     }
+
+    @Test
+    def indirectInstruction(): Unit = {
+        val cellWidth = 1
+        val inst = IndirectInstruction("FPUCLRERR", List(0x29, 0x4c, 0x2a, 0xfb))
+        val line = Line(1, "FPUCLRERR", None, Some(inst))
+        val model = generateFromLine(line)
+
+        val storages = model.getSourcedValuesForLineNumber(1)
+        storages must have size 1
+        val storage = singleStorage(storages)
+        storage.address must be(0)
+        storage.cellWidth must be(1)
+        storage.data.toList must be(List(0x29, 0x4c, 0x2a, 0xfb))
+        storage.line must be(line)
+        model.getDollar must be(0 + (cellWidth * 4))
+    }
+
+    @Test
+    def directInstructionDefined(): Unit = {
+        val cellWidth = 1
+        val inst = DirectInstruction("LDC", 0x40, Number(0x0a))
+        val line = Line(1, "LDC 0xa", None, Some(inst))
+        val model = generateFromLine(line)
+
+        val storages = model.getSourcedValuesForLineNumber(1)
+        storages must have size 1
+        val storage = singleStorage(storages)
+        storage.address must be(0)
+        storage.cellWidth must be(1)
+        storage.data.toList must be(List(0x4a))
+        storage.line must be(line)
+        model.getDollar must be(0 + (cellWidth * 1))
+    }
+
 }

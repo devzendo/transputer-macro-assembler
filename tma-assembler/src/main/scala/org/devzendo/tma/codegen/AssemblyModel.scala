@@ -408,6 +408,43 @@ class AssemblyModel(debugCodegen: Boolean) {
         allocateStorageForLine(line, cellWidth, exprs.toList)
     }
 
+    def allocateInstructionStorageForLine(line: Line, opbytes: List[Int]): Storage = {
+        val lineNumber = line.number
+        val sourcedValues = sourcedValuesForLineNumber(lineNumber)
+
+        val storage = Storage(getDollar, 1, opbytes.toArray, line, opbytes map { Number })
+        sourcedValues += storage
+
+        validateDataSizes(lineNumber, storage.data, 1) // they should be instruction bytes, so this shouldn't fail
+        dumpStorage(storage)
+        incrementDollar(opbytes.size)
+
+        storage
+    }
+
+    def allocateEvaluatedInstructionStorageForLine(line: Line, opbyte: Int, expr: Expression): Storage = {
+        val lineNumber = line.number
+        val evaluation = evaluateExpression(expr)
+        evaluation match {
+            case Right(value) =>
+                val prefixedBytes = DirectInstructionEncoder.apply(opbyte, value)
+                allocateInstructionStorageForLine(line, prefixedBytes)
+            case Left(undefineds) =>
+                if (debugCodegen) {
+                    logger.info("Symbol(s) (" + undefineds + ") are not yet defined on line " + lineNumber)
+                }
+                ???
+                //                recordStorageForwardReferences(undefineds, storage)
+                //                0
+                // Can only create a worst-case-sized storage, and fix it up (still worst-case) when definitions are
+                // resolved.
+                // Unless this type of Storage can expand/contract, and subsequent Storages can have their $ taken
+                // from real-$-plus/minus-offset, where they get readdressed when the ExpandoStorage's size changes.
+                // Next resetting of $ via org will end the subsequent-chain-readdressing. Buggers up the setting of
+                // Labels in the subsequent-chain though.
+        }
+    }
+
     // Note that this will give you the original-in-source and macro expansion Lines, and for each Storage,
     // back-references to its originating Line. (Which will be the Line of the first argument.)
     // Each Line can have more than one SourcedValue: e.g. a Label on the same line as a DB generates an AssignmentValue
