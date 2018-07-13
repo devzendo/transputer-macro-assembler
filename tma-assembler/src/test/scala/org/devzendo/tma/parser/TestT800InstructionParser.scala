@@ -43,83 +43,83 @@ class TestT800InstructionParser extends AssertionsForJUnit with MustMatchers {
 
     @Test
     def j(): Unit = {
-        parser.parse("j 45") must be(DirectInstruction("J", 0, Number(45)))
+        parser.parse("j 45") must be(DirectInstruction("J", 0x00, Number(45)))
     }
 
 
     @Test
     def ldlp(): Unit = {
-        parser.parse("ldlp FOO") must be(DirectInstruction("LDLP", 1, FOO))
+        parser.parse("ldlp FOO") must be(DirectInstruction("LDLP", 0x10, FOO))
     }
 
     @Test
     def pfix(): Unit = {
-        parser.parse("pfix 17") must be(DirectInstruction("PFIX", 2, Number(17)))
+        parser.parse("pfix 17") must be(DirectInstruction("PFIX", 0x20, Number(17)))
     }
 
     @Test
     def ldnl(): Unit = {
-        parser.parse("ldnl FOO") must be(DirectInstruction("LDNL", 3, FOO))
+        parser.parse("ldnl FOO") must be(DirectInstruction("LDNL", 0x30, FOO))
     }
 
     @Test
     def ldc(): Unit = {
-        parser.parse("ldc FOO") must be(DirectInstruction("LDC", 4, FOO))
+        parser.parse("ldc FOO") must be(DirectInstruction("LDC", 0x40, FOO))
     }
 
     @Test
     def ldnlp(): Unit = {
-        parser.parse("ldNlP FOO") must be(DirectInstruction("LDNLP", 5, FOO))
+        parser.parse("ldNlP FOO") must be(DirectInstruction("LDNLP", 0x50, FOO))
     }
 
     @Test
     def nfix(): Unit = {
-        parser.parse("nfix -3") must be(DirectInstruction("NFIX", 6, Number(-3)))
+        parser.parse("nfix -3") must be(DirectInstruction("NFIX", 0x60, Number(-3)))
     }
 
     @Test
     def ldl(): Unit = {
-        parser.parse("ldl 5") must be(DirectInstruction("LDL", 7, Number(5)))
+        parser.parse("ldl 5") must be(DirectInstruction("LDL", 0x70, Number(5)))
     }
 
     @Test
     def adc(): Unit = {
-        parser.parse("adc FOO") must be(DirectInstruction("ADC", 8, FOO))
+        parser.parse("adc FOO") must be(DirectInstruction("ADC", 0x80, FOO))
     }
 
     @Test
     def call(): Unit = {
-        parser.parse("Call FOO") must be(DirectInstruction("CALL", 9, FOO)) // mixed case too
+        parser.parse("Call FOO") must be(DirectInstruction("CALL", 0x90, FOO)) // mixed case too
     }
 
     @Test
     def cj(): Unit = {
-        parser.parse("cJ FOO") must be(DirectInstruction("CJ", 10, FOO))
+        parser.parse("cJ FOO") must be(DirectInstruction("CJ", 0xa0, FOO))
     }
 
     @Test
     def ajw(): Unit = {
-        parser.parse("ajw FOO") must be(DirectInstruction("AJW", 11, FOO))
+        parser.parse("ajw FOO") must be(DirectInstruction("AJW", 0xb0, FOO))
     }
 
     @Test
     def eqc(): Unit = {
-        parser.parse("eqc 5") must be(DirectInstruction("EQC", 12, Number(5)))
+        parser.parse("eqc 5") must be(DirectInstruction("EQC", 0xc0, Number(5)))
     }
 
     @Test
     def stl(): Unit = {
-        parser.parse("stl FOO") must be(DirectInstruction("STL", 13, FOO))
+        parser.parse("stl FOO") must be(DirectInstruction("STL", 0xd0, FOO))
     }
 
     @Test
     def stnl(): Unit = {
-        parser.parse("stnl FOO") must be(DirectInstruction("STNL", 14, FOO))
+        parser.parse("stnl FOO") must be(DirectInstruction("STNL", 0xe0, FOO))
     }
 
     @Test
     def opr(): Unit = {
-        parser.parse("opr 0x28") must be(DirectInstruction("OPR", 15, Number(0x28))) // will be expanded to pfix 02 opr 08
+        parser.parse("opr 0x28") must be(DirectInstruction("OPR", 0xf0, Number(0x28))) // will be expanded to pfix 02 opr 08
     }
 
     // -----------------------------------------------------------------------------------------------------------------

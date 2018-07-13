@@ -51,25 +51,42 @@ trait T800InstructionParser extends ExpressionParser with DiagnosableParser {
             DirectInstruction(opcode._1, opcode._2, expression)
     }
 
+    private val OP_J = 0x00
+    private val OP_LDLP = 0x10
+    private val OP_PFIX = 0x20
+    private val OP_LDNL = 0x30
+    private val OP_LDC = 0x40
+    private val OP_LDNLP = 0x50
+    private val OP_NFIX = 0x60
+    private val OP_LDL = 0x70
+    private val OP_ADC = 0x80
+    private val OP_CALL = 0x90
+    private val OP_CJ = 0xa0
+    private val OP_AJW = 0xb0
+    private val OP_EQC = 0xc0
+    private val OP_STL = 0xd0
+    private val OP_STNL = 0xe0
+    private val OP_OPR = 0xf0
+
     // in numeric order, but need to move ldnlp before ldnl so longest length parses first
     private def directOpcode: Parser[(String, Int)] = j | ldlp | pfix | ldnlp | ldnl | ldc | nfix | ldl | adc | call | cj | ajw | eqc | stl | stnl | opr
 
-    private def j: Parser[(String, Int)]     = """(?i)J""".r     ^^ ( x => (x.toUpperCase, 0x00) )
-    private def ldlp: Parser[(String, Int)]  = """(?i)LDLP""".r  ^^ ( x => (x.toUpperCase, 0x01) )
-    private def pfix: Parser[(String, Int)]  = """(?i)PFIX""".r  ^^ ( x => (x.toUpperCase, 0x02) )
-    private def ldnl: Parser[(String, Int)]  = """(?i)LDNL""".r  ^^ ( x => (x.toUpperCase, 0x03) )
-    private def ldc: Parser[(String, Int)]   = """(?i)LDC""".r   ^^ ( x => (x.toUpperCase, 0x04) )
-    private def ldnlp: Parser[(String, Int)] = """(?i)LDNLP""".r ^^ ( x => (x.toUpperCase, 0x05) )
-    private def nfix: Parser[(String, Int)]  = """(?i)NFIX""".r  ^^ ( x => (x.toUpperCase, 0x06) )
-    private def ldl: Parser[(String, Int)]   = """(?i)LDL""".r   ^^ ( x => (x.toUpperCase, 0x07) )
-    private def adc: Parser[(String, Int)]   = """(?i)ADC""".r   ^^ ( x => (x.toUpperCase, 0x08) )
-    private def call: Parser[(String, Int)]  = """(?i)CALL""".r  ^^ ( x => (x.toUpperCase, 0x09) )
-    private def cj: Parser[(String, Int)]    = """(?i)CJ""".r    ^^ ( x => (x.toUpperCase, 0x0a) )
-    private def ajw: Parser[(String, Int)]   = """(?i)AJW""".r   ^^ ( x => (x.toUpperCase, 0x0b) )
-    private def eqc: Parser[(String, Int)]   = """(?i)EQC""".r   ^^ ( x => (x.toUpperCase, 0x0c) )
-    private def stl: Parser[(String, Int)]   = """(?i)STL""".r   ^^ ( x => (x.toUpperCase, 0x0d) )
-    private def stnl: Parser[(String, Int)]  = """(?i)STNL""".r  ^^ ( x => (x.toUpperCase, 0x0e) )
-    private def opr: Parser[(String, Int)]   = """(?i)OPR""".r   ^^ ( x => (x.toUpperCase, 0x0f) )
+    private def j: Parser[(String, Int)]     = """(?i)J""".r     ^^ ( x => (x.toUpperCase, OP_J) )
+    private def ldlp: Parser[(String, Int)]  = """(?i)LDLP""".r  ^^ ( x => (x.toUpperCase, OP_LDLP) )
+    private def pfix: Parser[(String, Int)]  = """(?i)PFIX""".r  ^^ ( x => (x.toUpperCase, OP_PFIX) )
+    private def ldnl: Parser[(String, Int)]  = """(?i)LDNL""".r  ^^ ( x => (x.toUpperCase, OP_LDNL) )
+    private def ldc: Parser[(String, Int)]   = """(?i)LDC""".r   ^^ ( x => (x.toUpperCase, OP_LDC) )
+    private def ldnlp: Parser[(String, Int)] = """(?i)LDNLP""".r ^^ ( x => (x.toUpperCase, OP_LDNLP) )
+    private def nfix: Parser[(String, Int)]  = """(?i)NFIX""".r  ^^ ( x => (x.toUpperCase, OP_NFIX) )
+    private def ldl: Parser[(String, Int)]   = """(?i)LDL""".r   ^^ ( x => (x.toUpperCase, OP_LDL) )
+    private def adc: Parser[(String, Int)]   = """(?i)ADC""".r   ^^ ( x => (x.toUpperCase, OP_ADC) )
+    private def call: Parser[(String, Int)]  = """(?i)CALL""".r  ^^ ( x => (x.toUpperCase, OP_CALL) )
+    private def cj: Parser[(String, Int)]    = """(?i)CJ""".r    ^^ ( x => (x.toUpperCase, OP_CJ) )
+    private def ajw: Parser[(String, Int)]   = """(?i)AJW""".r   ^^ ( x => (x.toUpperCase, OP_AJW) )
+    private def eqc: Parser[(String, Int)]   = """(?i)EQC""".r   ^^ ( x => (x.toUpperCase, OP_EQC) )
+    private def stl: Parser[(String, Int)]   = """(?i)STL""".r   ^^ ( x => (x.toUpperCase, OP_STL) )
+    private def stnl: Parser[(String, Int)]  = """(?i)STNL""".r  ^^ ( x => (x.toUpperCase, OP_STNL) )
+    private def opr: Parser[(String, Int)]   = """(?i)OPR""".r   ^^ ( x => (x.toUpperCase, OP_OPR) )
 
 
 
@@ -97,21 +114,21 @@ trait T800InstructionParser extends ExpressionParser with DiagnosableParser {
         fpuchki64 | fpudivby2 | fpumulby2 | fpurn | fpuseterr | fpuclrerr
 
     // Opcode to direct instructions. As per CWG, p 117
-    private def short(opcode: Int): List[Int] = List(0xf0 | (opcode & 0x0f)) // OPR(opcode)
+    private def short(opcode: Int): List[Int] = List(OP_OPR | (opcode & 0x0f)) // OPR(opcode)
 
     private def long(opcode: Int): List[Int] = {
-        List(0x20 | ((opcode & 0xf0) >> 4),  // PFIX(opcode left-nybble)
-             0xf0 | (opcode & 0x0f))         // OPR(opcode right-nybble)
+        List(OP_PFIX | ((opcode & 0xf0) >> 4),  // PFIX(opcode left-nybble)
+             OP_OPR  | (opcode & 0x0f))         // OPR(opcode right-nybble)
     }
 
     private def seq(opcode: Int): List[Int] = {
         val areg = collection.mutable.ArrayBuffer[Int]()
         if (opcode > 0x0f) {
             // Two nybbles into Areg
-            areg += (0x20 | ((opcode & 0xf0) >> 4)) // PFIX(opcode left-nybble)
+            areg += (OP_PFIX | ((opcode & 0xf0) >> 4)) // PFIX(opcode left-nybble)
         }
         // Single nybble into Areg
-        areg += (0x40 | (opcode & 0x0f)) // LDC(opcode right-nybble)
+        areg += (OP_LDC | (opcode & 0x0f)) // LDC(opcode right-nybble)
 
         areg ++= long(0xAB) // FPENTRY
         areg.toList
