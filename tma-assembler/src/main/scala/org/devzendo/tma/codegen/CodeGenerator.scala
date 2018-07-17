@@ -41,6 +41,43 @@ class CodeGenerator(debugCodegen: Boolean) {
 
     def getLastLineNumber: Int = lastLineNumber
 
+    def createModel(lines: List[Line]): AssemblyModel = {
+        logger.info("Pass 1: Creating model from " + lines.size + " macro-expanded line(s)")
+        lines.foreach { l: Line =>
+            try {
+                processLine(l)
+            } catch {
+                case cge: CodeGenerationException => codeGenerationErrors += cge
+            }
+        }
+
+        logger.info("End of Pass 1: Checking for unresolved forward references")
+        try {
+            model.checkUnresolvedForwardReferences() // will throw if there are any
+        } catch {
+            case cge: CodeGenerationException => codeGenerationErrors += cge // doesn't throw these
+            case ame: AssemblyModelException => codeGenerationErrors += new CodeGenerationException(0, ame.getMessage)
+        }
+
+        logger.info("Pass 2: Updating model with " + p2Structures.size + " pass 2 section(s)")
+        try {
+            pass2()
+        } catch {
+            case cge: CodeGenerationException => codeGenerationErrors += cge
+        }
+        logger.info("End of Pass 2")
+
+        model
+    }
+
+    def getCodeGenerationExceptions: List[CodeGenerationException] = codeGenerationErrors.toList
+
+    def endCheck(): Unit = {
+        if (!model.hasEndBeenSeen) {
+            codeGenerationErrors += new CodeGenerationException(lastLineNumber, "End of input reached with no End statement")
+        }
+    }
+
     def processLine(line: Line): Unit = {
         if (line.number > lastLineNumber) {
             lastLineNumber = line.number
@@ -283,41 +320,4 @@ class CodeGenerator(debugCodegen: Boolean) {
     }
 
     private val codeGenerationErrors = mutable.ArrayBuffer[CodeGenerationException]()
-
-    def createModel(lines: List[Line]): AssemblyModel = {
-        logger.info("Pass 1: Creating model from " + lines.size + " macro-expanded line(s)")
-        lines.foreach { l: Line =>
-            try {
-                processLine(l)
-            } catch {
-                case cge: CodeGenerationException => codeGenerationErrors += cge
-            }
-        }
-
-        logger.info("End of Pass 1: Checking for unresolved forward references")
-        try {
-            model.checkUnresolvedForwardReferences() // will throw if there are any
-        } catch {
-            case cge: CodeGenerationException => codeGenerationErrors += cge // doesn't throw these
-            case ame: AssemblyModelException => codeGenerationErrors += new CodeGenerationException(0, ame.getMessage)
-        }
-
-        logger.info("Pass 2: Updating model with " + p2Structures.size + " pass 2 section(s)")
-        try {
-            pass2()
-        } catch {
-            case cge: CodeGenerationException => codeGenerationErrors += cge
-        }
-        logger.info("End of Pass 2")
-
-        model
-    }
-
-    def getCodeGenerationExceptions: List[CodeGenerationException] = codeGenerationErrors.toList
-
-    def endCheck(): Unit = {
-        if (!model.hasEndBeenSeen) {
-            codeGenerationErrors += new CodeGenerationException(lastLineNumber, "End of input reached with no End statement")
-        }
-    }
 }
