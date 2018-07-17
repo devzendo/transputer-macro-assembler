@@ -164,7 +164,8 @@ class CodeGenerator(debugCodegen: Boolean) {
             case If1() => processIf1()
             case Else() => processElse(line)
             case Endif() => processEndif(line)
-            case DirectInstruction(opcode, opbyte, expr) => processDirectInstruction(line, opcode, opbyte, expr)
+            case DirectInstruction(opcode, opbyte, expr) => processDirectInstruction(line, opbyte, expr)
+            case DirectEncodedInstruction(opcode, opbytes) => processDirectEncodedInstruction(line, opcode, opbytes)
             case IndirectInstruction(opcode, opbytes) => processIndirectInstruction(line, opcode, opbytes)
         }
     }
@@ -311,8 +312,33 @@ class CodeGenerator(debugCodegen: Boolean) {
         }
     }
 
-    private def processDirectInstruction(line: Line, opcode: Opcode, opbyte: Int, expr: Expression): Unit = {
-        model.allocateEvaluatedInstructionStorageForLine(line, opbyte, expr)
+    private def processDirectInstruction(line: Line, opbyte: Int, expr: Expression): Unit = {
+        val lineNumber = line.number
+        val evaluation = model.evaluateExpression(expr)
+        evaluation match {
+            case Right(value) =>
+                val prefixedBytes = DirectInstructionEncoder.apply(opbyte, value)
+                model.allocateInstructionStorageForLine(line, prefixedBytes)
+            case Left(undefineds) =>
+                if (debugCodegen) {
+                    logger.info("Symbol(s) (" + undefineds + ") are not yet defined on line " + lineNumber)
+                }
+                ???
+            //                recordStorageForwardReferences(undefineds, storage)
+            //                0
+            // Can only create a worst-case-sized storage, and fix it up (still worst-case) when definitions are
+            // resolved.
+            // Unless this type of Storage can expand/contract, and subsequent Storages can have their $ taken
+            // from real-$-plus/minus-offset, where they get readdressed when the ExpandoStorage's size changes.
+            // Next resetting of $ via org will end the subsequent-chain-readdressing. Buggers up the setting of
+            // Labels in the subsequent-chain though.
+        }
+
+    }
+
+
+    private def processDirectEncodedInstruction(line: Line, opcode: Opcode, opbytes: List[Int]): Unit = {
+        model.allocateInstructionStorageForLine(line, opbytes)
     }
 
     private def processIndirectInstruction(line: Line, opcode: Opcode, opbytes: List[Int]): Unit = {

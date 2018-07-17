@@ -23,9 +23,12 @@ object DirectInstructionEncoder {
     private val PFIX: Int = 0x20
     private val NFIX: Int = 0x60
 
-    // Given a direct instruction with its opcode in its left-hand nybble, and a value for its arg, encode the
-    // shortest sequence of (pfix|nfix)*<opcode> bytes that encode the direct instruction.
-    // Algorithm converted from "The Transputer Handbook", Graham & King, p24.
+    /*
+     * Given a direct instruction with its opcode in its left-hand nybble, and a value for its arg, encode the
+     * shortest sequence of (pfix|nfix)*<opcode> bytes that encode the direct instruction.
+     *
+     * Algorithm converted from "The Transputer Handbook", Graham & King, p24.
+     */
     def apply(op: Int, arg: Int): List[Int] = {
         val prefixed = if (arg < 0) {
             encodeStep((~arg) >> 4, true)
