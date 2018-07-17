@@ -78,7 +78,7 @@ class CodeGenerator(debugCodegen: Boolean) {
         }
     }
 
-    def processLine(line: Line): Unit = {
+    private def processLine(line: Line): Unit = {
         if (line.number > lastLineNumber) {
             lastLineNumber = line.number
         }
