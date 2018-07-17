@@ -881,4 +881,21 @@ class TestCodeGenerator extends AssertionsForJUnit with MustMatchers {
         model.getDollar must be(0 + (cellWidth * 1))
     }
 
+    @Test
+    def directInstructionDefinedWithPrefixes(): Unit = {
+        val cellWidth = 1
+        val inst = DirectInstruction("LDC", 0x40, Number(0x1234abcd))
+        val line = Line(1, "LDC 0x1234abcd", None, Some(inst))
+        val model = generateFromLine(line)
+
+        val storages = model.getSourcedValuesForLineNumber(1)
+        storages must have size 1
+        val storage = singleStorage(storages)
+        storage.address must be(0)
+        storage.cellWidth must be(1)
+        storage.data.toList must be(List(0x21, 0x22, 0x23, 0x24, 0x2a, 0x2b, 0x2c, 0x4d))
+        storage.line must be(line)
+        model.getDollar must be(0 + (cellWidth * 8))
+    }
+
 }
