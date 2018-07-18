@@ -29,8 +29,9 @@ listing side-by-side with that produced by MASM suggests that I'm assembling ide
 I can't generate a binary with MASM - linking fails - but the listing is sufficient for verification
 
 Current work:
-  * honour the Cpu directive, to switch in Transputer family native instructions, rather than db-generating macros
-  * Transputer pfix/nfix generation from direct opcodes
+  * DONE: honour the Cpu directive, to switch in Transputer family native instructions, rather than db-generating macros
+  * DONE: Transputer pfix/nfix generation from direct opcodes given constants or defined symbols
+  * STUCK ON: optimal pfix/nfix generation given forward references/undefined symbols
 
 Remaining work:
   * local labels
