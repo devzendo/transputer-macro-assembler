@@ -55,6 +55,10 @@ class AssemblyModel(debugCodegen: Boolean) {
     var columns = 80
     var processor: Option[String] = None
 
+    // "Converge Mode" is used when converging sequences of DirectInstructions containing undefined symbols: label and
+    // constant addresses may be adjusted in this state. If not in this state, then throw on reassignment.
+    var convergeMode: Boolean = false
+
     case class Value(value: Int, definitionLine: Int)
 
     private val variables = mutable.HashMap[String, Value]()
@@ -148,6 +152,10 @@ class AssemblyModel(debugCodegen: Boolean) {
             case Some(label) => throw new AssemblyModelException("Constant '" + name + "' cannot override existing label; initially defined on line " + label.definitionLine)
             case None => // drop through
         }
+        // Allow replacement...
+        if (convergeMode) {
+            constants.remove(name)
+        }
         constants.get(name) match {
             case Some(con) => throw new AssemblyModelException("Constant '" + name + "' cannot be redefined; initially defined on line " + con.definitionLine)
             case None =>
@@ -180,6 +188,11 @@ class AssemblyModel(debugCodegen: Boolean) {
             case Some(con) => throw new AssemblyModelException("Label '" + name + "' cannot override existing constant; initially defined on line " + con.definitionLine)
             case None => // drop through
         }
+        // Allow replacement...
+        if (convergeMode) {
+            labels.remove(name)
+        }
+
         labels.get(name) match {
             case Some(label) => throw new AssemblyModelException("Label '" + name + "' cannot be redefined; initially defined on line " + label.definitionLine)
             case None =>
@@ -202,6 +215,11 @@ class AssemblyModel(debugCodegen: Boolean) {
         (labelList ++ constantList).map(toSTE)
     }
 
+    def getConvergeMode() = convergeMode
+
+    def setConvergeMode(newMode: Boolean): Unit = {
+        convergeMode = newMode
+    }
 
     /**
       * Evaluate an expression, returning Left(Set(undefined variable names)) or Right(value)

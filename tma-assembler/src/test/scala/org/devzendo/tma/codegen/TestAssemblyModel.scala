@@ -43,6 +43,7 @@ class TestAssemblyModel extends AssertionsForJUnit with MustMatchers {
         model.hasEndBeenSeen must be (false)
         model.lowestStorageAddress must be(0)
         model.highestStorageAddress must be(0)
+        model.getConvergeMode() must be(false)
     }
 
     // Variables -------------------------------------------------------------------------------------------------------
@@ -137,6 +138,28 @@ class TestAssemblyModel extends AssertionsForJUnit with MustMatchers {
     def variableCannotBeDefinedOverExistingLabel(): Unit = {
         thrown.expect(classOf[AssemblyModelException])
         thrown.expectMessage("Variable '" + fnord + "' cannot override existing label; initially defined on line 1")
+
+        model.setLabel(fnord, 69, genDummyLine(1))
+        model.setVariable(fnord, 17, genDummyLine(2))
+    }
+
+    @Test
+    def variableCannotBeDefinedOverExistingConstantEvenInConvergeMode(): Unit = {
+        thrown.expect(classOf[AssemblyModelException])
+        thrown.expectMessage("Variable '" + fnord + "' cannot override existing constant; initially defined on line 1")
+
+        model.setConvergeMode(true)
+
+        model.setConstant(fnord, 69, genDummyLine(1))
+        model.setVariable(fnord, 17, genDummyLine(2))
+    }
+
+    @Test
+    def variableCannotBeDefinedOverExistingLabelEvenInConvergeMode(): Unit = {
+        thrown.expect(classOf[AssemblyModelException])
+        thrown.expectMessage("Variable '" + fnord + "' cannot override existing label; initially defined on line 1")
+
+        model.setConvergeMode(true)
 
         model.setLabel(fnord, 69, genDummyLine(1))
         model.setVariable(fnord, 17, genDummyLine(2))
@@ -240,6 +263,33 @@ class TestAssemblyModel extends AssertionsForJUnit with MustMatchers {
     }
 
     @Test
+    def constantCanBeRedefinedInConvergeMode(): Unit = {
+        model.setConstant(fnord, 69, genDummyLine(1))
+
+        model.setConvergeMode(true)
+
+        model.setConstant(fnord, 17, genDummyLine(2))
+
+        model.getConstant(fnord) must be(17)
+    }
+
+    @Test
+    def constantRedefinitionInConvergeModeRemembersNewDefinitionLine(): Unit = {
+        model.setConstant(fnord, 69, genDummyLine(1))
+
+        model.setConvergeMode(true)
+
+        model.setConstant(fnord, 17, genDummyLine(2))
+
+        thrown.expect(classOf[AssemblyModelException])
+        thrown.expectMessage("Constant '" + fnord + "' cannot be redefined; initially defined on line 2")
+
+        model.setConvergeMode(false)
+
+        model.setConstant(fnord, 89, genDummyLine(3))
+    }
+
+    @Test
     def constantCannotBeDefinedOverExistingVariable(): Unit = {
         thrown.expect(classOf[AssemblyModelException])
         thrown.expectMessage("Constant '" + fnord + "' cannot override existing variable; last stored on line 1")
@@ -252,6 +302,28 @@ class TestAssemblyModel extends AssertionsForJUnit with MustMatchers {
     def constantCannotBeDefinedOverExistingLabel(): Unit = {
         thrown.expect(classOf[AssemblyModelException])
         thrown.expectMessage("Constant '" + fnord + "' cannot override existing label; initially defined on line 1")
+
+        model.setLabel(fnord, 69, genDummyLine(1))
+        model.setConstant(fnord, 17, genDummyLine(2))
+    }
+
+    @Test
+    def constantCannotBeDefinedOverExistingVariableEvenInConvergeMode(): Unit = {
+        thrown.expect(classOf[AssemblyModelException])
+        thrown.expectMessage("Constant '" + fnord + "' cannot override existing variable; last stored on line 1")
+
+        model.setConvergeMode(true)
+
+        model.setVariable(fnord, 69, genDummyLine(1))
+        model.setConstant(fnord, 17, genDummyLine(2))
+    }
+
+    @Test
+    def constantCannotBeDefinedOverExistingLabelEvenInConvergeMode(): Unit = {
+        thrown.expect(classOf[AssemblyModelException])
+        thrown.expectMessage("Constant '" + fnord + "' cannot override existing label; initially defined on line 1")
+
+        model.setConvergeMode(true)
 
         model.setLabel(fnord, 69, genDummyLine(1))
         model.setConstant(fnord, 17, genDummyLine(2))
@@ -355,6 +427,33 @@ class TestAssemblyModel extends AssertionsForJUnit with MustMatchers {
     }
 
     @Test
+    def labelCanBeRedefinedInConvergeMode(): Unit = {
+        model.setLabel(fnord, 69, genDummyLine(1))
+
+        model.setConvergeMode(true)
+
+        model.setLabel(fnord, 17, genDummyLine(2))
+
+        model.getLabel(fnord) must be(17)
+    }
+
+    @Test
+    def labelRedefinedInConvergeModeRemembersNewDefinitionLine(): Unit = {
+        model.setLabel(fnord, 69, genDummyLine(1))
+
+        model.setConvergeMode(true)
+
+        model.setLabel(fnord, 17, genDummyLine(2))
+
+        thrown.expect(classOf[AssemblyModelException])
+        thrown.expectMessage("Label '" + fnord + "' cannot be redefined; initially defined on line 2")
+
+        model.setConvergeMode(false)
+
+        model.setLabel(fnord, 87, genDummyLine(3))
+    }
+
+    @Test
     def labelCannotBeDefinedOverExistingVariable(): Unit = {
         thrown.expect(classOf[AssemblyModelException])
         thrown.expectMessage("Label '" + fnord + "' cannot override existing variable; last stored on line 1")
@@ -367,6 +466,28 @@ class TestAssemblyModel extends AssertionsForJUnit with MustMatchers {
     def labelCannotBeDefinedOverExistingConstant(): Unit = {
         thrown.expect(classOf[AssemblyModelException])
         thrown.expectMessage("Label '" + fnord + "' cannot override existing constant; initially defined on line 1")
+
+        model.setConstant(fnord, 17, genDummyLine(1))
+        model.setLabel(fnord, 69, genDummyLine(2))
+    }
+
+    @Test
+    def labelCannotBeDefinedOverExistingVariableEvenInConvergeMode(): Unit = {
+        thrown.expect(classOf[AssemblyModelException])
+        thrown.expectMessage("Label '" + fnord + "' cannot override existing variable; last stored on line 1")
+
+        model.setConvergeMode(true)
+
+        model.setVariable(fnord, 17, genDummyLine(1))
+        model.setLabel(fnord, 69, genDummyLine(2))
+    }
+
+    @Test
+    def labelCannotBeDefinedOverExistingConstantEvenInConvergeMode(): Unit = {
+        thrown.expect(classOf[AssemblyModelException])
+        thrown.expectMessage("Label '" + fnord + "' cannot override existing constant; initially defined on line 1")
+
+        model.setConvergeMode(true)
 
         model.setConstant(fnord, 17, genDummyLine(1))
         model.setLabel(fnord, 69, genDummyLine(2))
