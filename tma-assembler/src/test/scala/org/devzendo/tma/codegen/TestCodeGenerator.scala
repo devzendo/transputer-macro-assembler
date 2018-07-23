@@ -864,6 +864,8 @@ class TestCodeGenerator extends AssertionsForJUnit with MustMatchers {
         model.getDollar must be(0 + (cellWidth * 4))
     }
 
+    // Straightforward cases of direct/indirect instructions that can be immediately built into storage...
+
     @Test
     def directInstructionDefined(): Unit = {
         val cellWidth = 1
@@ -897,5 +899,4 @@ class TestCodeGenerator extends AssertionsForJUnit with MustMatchers {
         storage.line must be(line)
         model.getDollar must be(0 + (cellWidth * 8))
     }
-
 }

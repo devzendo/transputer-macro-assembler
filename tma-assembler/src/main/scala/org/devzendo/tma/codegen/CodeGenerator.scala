@@ -23,6 +23,20 @@ import org.log4s.Logger
 
 import scala.collection.mutable
 
+object CodeGenerator {
+    def lineContainsDirectInstructionWithUndefinedSymbols(line: Line, model: AssemblyModel): Boolean = {
+        line.stmt match {
+            case Some(DirectInstruction(_, _, expr)) =>
+                model.evaluateExpression(expr) match {
+                    case Left(undefineds) => true
+                    case Right(value) => false
+                }
+            case Some(_) => false
+            case None => false
+        }
+    }
+}
+
 class CodeGenerator(debugCodegen: Boolean) {
     val logger: Logger = org.log4s.getLogger
 
@@ -39,13 +53,35 @@ class CodeGenerator(debugCodegen: Boolean) {
     private var lastLineNumber = 0
     private var passNumber = 1
 
+    private var directInstructionOffsetEncoder: Option[DirectInstructionOffsetEncoder] = None
+
     def getLastLineNumber: Int = lastLineNumber
 
+    var inputLines = mutable.ArrayBuffer[Line]()
+
     def createModel(lines: List[Line]): AssemblyModel = {
+        // Store the lines in a mutable, random accessible form, to aid the DirectInstructionOffsetEncoder
+        inputLines.clear()
+        inputLines ++= lines
+
         logger.info("Pass 1: Creating model from " + lines.size + " macro-expanded line(s)")
-        lines.foreach { l: Line =>
+        lines.foreach { line: Line =>
             try {
-                processLine(l)
+                // perhaps introduce a Strategy, and some pattern that's given one line, returning 0..n lines..
+                // if 0 lines returned, carry on with the current Strategy, if >0 lines returned, pop the
+                // Strategy off the stack. These lines are then submitted to the Strategy on TOS.
+                // The initial Strategy is this CodeGenerator; it can detect (via the LCDIWUS object method) whether
+                // to push a new Strategy (the DirectInstructionOffsetEncoder with a Stacked Assembly Model).
+                directInstructionOffsetEncoder match {
+                    case None =>
+                        processLine(line) // might set an encoder for future lines to be diverted to...
+                    case Some(encoder) =>
+                        encoder.addLine(line)
+                        if (encoder.isResolvable()) {
+                            directInstructionOffsetEncoder = None // subsequent lines are passed straight to processLine...
+                            encoder.resolvedLines().foreach(processLine)
+                        }
+                }
             } catch {
                 case cge: CodeGenerationException => codeGenerationErrors += cge
             }
@@ -90,8 +126,17 @@ class CodeGenerator(debugCodegen: Boolean) {
                 }
                 currentP2Structure.addPass2Line(line)
             } else {
-                createLabel(line)
-                processLineStatement(line)
+                // Might need to divert this, and subsequent lines through an encoder...
+                if (CodeGenerator.lineContainsDirectInstructionWithUndefinedSymbols(line, model)) {
+                    val encoder = new DirectInstructionOffsetEncoder(model)
+                    encoder.addLine(line)
+                    directInstructionOffsetEncoder = Some(encoder)
+                    // ... all incoming lines will go to the encoder until all undefined symbols are resolved, then all
+                    // resolved lines will be processed via the block below...
+                } else {
+                    createLabel(line)
+                    processLineStatement(line)
+                }
             }
         } catch {
             case ame: AssemblyModelException => throw new CodeGenerationException(line.number, ame.getMessage)

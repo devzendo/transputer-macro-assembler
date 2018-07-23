@@ -16,7 +16,7 @@
 
 package org.devzendo.tma.codegen
 
-import org.devzendo.tma.ast.Statement
+import org.devzendo.tma.ast.{Line, Statement}
 
 import scala.collection.mutable
 
@@ -36,16 +36,36 @@ import scala.collection.mutable
  * program is made, altering all those that require a larger offset to a suitable value. A further pass is then made,
  * expanding those instructions that do not now fit because the previous pass expanded instructions. This process
  * continues until no more changes need to be made.
- * This algorithm is the only one which is guaranteed to converge.
+ * This algorithm is the only one which is guaranteed to converge."
+ *
+ * The "data structure representing the whole program" is the AssemblyModel, in this case a StackedAssemblyModel which
+ * reads through to the main AssemblyModel but caches writes. This allows this encoder to adjust labels/constants/
+ * variables as necessary as it processes.
+ *
+ * need a DirectInstructionTrial that stores the length of its current encoding, and that can be asked if, when
+ * evaluated, it will fit in that length. if not, it can have its encoding length increased by one byte. (then the loop
+ * iterates). when all DITs return true, we're good, and can convert them to DirectEncodedInstructions
+ * Each time round the loop, the StackedAssemblyModel's cached state is reset.
+ *
+ * DirectInstruction (from the Parser) -> (replaced by, for this encoder) DirectInstructionTrial -> (replaced when done) DirectEncodedInstruction
+ *
+ * DirectEncodedInstructions are then trivially generated into binary.
+ *
+ * This encoder could be part of the CodeGenerator - perhaps doesn't need to be a Strategy on a stack.. could just mark
+ * the first/last line of the code needing encoding, or the index into the CodeGenerator's list of lines?
  */
 class DirectInstructionOffsetEncoder(val model: AssemblyModel) {
 
-    val statements = mutable.ArrayBuffer[Statement]()
+    val lines = mutable.ArrayBuffer[Line]()
     val symbolsToBeResolved = mutable.HashSet[String]()
 
-
-    def addStatement(statement: Statement): Unit = {
-        statements += statement
+    /**
+      * Add a line to the list of resolvable lines. If this is the first line, any label it contains will have been
+      * added to the main AssemblyModel (which will later cause duplication)
+      * @param line
+      */
+    def addLine(line: Line): Unit = {
+        lines += line
     }
 
     /**
@@ -56,7 +76,7 @@ class DirectInstructionOffsetEncoder(val model: AssemblyModel) {
         symbolsToBeResolved.isEmpty
     }
 
-    def resolvedStatements(): List[Statement] = {
-        statements.toList
+    def resolvedLines(): List[Line] = {
+        lines.toList
     }
 }
