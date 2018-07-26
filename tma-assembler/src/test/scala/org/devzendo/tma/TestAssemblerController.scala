@@ -17,7 +17,7 @@
 package org.devzendo.tma
 
 import org.devzendo.tma.ast._
-import org.devzendo.tma.codegen.{CodeGenerationException, CodeGenerator}
+import org.devzendo.tma.codegen.{AssemblyModel, CodeGenerationException, CodeGenerator}
 import org.devzendo.tma.parser.{AssemblyParser, AssemblyParserException, MacroManager}
 import org.junit.rules.ExpectedException
 import org.junit.{Rule, Test}
@@ -32,7 +32,8 @@ class TestAssemblerController extends AssertionsForJUnit with MustMatchers {
 
     val macroManager = new MacroManager(true)
     val parser = new AssemblyParser(true, true, macroManager)
-    val codegen = new CodeGenerator(true)
+    val model = new AssemblyModel(true)
+    val codegen = new CodeGenerator(true, model)
     val controller = new AssemblerController(macroManager, parser, codegen)
 
     @Test

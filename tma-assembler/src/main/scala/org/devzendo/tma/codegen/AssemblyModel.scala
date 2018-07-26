@@ -415,6 +415,13 @@ class AssemblyModel(debugCodegen: Boolean) {
         sourcedValuesForLineNumbers.getOrElseUpdate(lineNumber, mutable.ArrayBuffer[SourcedValue]())
     }
 
+    def clearSourcedValuesForLineNumber(lineNumber: Int): Unit = {
+        if (debugCodegen) {
+            logger.debug("Clearing sourced values for line number " + lineNumber)
+        }
+        sourcedValuesForLineNumbers.remove(lineNumber)
+    }
+
     def allocateStorageForLine(line: Line, cellWidth: Int, count: Expression, repeatedExpr: Expression): Storage = {
         if (containsUndefineds(count)) {
             throw new AssemblyModelException("Count of '" + count + "' is undefined on line " + line.number)
@@ -664,5 +671,21 @@ class AssemblyModel(debugCodegen: Boolean) {
     def highestStorageAddress: Int = {
         calculateBounds()
         highStorageAddress
+    }
+
+    def dump() = {
+        foreachLineSourcedValues((line: Line, sourcedValues: List[SourcedValue]) => {
+            logger.debug("----------")
+            logger.debug(s"line $line")
+            for (sv <- sourcedValues) {
+                sv match {
+                    case st: Storage =>
+                        logger.debug(s"  storage data ${st.data.toList} address ${st.address}")
+                    case av: AssignmentValue =>
+                        logger.debug(s"  assigned value ${av.data}")
+                }
+            }
+            logger.debug("----------")
+        })
     }
 }

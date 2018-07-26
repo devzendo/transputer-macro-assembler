@@ -23,24 +23,8 @@ import org.log4s.Logger
 
 import scala.collection.mutable
 
-object CodeGenerator {
-    def lineContainsDirectInstructionWithUndefinedSymbols(line: Line, model: AssemblyModel): Boolean = {
-        line.stmt match {
-            case Some(DirectInstruction(_, _, expr)) =>
-                model.evaluateExpression(expr) match {
-                    case Left(undefineds) => true
-                    case Right(value) => false
-                }
-            case Some(_) => false
-            case None => false
-        }
-    }
-}
-
-class CodeGenerator(debugCodegen: Boolean) {
+class CodeGenerator(debugCodegen: Boolean, model: AssemblyModel) {
     val logger: Logger = org.log4s.getLogger
-
-    private val model = new AssemblyModel(debugCodegen)
 
     object GenerationMode extends Enumeration {
         val Assembly, If1Seen, ElseSeen = Value
@@ -53,11 +37,51 @@ class CodeGenerator(debugCodegen: Boolean) {
     private var lastLineNumber = 0
     private var passNumber = 1
 
-    private var directInstructionOffsetEncoder: Option[DirectInstructionOffsetEncoder] = None
-
     def getLastLineNumber: Int = lastLineNumber
 
     var inputLines = mutable.ArrayBuffer[Line]()
+
+    /* State maintained during converge mode - when building optimal encodings for direct instruction offsets of
+     * forward-referenced symbols. Also see the AssemblyModel's converge mode flag that relaxes whether symbols can be
+     * redefined.
+     *
+     * Consider a DirectInstruction containing one or more undefined symbols, and all subsequent Statements until
+     * these symbols are defined. Note the line index of the start and end of this sequence.
+     * Compute the minimal encodings of all DirectInstructions in the list, converting them into
+     * DirectEncodedInstructions. The resulting list is then available to the CodeGenerator.
+     * The list of subsequent Statements may contain further undefined symbols - the CodeGenerator will keep giving
+     * Statements to this encoder until all undefined symbols have potential resolutions.
+     *
+     * The algorithm used here is from The Transputer Handbook, Graham & King, p48,49:
+     *
+     * "The solution is reasonably simple but time consuming. A data structure representing the whole program is built in
+     * memory. Fixed length sections of code can be held as binary, but any label must be kept as a pointer to the label and
+     * an associated size. Initially all offsets are assumed to fit in one nibble, with no prefixes needed. A pass over the
+     * program is made, altering all those that require a larger offset to a suitable value. A further pass is then made,
+     * expanding those instructions that do not now fit because the previous pass expanded instructions. This process
+     * continues until no more changes need to be made.
+     * This algorithm is the only one which is guaranteed to converge."
+     *
+     * need a DirectInstructionTrial that stores the length of its current encoding, and that can be asked if, when
+     * evaluated, it will fit in that length. if not, it can have its encoding length increased by one byte. (then the loop
+     * iterates). when all DITs return true, we're good, and can convert them to DirectEncodedInstructions
+     * Each time round the loop, the StackedAssemblyModel's cached state is reset.
+     *
+     * DirectInstruction (from the Parser) -> (replaced in converge mode) DirectInstructionTrial -> (replaced when done) DirectEncodedInstruction
+     *
+     * DirectEncodedInstructions are then trivially generated into binary.
+     */
+    var convergeMode: Boolean = false
+    var startConvergeLineIndex = 0
+    var endConvergeLineIndex = 0
+    var symbolsToConverge = mutable.HashSet[String]()
+    case class DirectInstructionState(directInstruction: DirectInstruction, currentSize: Int) {
+    }
+    var directInstructionByLineIndex = mutable.HashMap[Int, DirectInstructionState]()
+    var startConvergeDollar = 0
+
+    // End of converge mode state
+
 
     def createModel(lines: List[Line]): AssemblyModel = {
         // Store the lines in a mutable, random accessible form, to aid the DirectInstructionOffsetEncoder
@@ -65,23 +89,9 @@ class CodeGenerator(debugCodegen: Boolean) {
         inputLines ++= lines
 
         logger.info("Pass 1: Creating model from " + lines.size + " macro-expanded line(s)")
-        lines.foreach { line: Line =>
+        inputLines.zipWithIndex.foreach { tuple: (Line, Int) =>
             try {
-                // perhaps introduce a Strategy, and some pattern that's given one line, returning 0..n lines..
-                // if 0 lines returned, carry on with the current Strategy, if >0 lines returned, pop the
-                // Strategy off the stack. These lines are then submitted to the Strategy on TOS.
-                // The initial Strategy is this CodeGenerator; it can detect (via the LCDIWUS object method) whether
-                // to push a new Strategy (the DirectInstructionOffsetEncoder with a Stacked Assembly Model).
-                directInstructionOffsetEncoder match {
-                    case None =>
-                        processLine(line) // might set an encoder for future lines to be diverted to...
-                    case Some(encoder) =>
-                        encoder.addLine(line)
-                        if (encoder.isResolvable()) {
-                            directInstructionOffsetEncoder = None // subsequent lines are passed straight to processLine...
-                            encoder.resolvedLines().foreach(processLine)
-                        }
-                }
+                processLine(tuple._1, tuple._2)
             } catch {
                 case cge: CodeGenerationException => codeGenerationErrors += cge
             }
@@ -94,6 +104,8 @@ class CodeGenerator(debugCodegen: Boolean) {
             case cge: CodeGenerationException => codeGenerationErrors += cge // doesn't throw these
             case ame: AssemblyModelException => codeGenerationErrors += new CodeGenerationException(0, ame.getMessage)
         }
+
+        // TODO in converge mode still? there must be unresolveds then...
 
         logger.info("Pass 2: Updating model with " + p2Structures.size + " pass 2 section(s)")
         try {
@@ -114,7 +126,19 @@ class CodeGenerator(debugCodegen: Boolean) {
         }
     }
 
-    private def processLine(line: Line): Unit = {
+    private[codegen] def lineContainsDirectInstructionWithUndefinedSymbols(line: Line): Set[String] = {
+        line.stmt match {
+            case Some(DirectInstruction(_, _, expr)) =>
+                model.evaluateExpression(expr) match {
+                    case Left(undefineds) => undefineds
+                    case Right(value) => Set.empty
+                }
+            case Some(_) => Set.empty
+            case None => Set.empty
+        }
+    }
+
+    private def processLine(line: Line, lineIndex: Int): Unit = {
         if (line.number > lastLineNumber) {
             lastLineNumber = line.number
         }
@@ -124,23 +148,117 @@ class CodeGenerator(debugCodegen: Boolean) {
                 if (debugCodegen) {
                     logger.info("Adding line to Pass 2 Collection: " + line)
                 }
-                currentP2Structure.addPass2Line(line)
+                currentP2Structure.addPass2Line((line, lineIndex))
             } else {
-                // Might need to divert this, and subsequent lines through an encoder...
-                if (CodeGenerator.lineContainsDirectInstructionWithUndefinedSymbols(line, model)) {
-                    val encoder = new DirectInstructionOffsetEncoder(model)
-                    encoder.addLine(line)
-                    directInstructionOffsetEncoder = Some(encoder)
-                    // ... all incoming lines will go to the encoder until all undefined symbols are resolved, then all
-                    // resolved lines will be processed via the block below...
-                } else {
-                    createLabel(line)
-                    processLineStatement(line)
+                val directUndefineds = lineContainsDirectInstructionWithUndefinedSymbols(line)
+                if (directUndefineds.nonEmpty) {
+                    if (!convergeMode) {
+                        convergeMode = true
+                        startConvergeDollar = model.getDollar
+                        directInstructionByLineIndex.clear()
+                        startConvergeLineIndex = lineIndex
+                        logger.debug("Start of convergable lines at line index " + lineIndex + " line number " + line.number + " $ " + HexDump.int2hex(startConvergeDollar))
+                    }
+                    logger.debug("Adding " + directUndefineds + " to converge symbol set")
+                    symbolsToConverge ++= directUndefineds
+                }
+
+                createLabel(line)
+                processLineStatement(line, lineIndex)
+
+                line.label.foreach((label: Label) => {
+                    if (symbolsToConverge.contains(label)) {
+                        logger.debug("Removing " + label + " from converge symbol set")
+                        symbolsToConverge.remove(label)
+                    }
+                })
+
+                if (convergeMode && symbolsToConverge.isEmpty) {
+                    endConvergeLineIndex = lineIndex
+                    logger.debug("End of convergable lines on line index " + lineIndex + " line number " + line.number)
+                    converge()
+                    convergeMode = false
                 }
             }
         } catch {
             case ame: AssemblyModelException => throw new CodeGenerationException(line.number, ame.getMessage)
         }
+    }
+
+    def setOfLineNumbersInConvergence(): List[Int] = {
+        val set = mutable.HashSet[Int]()
+        for (i <- startConvergeLineIndex to endConvergeLineIndex) {
+            val line = inputLines(i)
+            set += line.number
+        }
+        set.toList
+    }
+
+    private def converge(): Unit = {
+        logger.info("Converging line indices [" + startConvergeLineIndex + " .. " + endConvergeLineIndex + "] Start $ " + HexDump.int2hex(startConvergeDollar))
+        model.setConvergeMode(true)
+        var iteration = 0
+        val lineNumbersInConvergence = setOfLineNumbersInConvergence()
+        logger.info("Line numbers in convergence: " + lineNumbersInConvergence)
+
+        var again = false
+        do {
+            iteration += 1
+            again = false
+            model.setDollarSilently(startConvergeDollar)
+
+            logger.info("Convergence iteration " + iteration)
+
+            // At top of loop, clear down model storage for all lines - macro expansions mean that multiple entries
+            // in inputLines could have the same line number. So only clear each line once, before reprocessing them
+            // all, below.
+            lineNumbersInConvergence.foreach(lineNumber => model.clearSourcedValuesForLineNumber(lineNumber))
+            // Convergence should only occur in pass 1. Pass 2 could add Storages that this would clear.
+
+            for (lineIndex <- startConvergeLineIndex to endConvergeLineIndex) {
+                val line = inputLines(lineIndex)
+                logger.debug("Converging line index " + lineIndex + ": " + line)
+
+                createLabel(line) // update any label with current $
+                val maybeElement = directInstructionByLineIndex.get(lineIndex)
+                maybeElement match {
+                    case Some(DirectInstructionState(di: DirectInstruction, currentSize: Int)) => {
+                        logger.info("Current size for direct instruction: " + currentSize)
+                        model.evaluateExpression(di.expr) match {
+
+                            case Right(value) =>
+                                logger.info("Encoding value " + value)
+                                val encoded = DirectInstructionEncoder.apply(di.opbyte, value)
+                                logger.info("New encoded size for direct instruction: " + encoded.size)
+                                if (encoded.size > currentSize) {
+                                    logger.info("CONV: Defined: Another byte of storage required")
+                                    // requires more size
+                                    directInstructionByLineIndex.put(lineIndex, DirectInstructionState(di, currentSize + 1))
+                                    model.incrementDollar(currentSize + 1)
+                                    again = true
+                                } else {
+                                    logger.info("CONV: Defined: Storage size ok; allocating")
+                                    model.allocateStorageForLine(line, 1, encoded map Number) // silently increments $
+                                }
+
+                            case Left(undefineds) =>
+                                logger.info("CONV: Undefined: Storage size static: Symbol(s) (" + undefineds + ") are not yet defined; allocating 1 byte")
+                                model.incrementDollar(currentSize)
+                        }
+                    }
+
+                    case None => {
+                        logger.info("CONV: Processing non-direct-instruction")
+                        // NB Not processLineStatement as that adds the Line to the model, and it's already been added once.
+                        line.stmt.foreach((stmt: Statement) =>
+                            processStatement(line, lineIndex, stmt)
+                        )
+                    }
+                }
+            }
+        } while (again)
+        logger.info("Convergence complete after " + iteration + " iteration(s)")
+        model.setConvergeMode(false)
     }
 
     private def notEndif(line: Line): Boolean = {
@@ -156,14 +274,14 @@ class CodeGenerator(debugCodegen: Boolean) {
         )
     }
 
-    private def processLineStatement(line: Line): Unit = {
+    private def processLineStatement(line: Line, lineIndex: Int): Unit = {
         model.addLine(line)
         line.stmt.foreach((stmt: Statement) =>
-            processStatement(line, stmt)
+            processStatement(line, lineIndex, stmt)
         )
     }
 
-    private def processStatement(line: Line, stmt: Statement): Unit = {
+    private def processStatement(line: Line, lineIndex: Int, stmt: Statement): Unit = {
         val lineNumber = line.number
         if (debugCodegen) {
             logger.info("Line " + lineNumber + " Statement: " + stmt)
@@ -209,7 +327,7 @@ class CodeGenerator(debugCodegen: Boolean) {
             case If1() => processIf1()
             case Else() => processElse(line)
             case Endif() => processEndif(line)
-            case DirectInstruction(opcode, opbyte, expr) => processDirectInstruction(line, opbyte, expr)
+            case DirectInstruction(opcode, opbyte, expr) => processDirectInstruction(line, lineIndex, stmt.asInstanceOf[DirectInstruction], opbyte, expr)
             case DirectEncodedInstruction(opcode, opbytes) => processDirectEncodedInstruction(line, opcode, opbytes)
             case IndirectInstruction(opcode, opbytes) => processIndirectInstruction(line, opcode, opbytes)
         }
@@ -343,13 +461,13 @@ class CodeGenerator(debugCodegen: Boolean) {
                 for (line <- p2Lines) {
                     // This will possibly append Storages at existing addresses - these will be resolved sequentially
                     // overwriting earlier memory, in the writers.
-                    processLine(line)
+                    processLine(line._1, line._2)
                 }
 
                 // Current address must match end address of pass 1. If not, the blocks are different sizes.
                 val endAddressPass2 = model.getDollar
                 if (endAddressPass2 != p2.getEndAddress) {
-                    throw new CodeGenerationException(p2Lines.head.number, "Differently-sized blocks in Passes 1 and 2: Pass 1=" +
+                    throw new CodeGenerationException(p2Lines.head._1.number, "Differently-sized blocks in Passes 1 and 2: Pass 1=" +
                       (p2.getEndAddress - p2.getStartAddress) + " byte(s); Pass 2=" +
                       (endAddressPass2 - p2.getStartAddress) + " byte(s)")
                 }
@@ -357,7 +475,7 @@ class CodeGenerator(debugCodegen: Boolean) {
         }
     }
 
-    private def processDirectInstruction(line: Line, opbyte: Int, expr: Expression): Unit = {
+    private def processDirectInstruction(line: Line, lineIndex: Int, di: DirectInstruction, opbyte: Int, expr: Expression): Unit = {
         val lineNumber = line.number
         val evaluation = model.evaluateExpression(expr)
         evaluation match {
@@ -368,19 +486,11 @@ class CodeGenerator(debugCodegen: Boolean) {
                 if (debugCodegen) {
                     logger.info("Symbol(s) (" + undefineds + ") are not yet defined on line " + lineNumber)
                 }
-                ???
-            //                recordStorageForwardReferences(undefineds, storage)
-            //                0
-            // Can only create a worst-case-sized storage, and fix it up (still worst-case) when definitions are
-            // resolved.
-            // Unless this type of Storage can expand/contract, and subsequent Storages can have their $ taken
-            // from real-$-plus/minus-offset, where they get readdressed when the ExpandoStorage's size changes.
-            // Next resetting of $ via org will end the subsequent-chain-readdressing. Buggers up the setting of
-            // Labels in the subsequent-chain though.
+                logger.info("Storing undefined direct instruction on line index " + lineIndex)
+                directInstructionByLineIndex.put(lineIndex, DirectInstructionState(di, 1))
+                model.incrementDollar(1)
         }
-
     }
-
 
     private def processDirectEncodedInstruction(line: Line, opcode: Opcode, opbytes: List[Int]): Unit = {
         model.allocateInstructionStorageForLine(line, opbytes)

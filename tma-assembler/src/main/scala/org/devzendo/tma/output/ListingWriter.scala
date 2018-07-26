@@ -120,15 +120,6 @@ class ListingWriter(val outputFile: File) {
         try {
             // First, the Listing...
             model.foreachLineSourcedValues((line: Line, sourcedValues: List[SourcedValue]) => {
-                logger.debug(s"line $line")
-                for (sv <- sourcedValues) {
-                    sv match {
-                        case st: Storage =>
-                            logger.debug(s"  data ${st.data.toList} storage $st")
-                        case av: AssignmentValue =>
-                            logger.debug(s"  data ${av.data} assigned value $av")
-                    }
-                }
 
                 val lineBuf = new StringBuilder()
 

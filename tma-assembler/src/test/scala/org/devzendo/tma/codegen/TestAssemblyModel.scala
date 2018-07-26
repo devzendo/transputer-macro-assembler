@@ -814,6 +814,25 @@ class TestAssemblyModel extends AssertionsForJUnit with MustMatchers {
     }
 
     @Test
+    def sourcedValuesCanBeCleared(): Unit = {
+        val numbers = List(Number(1), Number(2), Number(3))
+        val lineNumber = 4
+        val line = Line(lineNumber, "FNORD: DB 1,2,3", Some("FNORD"), Some(DB(numbers)))
+        model.setLabel(fnord, 42, line)
+        model.allocateStorageForLine(line, 1, numbers)
+
+        val sourcedValues = model.getSourcedValuesForLineNumber(lineNumber)
+        sourcedValues must have size 2
+        for (sourcedValue <- sourcedValues) {
+            logger.debug("SV is " + sourcedValue)
+        }
+
+        model.clearSourcedValuesForLineNumber(lineNumber)
+
+        model.getSourcedValuesForLineNumber(lineNumber) must be('empty)
+    }
+
+    @Test
     def undefinedCountExpressionInDupFails(): Unit = {
         thrown.expect(classOf[AssemblyModelException])
         thrown.expectMessage("Count of 'SymbolArg(FNORD)' is undefined on line 3")

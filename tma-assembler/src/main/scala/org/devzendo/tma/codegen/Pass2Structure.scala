@@ -28,7 +28,10 @@ class Pass2Structure {
 
     private var startAddress: Int = 0
     private var endAddress: Int = 0
-    private val lines = mutable.ArrayBuffer[Line]()
+
+    // The Int here is a line index (could refer to expanded macros) not a line number (refer to input source lines,
+    // and is available in line.number).
+    private val linesAndIndices = mutable.ArrayBuffer[(Line, Int)]()
 
     def setStartAddress(startAddress: Int): Unit = {
         this.startAddress = startAddress
@@ -42,8 +45,8 @@ class Pass2Structure {
 
     def getPass1BlockSize = endAddress - startAddress
 
-    def addPass2Line(line: Line): Unit = {
-        lines += line
+    def addPass2Line(tuple: (Line, Int)): Unit = {
+        linesAndIndices += tuple
     }
-    def getPass2Lines: List[Line] = lines.toList
+    def getPass2Lines: List[(Line, Int)] = linesAndIndices.toList
 }
