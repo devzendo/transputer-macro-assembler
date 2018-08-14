@@ -45,19 +45,19 @@ case class UnresolvableSymbol(line: Line, symbolType: UnresolvableSymbolType.Val
 class SymbolForwardReferenceFixupState {
 
     var resolutionCount: Int = 0
-    val references: mutable.HashSet[UnresolvableSymbol] = mutable.HashSet[UnresolvableSymbol]()
+    val unresolvableSymbols: mutable.HashSet[UnresolvableSymbol] = mutable.HashSet[UnresolvableSymbol]()
     def += (us: UnresolvableSymbol): Unit = {
-        references += us
+        unresolvableSymbols += us
     }
-    def nonEmpty: Boolean = references.nonEmpty
+    def nonEmpty: Boolean = unresolvableSymbols.nonEmpty
     def resolve(): Unit = {
         resolutionCount += 1
     }
 
-    override def toString: SymbolName = s"resolutions $resolutionCount: references: $references"
+    override def toString: SymbolName = s"resolutions $resolutionCount: references: $unresolvableSymbols"
 }
 
-class SymbolForwardReferenceFixups() {
+class SymbolForwardReferenceFixups {
     val logger: Logger = org.log4s.getLogger
 
     private val map = mutable.HashMap[String, SymbolForwardReferenceFixupState]()
@@ -66,7 +66,7 @@ class SymbolForwardReferenceFixups() {
         logger.debug(s"Symbol forward reference fixups: Size ${size()}")
         def logEntry(entry: (String, SymbolForwardReferenceFixupState)): Unit = {
             logger.debug(s"Undefined Symbol ${entry._1}; Resolution Count: ${entry._2.resolutionCount}")
-            val references = entry._2.references
+            val references = entry._2.unresolvableSymbols
             references.foreach((us: UnresolvableSymbol) => {
                 logger.debug(s"  Unresolvable ${us.symbolType} ${us.name} line number ${us.line.number}")
             })
@@ -76,7 +76,7 @@ class SymbolForwardReferenceFixups() {
 
     def -= (us: UnresolvableSymbol): Unit = {
         logger.debug(s"Removing $us from all entries in the fixup map")
-        map.foreach (_._2.references -= us)
+        map.foreach (_._2.unresolvableSymbols -= us)
     }
 
     def += (symbolNameUC: SymbolName, us: UnresolvableSymbol): Unit = {
@@ -106,7 +106,7 @@ class SymbolForwardReferenceFixups() {
 
     def getUnresolvableSymbols(symbolNameUC: SymbolName): Set[UnresolvableSymbol] = {
         map.get(symbolNameUC) match {
-            case Some(fixupState) => fixupState.references.toSet
+            case Some(fixupState) => fixupState.unresolvableSymbols.toSet
             case None => Set.empty
         }
     }
@@ -591,7 +591,9 @@ class AssemblyModel(debugCodegen: Boolean) {
             }
             storageForwardReferenceFixups.getOrElseUpdate(undefinedSymbol.toUpperCase, mutable.HashSet[Storage]()) += storageToReEvaluate
         }
-        logger.debug(storageForwardReferenceFixups.toString())
+        if (debugCodegen) {
+            logger.debug(storageForwardReferenceFixups.toString())
+        }
     }
 
     // The Symbol (Label/Variable/Constant) symbolName has been resolved to a value. Where it had been recorded as
@@ -673,7 +675,7 @@ class AssemblyModel(debugCodegen: Boolean) {
         symbolForwardReferenceFixups.getUnresolvableSymbols(symbol.toUpperCase)
     }
 
-    def resolutionCount(symbol: SymbolName): Int = {
+    private [codegen] def resolutionCount(symbol: SymbolName): Int = {
         symbolForwardReferenceFixups.resolutionCount(symbol.toUpperCase)
     }
 
@@ -704,7 +706,7 @@ class AssemblyModel(debugCodegen: Boolean) {
                 a.compareToIgnoreCase(b) < 0
             })
             val allStorageNamesAndLineReferences = undefinedSymbolNamesSorted.map((usn: String) => {
-                val unresolvableSymbols = unresolvedSymbols(usn).references
+                val unresolvableSymbols = unresolvedSymbols(usn).unresolvableSymbols
                 val unresolvableSymbolLinesSorted = unresolvableSymbols.map(_.line.number).toList.sorted
                 val unresolvableSymbolLineReferences = unresolvableSymbolLinesSorted.map("#" + _).mkString(", ")
                 val unresolvableSymbolNameAndLineReferences = usn + ": " + unresolvableSymbolLineReferences
