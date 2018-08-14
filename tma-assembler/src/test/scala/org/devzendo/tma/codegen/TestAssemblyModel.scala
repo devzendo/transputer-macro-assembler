@@ -167,6 +167,7 @@ class TestAssemblyModel extends AssertionsForJUnit with MustMatchers {
 
     @Test
     def variableSetWithUnresolvedSymbolsGetsResolvedAsTheSymbolsAreDefined(): Unit = {
+        logger.info("*** Start of test")
         // A = B + (C * 2)
         // where B and C are undefined
         val unresolvableExpr = Binary(Add(), SymbolArg("B"), Binary(Mult(), SymbolArg("C"), Number(2)))
@@ -174,46 +175,61 @@ class TestAssemblyModel extends AssertionsForJUnit with MustMatchers {
         // When codegen processes the =, it'll do...
         model.recordSymbolForwardReferences(Set("B", "C"), "A", unresolvableExpr, line, UnresolvableSymbolType.Variable)
         // which will record A as an unresolvable symbol keyed by (i.e. resolvable when) B and C are defined.
+        // A is a variable, so as it's undefined, it'll get fixed up when B and C are defined, but not if they
+        // change subsequently.
+
+        model.resolutionCount("B") must be (0)
+        model.resolutionCount("C") must be (0)
+
+        logger.info("*** Checking initial state")
         if (true) { // just for fresh scope
-            val symbolsB = model.unresolvableSymbolForwardReferences("B")
+            val symbolsB = model.unresolvedSymbolForwardReferences("B")
             symbolsB must have size 1
-            symbolsB.head.name must be("A")
+            symbolsB.head.name must be("A") // B is needed by A
             symbolsB.head.line must be(line)
             symbolsB.head.symbolType must be(UnresolvableSymbolType.Variable)
             symbolsB.head.expr must be(unresolvableExpr)
 
-            val symbolsC = model.unresolvableSymbolForwardReferences("C")
+            val symbolsC = model.unresolvedSymbolForwardReferences("C")
             symbolsC must have size 1
-            symbolsC.head.name must be("A")
+            symbolsC.head.name must be("A") // C is needed by A
             // won't bother checking the rest of the detail that was checked above..
 
             model.getSymbols must be(empty)
         }
 
+        logger.info("*** Defining B")
         // Now let's define B. Then only C will be unresolvable. B should exist, A and C should not.
         val bLine = Line(2, "B EQU 3", None, Some(ConstantAssignment(new SymbolName("B"), Number(3))))
         model.setConstant("B", 3, bLine)
+        logger.info("*** Checking state after defining B")
         if (true) { // just for fresh scope
-            val symbolsB = model.unresolvableSymbolForwardReferences("B")
-            symbolsB must be(empty)
+            model.resolutionCount("B") must be (1)
+            val symbolsB = model.unresolvedSymbolForwardReferences("B")
+            symbolsB must have size 1 // B still needed by A
 
-            val symbolsC = model.unresolvableSymbolForwardReferences("C")
+            model.resolutionCount("C") must be (0)
+            val symbolsC = model.unresolvedSymbolForwardReferences("C")
             symbolsC must have size 1
-            symbolsC.head.name must be("A")
+            symbolsC.head.name must be("A") // C still needed by A
 
             val symbolSet = model.getSymbols.toSet
             symbolSet must be(Set(SymbolTableEntry("B", 3)))
         }
 
+        logger.info("*** Defining C")
         // Now let's define C, then everything should exist, and there should be nothing in the unresolveable map.
         val cLine = Line(3, "C EQU 4", None, Some(ConstantAssignment(new SymbolName("C"), Number(4))))
         model.setConstant("C", 4, cLine)
+        logger.info("*** Checking state after defining C")
         if (true) { // just for fresh scope
-            val symbolsB = model.unresolvableSymbolForwardReferences("B")
-            symbolsB must be(empty)
+            model.resolutionCount("B") must be (1)
+            val symbolsB = model.unresolvedSymbolForwardReferences("B")
+            symbolsB must have size 0 // B not needed by A any more, since A is a variable (their changes are not tracked after first definition)
 
-            val symbolsC = model.unresolvableSymbolForwardReferences("C")
-            symbolsC must be(empty)
+            model.resolutionCount("C") must be (1)
+            val symbolsC = model.unresolvedSymbolForwardReferences("C")
+            symbolsC must have size 0 // C not needed by A any more, since A is a variable (their changes are not tracked after first definition)
 
             val symbolSet = model.getSymbols.toSet
             symbolSet must be(Set(
@@ -339,14 +355,15 @@ class TestAssemblyModel extends AssertionsForJUnit with MustMatchers {
         model.recordSymbolForwardReferences(Set("B", "C"), "A", unresolvableExpr, line, UnresolvableSymbolType.Constant)
         // which will record A as an unresolvable symbol keyed by (i.e. resolvable when) B and C are defined.
         if (true) { // just for fresh scope
-            val symbolsB = model.unresolvableSymbolForwardReferences("B")
+            val symbolsB = model.unresolvedSymbolForwardReferences("B")
+            model.resolutionCount("B") must be (0)
             symbolsB must have size 1
             symbolsB.head.name must be("A")
             symbolsB.head.line must be(line)
             symbolsB.head.symbolType must be(UnresolvableSymbolType.Constant)
             symbolsB.head.expr must be(unresolvableExpr)
 
-            val symbolsC = model.unresolvableSymbolForwardReferences("C")
+            val symbolsC = model.unresolvedSymbolForwardReferences("C")
             symbolsC must have size 1
             symbolsC.head.name must be("A")
             // won't bother checking the rest of the detail that was checked above..
@@ -358,10 +375,11 @@ class TestAssemblyModel extends AssertionsForJUnit with MustMatchers {
         val bLine = Line(2, "B EQU 3", None, Some(ConstantAssignment(new SymbolName("B"), Number(3))))
         model.setConstant("B", 3, bLine)
         if (true) { // just for fresh scope
-            val symbolsB = model.unresolvableSymbolForwardReferences("B")
-            symbolsB must be(empty)
+            val symbolsB = model.unresolvedSymbolForwardReferences("B")
+            model.resolutionCount("B") must be (1)
+            symbolsB must have size 1 // but it has now been resolved; it is retained for change tracking
 
-            val symbolsC = model.unresolvableSymbolForwardReferences("C")
+            val symbolsC = model.unresolvedSymbolForwardReferences("C")
             symbolsC must have size 1
             symbolsC.head.name must be("A")
 
@@ -373,11 +391,13 @@ class TestAssemblyModel extends AssertionsForJUnit with MustMatchers {
         val cLine = Line(3, "C EQU 4", None, Some(ConstantAssignment(new SymbolName("C"), Number(4))))
         model.setConstant("C", 4, cLine)
         if (true) { // just for fresh scope
-            val symbolsB = model.unresolvableSymbolForwardReferences("B")
-            symbolsB must be(empty)
+            val symbolsB = model.unresolvedSymbolForwardReferences("B")
+            model.resolutionCount("B") must be (1)
+            symbolsB must have size 1 // but it has now been resolved; it is retained for change tracking
 
-            val symbolsC = model.unresolvableSymbolForwardReferences("C")
-            symbolsC must be(empty)
+            val symbolsC = model.unresolvedSymbolForwardReferences("C")
+            model.resolutionCount("C") must be (1)
+            symbolsC must have size 1 // but it has now been resolved; it is retained for change tracking
 
             val symbolSet = model.getSymbols.toSet
             symbolSet must be(Set(

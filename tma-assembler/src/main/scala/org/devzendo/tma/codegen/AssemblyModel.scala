@@ -42,6 +42,85 @@ object UnresolvableSymbolType extends Enumeration {
 
 case class UnresolvableSymbol(line: Line, symbolType: UnresolvableSymbolType.Value, name: String, expr: Expression)
 
+class SymbolForwardReferenceFixupState {
+
+    var resolutionCount: Int = 0
+    val references = mutable.HashSet[UnresolvableSymbol]()
+    def += (us: UnresolvableSymbol): Unit = {
+        references += us
+    }
+    def nonEmpty: Boolean = references.nonEmpty
+    def resolve(): Unit = {
+        resolutionCount += 1
+    }
+
+    override def toString: SymbolName = s"resolutions ${resolutionCount}: references: ${references}"
+}
+
+class SymbolForwardReferenceFixups() {
+    val logger: Logger = org.log4s.getLogger
+
+    private val map = mutable.HashMap[String, SymbolForwardReferenceFixupState]()
+
+    def dump() = {
+        logger.debug(s"Symbol forward reference fixups: Size ${size()}")
+        def logEntry(entry: (String, SymbolForwardReferenceFixupState)): Unit = {
+            logger.debug(s"Undefined Symbol ${entry._1}; Resolution Count: ${entry._2.resolutionCount}")
+            val references = entry._2.references
+            references.foreach((us: UnresolvableSymbol) => {
+                logger.debug(s"  Unresolvable ${us.symbolType} ${us.name} line number ${us.line.number}")
+            })
+        }
+        map.foreach (logEntry)
+    }
+
+    def -= (us: UnresolvableSymbol): Unit = {
+        logger.debug(s"Removing $us from all entries in the fixup map")
+        map.foreach (_._2.references -= us)
+    }
+
+    def += (symbolNameUC: SymbolName, us: UnresolvableSymbol): Unit = {
+        logger.debug(s"Adding $us as needing fixup when $symbolNameUC is defined in the fixup map")
+        getOrElseCreate(symbolNameUC) += us
+    }
+
+    private def getOrElseCreate(undefinedSymbolUC: SymbolName): SymbolForwardReferenceFixupState = {
+        map.getOrElseUpdate(undefinedSymbolUC, new SymbolForwardReferenceFixupState())
+    }
+
+    def resolve(symbolNameUC: SymbolName): Unit = {
+        map.get(symbolNameUC) match {
+            case Some(fixupState) => fixupState.resolve()
+            case None =>
+        }
+    }
+
+    def size(): Int = map.size
+
+    def resolutionCount(symbolNameUC: SymbolName): Int = {
+        map.get(symbolNameUC) match {
+            case Some(fixupState) => fixupState.resolutionCount
+            case None => 0
+        }
+    }
+
+    def getUnresolvableSymbols(symbolNameUC: SymbolName): Set[UnresolvableSymbol] = {
+        map.get(symbolNameUC) match {
+            case Some(fixupState) => fixupState.references.toSet
+            case None => Set.empty
+        }
+    }
+
+    def allUnresolvedSymbolForwardReferences(): Map[String, SymbolForwardReferenceFixupState] = {
+        def isUnresolved(mapEntry: (String, SymbolForwardReferenceFixupState)): Boolean = {
+            mapEntry._2.resolutionCount == 0
+        }
+        val unresolved = map.filter(isUnresolved).toMap
+        logger.debug("Unresolved symbols: " + unresolved)
+        unresolved
+    }
+}
+
 /*
  * A mutable structure holding the output of the CodeGenerator.
  */
@@ -81,7 +160,7 @@ class AssemblyModel(debugCodegen: Boolean) {
 
     // Any forward references to Constants/Variables are noted here, and resolution done on definition of the
     // forwardly-referenced symbol (either a variable, constant, or label).
-    private val symbolForwardReferenceFixups = mutable.HashMap[String, mutable.HashSet[UnresolvableSymbol]]()
+    private val symbolForwardReferenceFixups = new SymbolForwardReferenceFixups()
 
     private var endSeen = false
 
@@ -498,20 +577,34 @@ class AssemblyModel(debugCodegen: Boolean) {
         })
     }
 
-    // unresolvableSymbolName is of type symbolType, has Expression unresolvableExpr which cannot be evaluated since
-    // it has undefined symbols, undefinedSymbols; unresolvableSymbolName is declared on line line.
+    // Called when a Constant or Variable is defined with one or more currently-undefined symbols in its expression.
+    // Records the Constant/Variable against each of those currently-undefined symbols, so that when they are defined,
+    // the Constant/Variable can be evaluated.
+    //
+    // unresolvableSymbolName is of type unresolvableSymbolType, has Expression unresolvableExpr which cannot be
+    // evaluated since it has undefined symbols, undefinedSymbols; unresolvableSymbolName is declared on line line.
     // e.g. <line 5> A EQU B+C*2
-    // where B and C are undefined. unresolvableSymbolName=A, unresolvableExpr=B+C*2, undefinedSymbols={B,C},
-    // symbolType=Constant and line = (5, "A EQU B+C*2", None, Some(unresolvableExpr)) (etc.)
-    def recordSymbolForwardReferences(undefinedSymbols: Set[String], unresolvableSymbolName: String, unresolvableExpr: Expression, line: Line, symbolType: UnresolvableSymbolType.Value): Unit = {
-        val unresolvableSymbol = UnresolvableSymbol(line, symbolType, unresolvableSymbolName, unresolvableExpr)
+    // where B and C are undefined...
+    // unresolvableSymbolName=A, unresolvableExpr=B+C*2, undefinedSymbols={B,C},
+    // unresolvableSymbolType=Constant and line = (5, "A EQU B+C*2", None, Some(unresolvableExpr)) (etc.)
+    def recordSymbolForwardReferences(undefinedSymbols: Set[String], unresolvableSymbolName: String,
+                                      unresolvableExpr: Expression, line: Line, unresolvableSymbolType: UnresolvableSymbolType.Value): Unit = {
+        val unresolvableSymbol = UnresolvableSymbol(line, unresolvableSymbolType, unresolvableSymbolName, unresolvableExpr)
         for (undefinedSymbol <- undefinedSymbols) {
+            val undefinedSymbolUC = undefinedSymbol.toUpperCase
             if (debugCodegen) {
-                logger.info(s"Recording symbol forward reference to $undefinedSymbol")
+                logger.info(s"Recording symbol $unresolvableSymbolName's forward reference to $undefinedSymbolUC")
             }
-            symbolForwardReferenceFixups.getOrElseUpdate(undefinedSymbol.toUpperCase, mutable.HashSet[UnresolvableSymbol]()) += unresolvableSymbol
+            // For all {B, C} add a reference to UnresolvableSymbol A
+            // But {B, C} might be referenced from a set of other UnresolvableSymbols e.g. {D, E}
+            // So B -> {A, D, E}
+            // and C -> {A, D, E}
+            symbolForwardReferenceFixups += (undefinedSymbolUC, unresolvableSymbol)  // (B, A) and (C, A)
         }
-        logger.debug(symbolForwardReferenceFixups.toString())
+
+        if (debugCodegen) {
+            symbolForwardReferenceFixups.dump()
+        }
     }
 
     private def recordStorageForwardReferences(undefinedSymbols: Set[String], storageToReEvaluate: Storage): Unit = {
@@ -532,12 +625,12 @@ class AssemblyModel(debugCodegen: Boolean) {
         // TODO can the two types of forward reference fixup be generalised?
 
         // Resolve forward references to Storages...
-        val storages = storageForwardReferences(symbolName)
-        if (storages.nonEmpty) {
+        val storagesWithForwardReferences = storageForwardReferences(symbolName)
+        if (storagesWithForwardReferences.nonEmpty) {
             if (debugCodegen) {
                 logger.info("Resolving Storage references to symbol '" + symbolName + "' with value " + value)
             }
-            for (storage <- storages) {
+            for (storage <- storagesWithForwardReferences) {
                 if (debugCodegen) {
                     logger.info("Resolving on line " + storage.line.number)
                 }
@@ -556,29 +649,42 @@ class AssemblyModel(debugCodegen: Boolean) {
         }
 
         // Resolve forward references to UnresolvableSymbols...
-        val unresolvableSymbolExprs = unresolvableSymbolForwardReferences(symbolName)
-        if (unresolvableSymbolExprs.nonEmpty) {
+        val unresolvableSymbols = unresolvedSymbolForwardReferences(symbolName)
+        if (unresolvableSymbols.nonEmpty) {
             if (debugCodegen) {
                 logger.info("Resolving Symbol references to symbol '" + symbolName + "' with value " + value)
             }
-            for (unresolvableSymbolExpr <- unresolvableSymbolExprs) {
+            for (unresolvableSymbol <- unresolvableSymbols) {
                 if (debugCodegen) {
-                    logger.info("Resolving " + unresolvableSymbolExpr.symbolType + " " + unresolvableSymbolExpr.name + " on line " + unresolvableSymbolExpr.line.number)
+                    logger.info("Resolving " + unresolvableSymbol.symbolType + " " +
+                      unresolvableSymbol.name + " on line " + unresolvableSymbol.line.number)
                 }
 
                 // Re-evaluate expressions, setting variable or constant, and removing the forward reference.
-                evaluateExpression(unresolvableSymbolExpr.expr) match {
+                evaluateExpression(unresolvableSymbol.expr) match {
                     case Right(result) =>
-                        unresolvableSymbolExpr.symbolType match {
+                        unresolvableSymbol.symbolType match {
                             case UnresolvableSymbolType.Constant =>
-                                setConstant(unresolvableSymbolExpr.name, result, unresolvableSymbolExpr.line)
+                                setConstant(unresolvableSymbol.name, result, unresolvableSymbol.line)
+                                // When Converging, constant changes are tracked, so keep the
+                                // unresolvableSymbolReference in the fixup map.
+                                if (debugCodegen) {
+                                    logger.debug(s"${unresolvableSymbol.name} is a Constant so not removing from fixup map, so convergence will track changes")
+                                }
                             case UnresolvableSymbolType.Variable =>
-                                setVariable(unresolvableSymbolExpr.name, result, unresolvableSymbolExpr.line)
+                                setVariable(unresolvableSymbol.name, result, unresolvableSymbol.line)
+                                // When Converging, variable changes are not tracked, so remove the
+                                // unresolvableSymbolReference in the fixup map, now that it has been set initially.
+                                if (debugCodegen) {
+                                    logger.debug(s"${unresolvableSymbol.name} is a Variable and not in Converge mode,so removing from fixup map")
+                                }
+                                symbolForwardReferenceFixups -= unresolvableSymbol
                         }
                     case Left(_) => // Expr still contains other undefined symbols, so more resolution to do....
                 }
+                symbolForwardReferenceFixups.resolve(symbolName)
+                symbolForwardReferenceFixups.dump()
             }
-            symbolForwardReferenceFixups.remove(symbolName)
         }
     }
 
@@ -586,9 +692,14 @@ class AssemblyModel(debugCodegen: Boolean) {
         storageForwardReferenceFixups.getOrElse(symbol.toUpperCase, Set.empty).toSet
     }
 
-    def unresolvableSymbolForwardReferences(symbol: String): Set[UnresolvableSymbol] = {
-        symbolForwardReferenceFixups.getOrElse(symbol.toUpperCase, Set.empty).toSet
+    private [codegen] def unresolvedSymbolForwardReferences(symbol: String): Set[UnresolvableSymbol] = {
+        symbolForwardReferenceFixups.getUnresolvableSymbols(symbol.toUpperCase)
     }
+
+    def resolutionCount(symbol: SymbolName): Int = {
+        symbolForwardReferenceFixups.resolutionCount(symbol.toUpperCase)
+    }
+
 
     def checkUnresolvedForwardReferences(): Unit = {
         // If there are any undefined symbols, sort them alphabetically, and list them with the line numbers they're
@@ -609,12 +720,14 @@ class AssemblyModel(debugCodegen: Boolean) {
               allStorageNamesAndLineReferences.mkString("; ") + ")")
         }
 
-        if (symbolForwardReferenceFixups.nonEmpty) {
-            val undefinedSymbolNamesSorted = symbolForwardReferenceFixups.keySet.toList.sortWith((a: String, b: String) => {
+
+        val unresolvedSymbols = symbolForwardReferenceFixups.allUnresolvedSymbolForwardReferences()
+        if (unresolvedSymbols.nonEmpty) {
+            val undefinedSymbolNamesSorted = unresolvedSymbols.keySet.toList.sortWith((a: String, b: String) => {
                 a.compareToIgnoreCase(b) < 0
             })
             val allStorageNamesAndLineReferences = undefinedSymbolNamesSorted.map((usn: String) => {
-                val unresolvableSymbols = symbolForwardReferenceFixups(usn)
+                val unresolvableSymbols = unresolvedSymbols(usn).references
                 val unresolvableSymbolLinesSorted = unresolvableSymbols.map(_.line.number).toList.sorted
                 val unresolvableSymbolLineReferences = unresolvableSymbolLinesSorted.map("#" + _).mkString(", ")
                 val unresolvableSymbolNameAndLineReferences = usn + ": " + unresolvableSymbolLineReferences

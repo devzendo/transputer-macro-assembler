@@ -19,7 +19,7 @@ package org.devzendo.tma.codegen
 import java.io.File
 
 import org.devzendo.tma.ast.AST.{Label, MacroArgument, MacroName, SymbolName}
-import org.devzendo.tma.ast.{ConstantAssignment, Line, _}
+import org.devzendo.tma.ast.{ConstantAssignment, Line, VariableAssignment, _}
 import org.devzendo.tma.output.ListingWriter
 import org.junit.rules.ExpectedException
 import org.junit.{Rule, Test}
@@ -87,6 +87,10 @@ class TestCodeGenerator extends AssertionsForJUnit with MustMatchers {
 
     private def singleAssignmentValue(sourcedValues: List[SourcedValue]): AssignmentValue = {
         sourcedValues.filter(_.isInstanceOf[AssignmentValue]).head.asInstanceOf[AssignmentValue]
+    }
+
+    private def lastAssignmentValue(sourcedValues: List[SourcedValue]): AssignmentValue = {
+        sourcedValues.filter(_.isInstanceOf[AssignmentValue]).reverse.head.asInstanceOf[AssignmentValue]
     }
 
     @Test
@@ -262,16 +266,53 @@ class TestCodeGenerator extends AssertionsForJUnit with MustMatchers {
     }
 
     @Test
-    def constantAssignmentToUndefinedSymbolIsFixedUpOnDefinition(): Unit = {
+    def constantAssignmentToUndefinedSymbolIsFixedUpOnDefinitionOfConstant(): Unit = {
         val model = generateFromStatements(List(
             ConstantAssignment(new SymbolName(fnord),SymbolArg("undef")),
-            ConstantAssignment(new SymbolName("undef"),Number(42)))
+            ConstantAssignment(new SymbolName("undef"),Number(42))) // causes fixup
         )
 
-        val tupleSet = model.unresolvableSymbolForwardReferences("undef")
-        tupleSet must have size 0
+        model.resolutionCount("undef") must be (1)
 
         model.getConstant("fnord") must be(42)
+    }
+
+    @Test
+    def constantAssignmentToUndefinedSymbolIsFixedUpOnDefinitionOfVariable(): Unit = {
+        val model = generateFromStatements(List(
+            ConstantAssignment(new SymbolName(fnord),SymbolArg("undef")),
+            VariableAssignment(new SymbolName("undef"),Number(42))) // causes fixup
+        )
+
+        model.resolutionCount("undef") must be (1)
+
+        model.getConstant("fnord") must be(42)
+    }
+
+    @Test
+    def constantAssignmentToUndefinedSymbolIsFixedUpOnDefinitionOfLabel(): Unit = {
+        val model = generateFromLines(List(
+            Line(1, "FNORD EQU undef", None, Some(ConstantAssignment(new SymbolName(fnord),SymbolArg("undef")))),
+            Line(2, "ORG 42", None, Some(Org(Number(42)))),
+            Line(3, "undef:", Some("undef"), None)
+        ))
+
+        model.resolutionCount("undef") must be (1)
+
+        model.getConstant("fnord") must be(42)
+    }
+
+    @Test
+    def constantAssignmentToUndefinedSymbolIsFixedUpOnDefinitionOfVariableAndTracksChanges(): Unit = {
+        // if this were in convergence, constant redefinition would be OK.
+        thrown.expect(classOf[CodeGenerationException])
+        thrown.expectMessage("3: Constant 'FNORD' cannot be redefined; initially defined on line 1")
+
+        val model = generateFromStatements(List(
+            ConstantAssignment(new SymbolName(fnord), SymbolArg("undef")),
+            VariableAssignment(new SymbolName("undef"), Number(42)), // causes fixup
+            VariableAssignment(new SymbolName("undef"), Number(69))) // boom
+        )
     }
 
     @Test
@@ -298,16 +339,59 @@ class TestCodeGenerator extends AssertionsForJUnit with MustMatchers {
     }
 
     @Test
-    def variableAssignmentToUndefinedSymbolIsFixedUpOnDefinition(): Unit = {
+    def variableAssignmentToUndefinedSymbolIsFixedUpOnDefinitionOfConstant(): Unit = {
         val model = generateFromStatements(List(
             VariableAssignment(new SymbolName(fnord),SymbolArg("undef")),
-            ConstantAssignment(new SymbolName("undef"),Number(42)))
+            ConstantAssignment(new SymbolName("undef"),Number(42))) // causes fixup
         )
 
-        val tupleSet = model.unresolvableSymbolForwardReferences("undef")
-        tupleSet must have size 0
+        model.resolutionCount("undef") must be (1)
 
         model.getVariable("fnord") must be(42)
+    }
+
+    @Test
+    def variableAssignmentToUndefinedSymbolIsFixedUpOnDefinitionOfVariable(): Unit = {
+        val model = generateFromStatements(List(
+            VariableAssignment(new SymbolName(fnord),SymbolArg("undef")),
+            VariableAssignment(new SymbolName("undef"),Number(42))) // causes fixup
+        )
+
+        model.resolutionCount("undef") must be (1)
+
+        model.getVariable("fnord") must be(42)
+    }
+
+    @Test
+    def variableAssignmentToUndefinedSymbolIsFixedUpOnDefinitionOfLabel(): Unit = {
+        val model = generateFromLines(List(
+            Line(1, "FNORD = undef", None, Some(VariableAssignment(new SymbolName(fnord),SymbolArg("undef")))),
+            Line(2, "ORG 42", None, Some(Org(Number(42)))),
+            Line(3, "undef:", Some("undef"), None)
+        ))
+
+        model.resolutionCount("undef") must be (1)
+
+        model.getVariable("fnord") must be(42)
+    }
+
+    // NOTE: Constants and Labels can be used in expressions when they're not yet defined, and when they are, the
+    // references will be updated, and will track changes to the labels and constants (typically such changes are only
+    // allowed during convergence: labels and constants are otherwise only assigned once).
+    // Variables can be used in expressions when they're not yet defined, and when they are, the references will be
+    // updated, but they will not track changes - as variables can change throughout the assembly.
+    @Test
+    def variableAssignmentToUndefinedSymbolIsFixedUpOnDefinitionAndShouldNotTrackChanges(): Unit = {
+        val model = generateFromStatements(List(
+            VariableAssignment(new SymbolName(fnord),SymbolArg("undef")),
+            VariableAssignment(new SymbolName("undef"),Number(42)), // causes fixup of fnord
+            VariableAssignment(new SymbolName("undef"),Number(69))) // does not cause change to fnord
+        )
+
+        model.resolutionCount("undef") must be (1)
+
+        model.getVariable("fnord") must be(42)
+        model.getVariable("undef") must be(69)
     }
 
     @Test
@@ -1068,6 +1152,167 @@ class TestCodeGenerator extends AssertionsForJUnit with MustMatchers {
         )
         val model = generateFromLines(lines)
         showListing(model)
+    }
+
+    @Test
+    def convergedAdjustedLabelsCauseUpdateToStorage(): Unit = {
+        val lines = List(
+            Line(1, "\t.T800", None, Some(Processor("T800"))),
+            Line(2, "\tORG 0x1000", None, Some(Org(Number(0x1000)))),
+            Line(3, "\tDD L1", None, Some(DD(List(SymbolArg("L1"))))), // Is this storage updated when L1 is known?
+            Line(4, "\tLDC L1", None, Some(DirectInstruction("LDC", 0x40, SymbolArg("L1")))),
+            Line(5, "\tLDPI", None, Some(IndirectInstruction("LDPI", List(0x21, 0xfb)))),
+            Line(6, "\tDB\t255 DUP 10", None, Some(DBDup(Number(255), Number(10)))), // pad the LDC out to 3 bytes
+            Line(7, "L1:\tDB\t'hello world'", Some("L1"), Some(DB(List(Characters("hello world")))))
+        )
+        val model = generateFromLines(lines)
+        model.convergeMode must be(false)
+        showListing(model)
+
+        model.getDollar must be(0x1114)
+
+        val expectedL1 = 0x1109
+        model.getLabel("L1") must be(expectedL1)
+
+        // What is that DD now set to?
+        val line3Storages = model.getSourcedValuesForLineNumber(3)
+        line3Storages must have size 1
+        val line3Storage = singleStorage(line3Storages)
+        line3Storage.address must be(0x1000)
+        line3Storage.cellWidth must be(4)
+        line3Storage.data.toList must be(List(expectedL1))
+    }
+
+    @Test
+    def convergedAdjustedConstantsCauseUpdateToStorage(): Unit = {
+        val lines = List(
+            Line(1, "\t.T800", None, Some(Processor("T800"))),
+            Line(2, "\tORG 0x1000", None, Some(Org(Number(0x1000)))),
+            Line(3, "\tDD C1", None, Some(DD(List(SymbolArg("C1"))))), // Is this storage updated when C1 is known?
+            Line(4, "\tLDC C1", None, Some(DirectInstruction("LDC", 0x40, SymbolArg("C1")))),
+            Line(5, "\tLDPI", None, Some(IndirectInstruction("LDPI", List(0x21, 0xfb)))),
+            Line(6, "\tDB\t255 DUP 10", None, Some(DBDup(Number(255), Number(10)))), // pad the LDC out to 3 bytes
+            Line(7, "C1\tEQU\t$", None, Some(ConstantAssignment(new SymbolName("C1"), SymbolArg("$"))))
+        )
+        val model = generateFromLines(lines)
+        model.convergeMode must be(false)
+        showListing(model)
+
+        model.getDollar must be(0x1114)
+
+        val expectedC1 = 0x1109
+        model.getConstant("C1") must be(expectedC1)
+
+        // What is that DD now set to?
+        val line3Storages = model.getSourcedValuesForLineNumber(3)
+        line3Storages must have size 1
+        val line3Storage = singleStorage(line3Storages)
+        line3Storage.address must be(0x1000)
+        line3Storage.cellWidth must be(4)
+        line3Storage.data.toList must be(List(expectedC1))
+        fail("The assembly of the LDC C1 is not present - why? Is this due to the lack of storage fixup?")
+    }
+
+    @Test
+    def convergedAdjustedLabelsCauseUpdateToConstants(): Unit = {
+        val lines = List(
+            Line(1, "\t.T800", None, Some(Processor("T800"))),
+            Line(2, "\tORG 0x1000", None, Some(Org(Number(0x1000)))),
+            Line(3, "\tL1COPY EQU L1", None, Some(ConstantAssignment("L1COPY", SymbolArg("L1")))), // Is this constant updated when L1 is known?
+            Line(4, "\tLDC L1", None, Some(DirectInstruction("LDC", 0x40, SymbolArg("L1")))),
+            Line(5, "\tLDPI", None, Some(IndirectInstruction("LDPI", List(0x21, 0xfb)))),
+            Line(6, "\tDB\t255 DUP 10", None, Some(DBDup(Number(255), Number(10)))), // pad the LDC out to 3 bytes
+            Line(7, "L1:\tDB\t'hello world'", Some("L1"), Some(DB(List(Characters("hello world"))))),
+            Line(8, "\tDD\tL1COPY", None, Some(DD(List(SymbolArg("L1COPY")))))
+        )
+        val model = generateFromLines(lines)
+        model.convergeMode must be(false)
+        showListing(model)
+
+        model.getDollar must be(0x1114)
+
+        val expectedL1 = 0x1105
+        model.getLabel("L1") must be(expectedL1)
+        model.getConstant("L1COPY") must be(expectedL1)
+
+        // What is that AssignedValue now set to? There will be several, what's in the last (which will be what's in
+        // the binary file)
+        val line3SourcedValues = model.getSourcedValuesForLineNumber(3)
+        line3SourcedValues.foreach( (sv: SourcedValue) => logger.debug(s"L1COPY sourced value ${sv}"))
+        line3SourcedValues must have size 5
+        val line3AssignmentValue = lastAssignmentValue(line3SourcedValues)
+        line3AssignmentValue.data must be(expectedL1)
+
+        // What does L1COPY get stored as in the DD on line 8?
+        val line8SourcedValues = model.getSourcedValuesForLineNumber(8)
+        line8SourcedValues.foreach( (sv: SourcedValue) => logger.debug(s"DD L1COPY sourced value ${sv}"))
+        line8SourcedValues must have size 1
+        val line8Storage = singleStorage(line8SourcedValues)
+        line8Storage.data(0) must be(expectedL1)
+    }
+
+    @Test
+    def convergedAdjustedLabelsCauseUpdateToVariablesOnFirstSetting(): Unit = {
+        val lines = List(
+            Line(1, "\t.T800", None, Some(Processor("T800"))),
+            Line(2, "\tORG 0x1000", None, Some(Org(Number(0x1000)))),
+            Line(3, "\tL1COPY = L1", None, Some(VariableAssignment("L1COPY", SymbolArg("L1")))), // Is this variable updated when L1 is known?
+            Line(4, "\tLDC L1", None, Some(DirectInstruction("LDC", 0x40, SymbolArg("L1")))),
+            Line(5, "\tLDPI", None, Some(IndirectInstruction("LDPI", List(0x21, 0xfb)))),
+            Line(6, "\tDB\t255 DUP 10", None, Some(DBDup(Number(255), Number(10)))), // pad the LDC out to 3 bytes
+            Line(7, "L1:\tDB\t'hello world'", Some("L1"), Some(DB(List(Characters("hello world")))))
+        )
+        val model = generateFromLines(lines)
+        model.convergeMode must be(false)
+        showListing(model)
+
+        model.getDollar must be(0x1110)
+
+        val expectedL1 = 0x1105
+        model.getLabel("L1") must be(expectedL1)
+
+        val firstL1 = 0x1102
+        model.getVariable("L1COPY") must be(firstL1)
+
+        // What is that AssignedValue now set to?
+        val line3SourcedValues = model.getSourcedValuesForLineNumber(3)
+        line3SourcedValues.foreach( (sv: SourcedValue) => logger.debug(s"L1COPY sourced value ${sv}"))
+        line3SourcedValues must have size 1
+        val line3AssignmentValue = singleAssignmentValue(line3SourcedValues)
+        line3AssignmentValue.data must be(firstL1)
+    }
+
+    @Test
+    def convergedAdjustedLabelsCauseUpdateToVariablesAndReferencesToTheseAreUpdatedOnFirstSetting(): Unit = {
+        val lines = List(
+            Line(1, "\t.T800", None, Some(Processor("T800"))),
+            Line(2, "\tORG 0x1000", None, Some(Org(Number(0x1000)))),
+            Line(3, "\tL1COPY = L1", None, Some(VariableAssignment("L1COPY", SymbolArg("L1")))),
+            Line(4, "\tLDC L1", None, Some(DirectInstruction("LDC", 0x40, SymbolArg("L1")))),
+            Line(5, "\tLDPI", None, Some(IndirectInstruction("LDPI", List(0x21, 0xfb)))),
+            Line(6, "\tDB\t255 DUP 10", None, Some(DBDup(Number(255), Number(10)))), // pad the LDC out to 3 bytes
+            Line(7, "L1:\tDB\t'hello world'", Some("L1"), Some(DB(List(Characters("hello world"))))),
+            Line(8, "\tDD L1COPY", None, Some(DD(List(SymbolArg("L1COPY"))))) // Is this storage updated when L1COPY is known? (after L1 is known?)
+        )
+        val model = generateFromLines(lines)
+        model.convergeMode must be(false)
+        showListing(model)
+
+        model.getDollar must be(0x1114)
+
+        val expectedL1 = 0x1105
+        model.getLabel("L1") must be(expectedL1)
+
+        val firstL1 = 0x1102
+        model.getVariable("L1COPY") must be(firstL1)
+
+        // What is that DD now set to?
+        val line8Storages = model.getSourcedValuesForLineNumber(8)
+        line8Storages must have size 1
+        val line8Storage = singleStorage(line8Storages)
+        line8Storage.address must be(0x1110)
+        line8Storage.cellWidth must be(4)
+        line8Storage.data.toList must be(List(firstL1))
     }
 
     private def showListing(model: AssemblyModel) = {
