@@ -45,7 +45,7 @@ case class UnresolvableSymbol(line: Line, symbolType: UnresolvableSymbolType.Val
 class SymbolForwardReferenceFixupState {
 
     var resolutionCount: Int = 0
-    val references = mutable.HashSet[UnresolvableSymbol]()
+    val references: mutable.HashSet[UnresolvableSymbol] = mutable.HashSet[UnresolvableSymbol]()
     def += (us: UnresolvableSymbol): Unit = {
         references += us
     }
@@ -54,7 +54,7 @@ class SymbolForwardReferenceFixupState {
         resolutionCount += 1
     }
 
-    override def toString: SymbolName = s"resolutions ${resolutionCount}: references: ${references}"
+    override def toString: SymbolName = s"resolutions $resolutionCount: references: $references"
 }
 
 class SymbolForwardReferenceFixups() {
@@ -62,7 +62,7 @@ class SymbolForwardReferenceFixups() {
 
     private val map = mutable.HashMap[String, SymbolForwardReferenceFixupState]()
 
-    def dump() = {
+    def dump(): Unit = {
         logger.debug(s"Symbol forward reference fixups: Size ${size()}")
         def logEntry(entry: (String, SymbolForwardReferenceFixupState)): Unit = {
             logger.debug(s"Undefined Symbol ${entry._1}; Resolution Count: ${entry._2.resolutionCount}")
@@ -294,7 +294,7 @@ class AssemblyModel(debugCodegen: Boolean) {
         (labelList ++ constantList).map(toSTE)
     }
 
-    def getConvergeMode() = convergeMode
+    def getConvergeMode: Boolean = convergeMode
 
     def setConvergeMode(newMode: Boolean): Unit = {
         convergeMode = newMode
@@ -467,7 +467,7 @@ class AssemblyModel(debugCodegen: Boolean) {
         storage
     }
 
-    private def dumpStorage(storage: Storage) = {
+    private def dumpStorage(storage: Storage): Unit = {
         if (debugCodegen) {
             def widthToDx(width: Int) = width match {
                 case 1 => "DB"
@@ -524,29 +524,6 @@ class AssemblyModel(debugCodegen: Boolean) {
         incrementDollar(opbytes.size)
 
         storage
-    }
-
-    def allocateEvaluatedInstructionStorageForLine(line: Line, opbyte: Int, expr: Expression): Storage = {
-        val lineNumber = line.number
-        val evaluation = evaluateExpression(expr)
-        evaluation match {
-            case Right(value) =>
-                val prefixedBytes = DirectInstructionEncoder.apply(opbyte, value)
-                allocateInstructionStorageForLine(line, prefixedBytes)
-            case Left(undefineds) =>
-                if (debugCodegen) {
-                    logger.info("Symbol(s) (" + undefineds + ") are not yet defined on line " + lineNumber)
-                }
-                ???
-                //                recordStorageForwardReferences(undefineds, storage)
-                //                0
-                // Can only create a worst-case-sized storage, and fix it up (still worst-case) when definitions are
-                // resolved.
-                // Unless this type of Storage can expand/contract, and subsequent Storages can have their $ taken
-                // from real-$-plus/minus-offset, where they get readdressed when the ExpandoStorage's size changes.
-                // Next resetting of $ via org will end the subsequent-chain-readdressing. Buggers up the setting of
-                // Labels in the subsequent-chain though.
-        }
     }
 
     // Note that this will give you the original-in-source and macro expansion Lines, and for each Storage,
@@ -786,7 +763,7 @@ class AssemblyModel(debugCodegen: Boolean) {
         highStorageAddress
     }
 
-    def dump() = {
+    def dump(): Unit = {
         foreachLineSourcedValues((line: Line, sourcedValues: List[SourcedValue]) => {
             logger.debug("----------")
             logger.debug(s"line $line")

@@ -43,7 +43,7 @@ class TestAssemblyModel extends AssertionsForJUnit with MustMatchers {
         model.hasEndBeenSeen must be (false)
         model.lowestStorageAddress must be(0)
         model.highestStorageAddress must be(0)
-        model.getConvergeMode() must be(false)
+        model.getConvergeMode must be(false)
     }
 
     // Variables -------------------------------------------------------------------------------------------------------

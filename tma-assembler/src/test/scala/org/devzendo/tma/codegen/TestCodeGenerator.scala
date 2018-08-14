@@ -190,7 +190,7 @@ class TestCodeGenerator extends AssertionsForJUnit with MustMatchers {
 
     @Test
     def endWithSubsequentCodeInPass2FixupsAllowed(): Unit = {
-        val model = generateFromLines(List(
+        generateFromLines(List(
             Line(1, "", None, Some(If1())),
             Line(2, "", None, Some(DD(List(Number(0))))),
             Line(3, "", None, Some(Else())),
@@ -308,7 +308,7 @@ class TestCodeGenerator extends AssertionsForJUnit with MustMatchers {
         thrown.expect(classOf[CodeGenerationException])
         thrown.expectMessage("3: Constant 'FNORD' cannot be redefined; initially defined on line 1")
 
-        val model = generateFromStatements(List(
+        generateFromStatements(List(
             ConstantAssignment(new SymbolName(fnord), SymbolArg("undef")),
             VariableAssignment(new SymbolName("undef"), Number(42)), // causes fixup
             VariableAssignment(new SymbolName("undef"), Number(69))) // boom
@@ -1238,14 +1238,14 @@ class TestCodeGenerator extends AssertionsForJUnit with MustMatchers {
         // What is that AssignedValue now set to? There will be several, what's in the last (which will be what's in
         // the binary file)
         val line3SourcedValues = model.getSourcedValuesForLineNumber(3)
-        line3SourcedValues.foreach( (sv: SourcedValue) => logger.debug(s"L1COPY sourced value ${sv}"))
+        line3SourcedValues.foreach( (sv: SourcedValue) => logger.debug(s"L1COPY sourced value $sv"))
         line3SourcedValues must have size 5
         val line3AssignmentValue = lastAssignmentValue(line3SourcedValues)
         line3AssignmentValue.data must be(expectedL1)
 
         // What does L1COPY get stored as in the DD on line 8?
         val line8SourcedValues = model.getSourcedValuesForLineNumber(8)
-        line8SourcedValues.foreach( (sv: SourcedValue) => logger.debug(s"DD L1COPY sourced value ${sv}"))
+        line8SourcedValues.foreach( (sv: SourcedValue) => logger.debug(s"DD L1COPY sourced value $sv"))
         line8SourcedValues must have size 1
         val line8Storage = singleStorage(line8SourcedValues)
         line8Storage.data(0) must be(expectedL1)
@@ -1276,7 +1276,7 @@ class TestCodeGenerator extends AssertionsForJUnit with MustMatchers {
 
         // What is that AssignedValue now set to?
         val line3SourcedValues = model.getSourcedValuesForLineNumber(3)
-        line3SourcedValues.foreach( (sv: SourcedValue) => logger.debug(s"L1COPY sourced value ${sv}"))
+        line3SourcedValues.foreach( (sv: SourcedValue) => logger.debug(s"L1COPY sourced value $sv"))
         line3SourcedValues must have size 1
         val line3AssignmentValue = singleAssignmentValue(line3SourcedValues)
         line3AssignmentValue.data must be(firstL1)
@@ -1315,7 +1315,7 @@ class TestCodeGenerator extends AssertionsForJUnit with MustMatchers {
         line8Storage.data.toList must be(List(firstL1))
     }
 
-    private def showListing(model: AssemblyModel) = {
+    private def showListing(model: AssemblyModel): Unit = {
         val listingFile: File = File.createTempFile("out.", ".lst", new File(System.getProperty("java.io.tmpdir")))
         try {
             val writer: ListingWriter = new ListingWriter(listingFile)

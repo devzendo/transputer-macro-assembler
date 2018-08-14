@@ -20,17 +20,19 @@ Status
 Project started 19 April 2018.
 Successful eForth assembly verified 25 June 2018.
  
-In active development; unfinished; not yet at its first release (as of mid-June 2018).
+In active development; unfinished; not yet at its first release (as of mid-August 2018).
 
-Parser, macro expansion, code generation and output of binary file and listing are done.
+Parser, macro expansion, code generation and output of binary file and listing are done. Optimally encodes direct
+instructions into pfix/nfix sequences - especially for forward references where location might not yet be known.
 
-The assembler has built a binary of eForth without any parsing/code gen errors - and a close inspection of the
-listing side-by-side with that produced by MASM suggests that I'm assembling identically to MASM!
-I can't generate a binary with MASM - linking fails - but the listing is sufficient for verification
+The assembler has built a binary of eForth without any parsing/code gen errors (using macros, not .T800 mode yet) - and
+a close inspection of the listing side-by-side with that produced by MASM suggests that I'm assembling identically to
+MASM! I can't generate a binary with MASM - linking fails - but the listing is sufficient for verification
 
 Current work:
 
-  * need to retain all references to symbols so that if they change during convergence, their referents are rebuilt
+  * need to retain all references to storage contents so that if embedded constants/labels change during convergence,
+    the storage is re-evaluated
   
 Remaining work:
   * local labels
@@ -89,7 +91,7 @@ For identifier syntax, see [The Java Language Spec](http://docs.oracle.com/javas
 The following fragment illustrates most of the key syntax:
 ```
 LABEL:    ; A label starting a line with a colon; a semicolon introduces a comment.
-          EQU MYCONST 42 ; Here's a constant; you can't re-assign them.
+          EQU MYCONST 42 ; Here's a constant; you can't re-assign them (see Convergence).
           MYVAR = 69     ; Here's a variable; you can re-assign them.
                          ; Constant, variable, and label names follow the rules for
                          ; Java identifiers: this means a letter, currency symbol or connecting
@@ -132,6 +134,21 @@ LABEL:    ; A label starting a line with a colon; a semicolon introduces a comme
           .LIST          ; Ignored
           .NOLIST        ; Ignored               
 ```
+
+Convergence
+-----------
+The transputer instruction set encodes 15 common instructions as 'Direct Instructions' in a single byte. The most
+significant nybble is the opcode; the least significant nybble is the operand, which can range from 0-15. For operands
+outside this range, the pfix/nfix direct instructions are used to precede the direct instruction being built, such that
+the full range of 32-bit operands can be used in these common instructions.
+
+This means that direct instructions can sometimes require a variable-length encoding. Where operands are forward
+references to addresses not yet known, an iterative approach is taken to build up these encodings - thereby changing the
+addresses of intervening symbols, until a stable set of encodings is available. This results in the most compact code,
+and is guaranteed to converge - if a little slowly.
+
+When the address of a label/constant/variable changes due to convergence, all references to it are re-evaluated.
+Even if a constant is defined to refer to a changing address.
 
 Getting Started
 ----------------
