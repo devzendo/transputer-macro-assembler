@@ -121,6 +121,31 @@ class SymbolForwardReferenceFixups {
     }
 }
 
+class StorageForwardReferenceFixups {
+
+
+    val logger: Logger = org.log4s.getLogger
+
+    private val map = mutable.HashMap[String, mutable.HashSet[Storage]]()
+
+    def getSymbolReferences(symbolUC: String): Set[Storage] = {
+        map.getOrElse(symbolUC, Set.empty).toSet
+    }
+
+    def unresolvedStorages(): Map[String, Set[Storage]] = {
+        // return deep immutable version
+        map.map {case (symbol, storageSet) => (symbol, storageSet.toSet)}.toMap
+    }
+
+    def += (symbolUC: String, storageToReEvaluate: Storage): mutable.Set[Storage] = {
+        map.getOrElseUpdate(symbolUC, mutable.HashSet[Storage]()) += storageToReEvaluate
+    }
+
+    def resolve(symbol: String): Unit = {
+        map.remove(symbol.toUpperCase())
+    }
+}
+
 /*
  * A mutable structure holding the output of the CodeGenerator.
  */
@@ -156,7 +181,7 @@ class AssemblyModel(debugCodegen: Boolean) {
 
     // Any forward references to Storages are noted here, and resolution done on definition of the forwardly-referenced
     // symbol (either a variable, constant, or label).
-    private val storageForwardReferenceFixups = mutable.HashMap[String, mutable.HashSet[Storage]]()
+    private val storageForwardReferenceFixups = new StorageForwardReferenceFixups()
 
     // Any forward references to Constants/Variables are noted here, and resolution done on definition of the
     // forwardly-referenced symbol (either a variable, constant, or label).
@@ -589,10 +614,10 @@ class AssemblyModel(debugCodegen: Boolean) {
             if (debugCodegen) {
                 logger.info(s"Recording storage forward reference to $undefinedSymbol")
             }
-            storageForwardReferenceFixups.getOrElseUpdate(undefinedSymbol.toUpperCase, mutable.HashSet[Storage]()) += storageToReEvaluate
+            storageForwardReferenceFixups += (undefinedSymbol.toUpperCase, storageToReEvaluate)
         }
         if (debugCodegen) {
-            logger.debug(storageForwardReferenceFixups.toString())
+            logger.debug(storageForwardReferenceFixups.toString)
         }
     }
 
@@ -624,7 +649,7 @@ class AssemblyModel(debugCodegen: Boolean) {
                 })
                 dumpStorage(storage)
             }
-            storageForwardReferenceFixups.remove(symbolName)
+            storageForwardReferenceFixups.resolve(symbolName)
         }
 
         // Resolve forward references to UnresolvableSymbols...
@@ -667,8 +692,8 @@ class AssemblyModel(debugCodegen: Boolean) {
         }
     }
 
-    def storageForwardReferences(symbol: String): Set[Storage] = {
-        storageForwardReferenceFixups.getOrElse(symbol.toUpperCase, Set.empty).toSet
+    private [codegen] def storageForwardReferences(symbol: String): Set[Storage] = {
+        storageForwardReferenceFixups.getSymbolReferences(symbol.toUpperCase())
     }
 
     private [codegen] def unresolvedSymbolForwardReferences(symbol: String): Set[UnresolvableSymbol] = {
@@ -683,12 +708,13 @@ class AssemblyModel(debugCodegen: Boolean) {
     def checkUnresolvedForwardReferences(): Unit = {
         // If there are any undefined symbols, sort them alphabetically, and list them with the line numbers they're
         // referenced on (sorted numerically). e.g. (aardvark: #1; FNORD: #3, #4; foo: #5; zygote: #1)
-        if (storageForwardReferenceFixups.nonEmpty) {
-            val undefinedSymbolNamesSorted = storageForwardReferenceFixups.keySet.toList.sortWith((a: String, b: String) => {
+        val unresolvedStorages: Map[String, Set[Storage]] = storageForwardReferenceFixups.unresolvedStorages()
+        if (unresolvedStorages.nonEmpty) {
+            val undefinedSymbolNamesSorted = unresolvedStorages.keySet.toList.sortWith((a: String, b: String) => {
                 a.compareToIgnoreCase(b) < 0
             })
             val allStorageNamesAndLineReferences = undefinedSymbolNamesSorted.map((usn: String) => {
-                val storageSet = storageForwardReferenceFixups(usn)
+                val storageSet = unresolvedStorages(usn)
                 val storageLinesSorted = storageSet.map(_.line.number).toList.sorted
                 val storageLineReferences = storageLinesSorted.map("#" + _).mkString(", ")
                 val storageNameAndLineReferences = usn + ": " + storageLineReferences
