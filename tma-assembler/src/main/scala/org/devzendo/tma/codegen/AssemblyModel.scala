@@ -37,7 +37,10 @@ case class AssignmentValue(data: Int, override val line: Line, isLabel: Boolean)
 case class SymbolTableEntry(name: String, value: Int)
 
 object UnresolvableSymbolType extends Enumeration {
-    val Variable, Constant = Value // cannot be a Label, as this is always set to $, which is always known
+    // Before implementing Convergence, this could not be a Label, as this is always set to $, which was always known.
+    // Now blocks of code can converge, due to variable-length direct instruction encodings, a label's value can
+    // change - and we need to record whether a symbol is a label, for fixing up Storage.
+    val Variable, Constant, Label = Value
 }
 
 case class UnresolvableSymbol(line: Line, symbolType: UnresolvableSymbolType.Value, name: String, expr: Expression)
@@ -122,8 +125,6 @@ class SymbolForwardReferenceFixups {
 }
 
 class StorageForwardReferenceFixups {
-
-
     val logger: Logger = org.log4s.getLogger
 
     private val map = mutable.HashMap[String, mutable.HashSet[Storage]]()
@@ -649,7 +650,7 @@ class AssemblyModel(debugCodegen: Boolean) {
                 })
                 dumpStorage(storage)
             }
-            storageForwardReferenceFixups.resolve(symbolName)
+            storageForwardReferenceFixups.resolve(symbolName) // TODO But only if it's a variable....
         }
 
         // Resolve forward references to UnresolvableSymbols...
@@ -664,7 +665,8 @@ class AssemblyModel(debugCodegen: Boolean) {
                       unresolvableSymbol.name + " on line " + unresolvableSymbol.line.number)
                 }
 
-                // Re-evaluate expressions, setting variable or constant, and removing the forward reference.
+                // Re-evaluate expressions, setting variable or constant, and removing the forward reference if it's a
+                // variable.
                 evaluateExpression(unresolvableSymbol.expr) match {
                     case Right(result) =>
                         unresolvableSymbol.symbolType match {
