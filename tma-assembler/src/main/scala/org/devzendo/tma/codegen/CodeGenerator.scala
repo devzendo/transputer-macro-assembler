@@ -376,7 +376,7 @@ class CodeGenerator(debugCodegen: Boolean, model: AssemblyModel) {
                 if (debugCodegen) {
                     logger.info("Cannot set constant " + name + " to expression " + expr + " due to undefined symbols " + undefineds + " on line number " + lineNumber)
                 }
-                model.recordSymbolForwardReferences(undefineds, name, expr, line, UnresolvableSymbolType.Constant)
+                model.recordSymbolForwardReferences(undefineds, name, expr, line, SymbolType.Constant)
             case Right(value) =>
                 model.setConstant(name, value, line)
         }
@@ -393,7 +393,7 @@ class CodeGenerator(debugCodegen: Boolean, model: AssemblyModel) {
                 if (debugCodegen) {
                     logger.info("Cannot set variable " + name + " to expression " + expr + " due to undefined symbols " + undefineds + " on line number " + lineNumber)
                 }
-                model.recordSymbolForwardReferences(undefineds, name, expr, line, UnresolvableSymbolType.Variable)
+                model.recordSymbolForwardReferences(undefineds, name, expr, line, SymbolType.Variable)
             case Right(value) =>
                 model.setVariable(name, value, line)
         }

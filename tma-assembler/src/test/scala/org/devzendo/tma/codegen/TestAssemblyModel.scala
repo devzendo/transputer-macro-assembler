@@ -173,7 +173,7 @@ class TestAssemblyModel extends AssertionsForJUnit with MustMatchers {
         val unresolvableExpr = Binary(Add(), SymbolArg("B"), Binary(Mult(), SymbolArg("C"), Number(2)))
         val line = Line(1, "A = B + (C * 2)", None, Some(VariableAssignment(new SymbolName("A"), unresolvableExpr)))
         // When codegen processes the =, it'll do...
-        model.recordSymbolForwardReferences(Set("B", "C"), "A", unresolvableExpr, line, UnresolvableSymbolType.Variable)
+        model.recordSymbolForwardReferences(Set("B", "C"), "A", unresolvableExpr, line, SymbolType.Variable)
         // which will record A as an unresolvable symbol keyed by (i.e. resolvable when) B and C are defined.
         // A is a variable, so as it's undefined, it'll get fixed up when B and C are defined, but not if they
         // change subsequently.
@@ -187,7 +187,7 @@ class TestAssemblyModel extends AssertionsForJUnit with MustMatchers {
             symbolsB must have size 1
             symbolsB.head.name must be("A") // B is needed by A
             symbolsB.head.line must be(line)
-            symbolsB.head.symbolType must be(UnresolvableSymbolType.Variable)
+            symbolsB.head.symbolType must be(SymbolType.Variable)
             symbolsB.head.expr must be(unresolvableExpr)
 
             val symbolsC = model.unresolvedSymbolForwardReferences("C")
@@ -352,7 +352,7 @@ class TestAssemblyModel extends AssertionsForJUnit with MustMatchers {
         val unresolvableExpr = Binary(Add(), SymbolArg("B"), Binary(Mult(), SymbolArg("C"), Number(2)))
         val line = Line(1, "A EQU B + (C * 2)", None, Some(ConstantAssignment(new SymbolName("A"), unresolvableExpr)))
         // When codegen processes the EQU, it'll do...
-        model.recordSymbolForwardReferences(Set("B", "C"), "A", unresolvableExpr, line, UnresolvableSymbolType.Constant)
+        model.recordSymbolForwardReferences(Set("B", "C"), "A", unresolvableExpr, line, SymbolType.Constant)
         // which will record A as an unresolvable symbol keyed by (i.e. resolvable when) B and C are defined.
         if (true) { // just for fresh scope
             val symbolsB = model.unresolvedSymbolForwardReferences("B")
@@ -360,7 +360,7 @@ class TestAssemblyModel extends AssertionsForJUnit with MustMatchers {
             symbolsB must have size 1
             symbolsB.head.name must be("A")
             symbolsB.head.line must be(line)
-            symbolsB.head.symbolType must be(UnresolvableSymbolType.Constant)
+            symbolsB.head.symbolType must be(SymbolType.Constant)
             symbolsB.head.expr must be(unresolvableExpr)
 
             val symbolsC = model.unresolvedSymbolForwardReferences("C")

@@ -36,14 +36,15 @@ case class AssignmentValue(data: Int, override val line: Line, isLabel: Boolean)
 
 case class SymbolTableEntry(name: String, value: Int)
 
-object UnresolvableSymbolType extends Enumeration {
+object SymbolType extends Enumeration {
+    // This used to be named 'UnresolvableSymbolType', but now is used to denote symbol types for resolved ones.
     // Before implementing Convergence, this could not be a Label, as this is always set to $, which was always known.
     // Now blocks of code can converge, due to variable-length direct instruction encodings, a label's value can
     // change - and we need to record whether a symbol is a label, for fixing up Storage.
     val Variable, Constant, Label = Value
 }
 
-case class UnresolvableSymbol(line: Line, symbolType: UnresolvableSymbolType.Value, name: String, expr: Expression)
+case class UnresolvableSymbol(line: Line, symbolType: SymbolType.Value, name: String, expr: Expression)
 
 class SymbolForwardReferenceFixupState {
 
@@ -591,7 +592,7 @@ class AssemblyModel(debugCodegen: Boolean) {
     // unresolvableSymbolName=A, unresolvableExpr=B+C*2, undefinedSymbols={B,C},
     // unresolvableSymbolType=Constant and line = (5, "A EQU B+C*2", None, Some(unresolvableExpr)) (etc.)
     def recordSymbolForwardReferences(undefinedSymbols: Set[String], unresolvableSymbolName: String,
-                                      unresolvableExpr: Expression, line: Line, unresolvableSymbolType: UnresolvableSymbolType.Value): Unit = {
+                                      unresolvableExpr: Expression, line: Line, unresolvableSymbolType: SymbolType.Value): Unit = {
         val unresolvableSymbol = UnresolvableSymbol(line, unresolvableSymbolType, unresolvableSymbolName, unresolvableExpr)
         for (undefinedSymbol <- undefinedSymbols) {
             val undefinedSymbolUC = undefinedSymbol.toUpperCase
@@ -670,14 +671,14 @@ class AssemblyModel(debugCodegen: Boolean) {
                 evaluateExpression(unresolvableSymbol.expr) match {
                     case Right(result) =>
                         unresolvableSymbol.symbolType match {
-                            case UnresolvableSymbolType.Constant =>
+                            case SymbolType.Constant =>
                                 setConstant(unresolvableSymbol.name, result, unresolvableSymbol.line)
                                 // When Converging, constant changes are tracked, so keep the
                                 // unresolvableSymbolReference in the fixup map.
                                 if (debugCodegen) {
                                     logger.debug(s"${unresolvableSymbol.name} is a Constant so not removing from fixup map, so convergence will track changes")
                                 }
-                            case UnresolvableSymbolType.Variable =>
+                            case SymbolType.Variable =>
                                 setVariable(unresolvableSymbol.name, result, unresolvableSymbol.line)
                                 // When Converging, variable changes are not tracked, so remove the
                                 // unresolvableSymbolReference in the fixup map, now that it has been set initially.
@@ -685,6 +686,8 @@ class AssemblyModel(debugCodegen: Boolean) {
                                     logger.debug(s"${unresolvableSymbol.name} is a Variable and not in Converge mode,so removing from fixup map")
                                 }
                                 symbolForwardReferenceFixups -= unresolvableSymbol
+                            case SymbolType.Label => // This should not happen....
+                                throw new AssemblyModelException("Labels cannot be unresolvable?")
                         }
                     case Left(_) => // Expr still contains other undefined symbols, so more resolution to do....
                 }
