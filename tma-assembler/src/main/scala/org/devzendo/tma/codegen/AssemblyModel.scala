@@ -235,7 +235,7 @@ class AssemblyModel(debugCodegen: Boolean) {
         if (debugCodegen) {
             logger.info("Variable " + name + " = " + n)
         }
-        resolveForwardReferences(name, n)
+        resolveForwardReferences(name, n, SymbolType.Variable)
     }
 
     def getConstant(name: String): Int = {
@@ -270,7 +270,7 @@ class AssemblyModel(debugCodegen: Boolean) {
                 if (debugCodegen) {
                     logger.info("Constant " + name + " = " + n)
                 }
-                resolveForwardReferences(name, n)
+                resolveForwardReferences(name, n, SymbolType.Constant)
         }
     }
 
@@ -307,7 +307,7 @@ class AssemblyModel(debugCodegen: Boolean) {
                 if (debugCodegen) {
                     logger.info("Label " + name + " = " + n)
                 }
-                resolveForwardReferences(name, n)
+                resolveForwardReferences(name, n, SymbolType.Label)
         }
     }
 
@@ -626,7 +626,7 @@ class AssemblyModel(debugCodegen: Boolean) {
     // The Symbol (Label/Variable/Constant) symbolName has been resolved to a value. Where it had been recorded as
     // needing fixing up in Storages or other Symbols, fix up, and if each fix up is complete, remove the record of it
     // needing fixing up.
-    private def resolveForwardReferences(symbolName: String, value: Int): Unit = {
+    private def resolveForwardReferences(symbolName: String, value: Int, symbolType: SymbolType.Value): Unit = {
         // TODO mark the storage as having had a forward reference resolved, so the R can be shown in the listing
         // TODO can the two types of forward reference fixup be generalised?
 
