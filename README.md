@@ -31,8 +31,10 @@ MASM! I can't generate a binary with MASM - linking fails - but the listing is s
 
 Current work:
 
-  * need to retain all references to storage contents so that if embedded constants/labels change during convergence,
-    the storage is re-evaluated
+  * There's duplication in the storage of references to storage contents/symbols so that if embedded constants/labels
+    change during convergence, the storage/expressions are re-evaluated; should unify this and use closures to
+    process fixups.
+  * There's duplication in the storage/processing of labels/constants/variables.
   
 Remaining work:
   * local labels

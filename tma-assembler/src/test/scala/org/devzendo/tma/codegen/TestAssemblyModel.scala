@@ -762,23 +762,23 @@ class TestAssemblyModel extends AssertionsForJUnit with MustMatchers {
     }
 
     @Test
-    def storageWithForwardReferenceIsFixedUpAndForwardReferenceRemovedOnConstantDefinition(): Unit = {
+    def storageWithForwardReferenceIsFixedUpAndForwardReferenceNotRemovedOnConstantDefinition(): Unit = {
         val exprs = List(SymbolArg(fnord))
         val storage = model.allocateStorageForLine(Line(3, "irrelevant", None, Some(DB(exprs))), 1, exprs)
         model.setConstant(fnord, 73, genDummyLine(4))
 
         storage.data must be(Array[Int](73))
-        model.storageForwardReferences(fnord) must be (Set.empty)
+        model.storageForwardReferences(fnord) must contain (storage)
     }
 
     @Test
-    def storageWithForwardReferenceIsFixedUpAndForwardReferenceRemovedOnLabelDefinition(): Unit = {
+    def storageWithForwardReferenceIsFixedUpAndForwardReferenceNotRemovedOnLabelDefinition(): Unit = {
         val exprs = List(SymbolArg(fnord))
         val storage = model.allocateStorageForLine(Line(3, "irrelevant", None, Some(DB(exprs))), 1, exprs)
         model.setLabel(fnord, 73, genDummyLine(4))
 
         storage.data must be(Array[Int](73))
-        model.storageForwardReferences(fnord) must be (Set.empty)
+        model.storageForwardReferences(fnord) must contain (storage)
     }
 
     @Test

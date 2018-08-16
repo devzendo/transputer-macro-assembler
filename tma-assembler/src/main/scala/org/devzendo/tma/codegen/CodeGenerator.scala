@@ -167,10 +167,7 @@ class CodeGenerator(debugCodegen: Boolean, model: AssemblyModel) {
                 processLineStatement(line, lineIndex)
 
                 line.label.foreach((label: Label) => {
-                    if (symbolsToConverge.contains(label)) {
-                        logger.debug("Removing " + label + " from converge symbol set")
-                        symbolsToConverge.remove(label)
-                    }
+                    resolveConvergeSetSymbol(label)
                 })
 
                 if (convergeMode && symbolsToConverge.isEmpty) {
@@ -182,6 +179,14 @@ class CodeGenerator(debugCodegen: Boolean, model: AssemblyModel) {
             }
         } catch {
             case ame: AssemblyModelException => throw new CodeGenerationException(line.number, ame.getMessage)
+        }
+    }
+
+    private def resolveConvergeSetSymbol(symbol: String) = {
+        val symbolUC = symbol.toUpperCase
+        if (symbolsToConverge.contains(symbolUC)) {
+            logger.debug("Removing " + symbolUC + " from converge symbol set")
+            symbolsToConverge.remove(symbolUC)
         }
     }
 
@@ -379,6 +384,7 @@ class CodeGenerator(debugCodegen: Boolean, model: AssemblyModel) {
                 model.recordSymbolForwardReferences(undefineds, name, expr, line, SymbolType.Constant)
             case Right(value) =>
                 model.setConstant(name, value, line)
+                resolveConvergeSetSymbol(name)
         }
     }
 
@@ -396,6 +402,7 @@ class CodeGenerator(debugCodegen: Boolean, model: AssemblyModel) {
                 model.recordSymbolForwardReferences(undefineds, name, expr, line, SymbolType.Variable)
             case Right(value) =>
                 model.setVariable(name, value, line)
+                resolveConvergeSetSymbol(name)
         }
     }
 

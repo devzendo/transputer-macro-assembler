@@ -1198,7 +1198,7 @@ class TestCodeGenerator extends AssertionsForJUnit with MustMatchers {
         model.convergeMode must be(false)
         showListing(model)
 
-        model.getDollar must be(0x1114)
+        model.getDollar must be(0x1109)
 
         val expectedC1 = 0x1109
         model.getConstant("C1") must be(expectedC1)
@@ -1210,7 +1210,35 @@ class TestCodeGenerator extends AssertionsForJUnit with MustMatchers {
         line3Storage.address must be(0x1000)
         line3Storage.cellWidth must be(4)
         line3Storage.data.toList must be(List(expectedC1))
-        fail("The assembly of the LDC C1 is not present - why? Is this due to the lack of storage fixup?")
+    }
+
+    @Test
+    def convergedAdjustedVariablesCauseUpdateToStorage(): Unit = {
+        val lines = List(
+            Line(1, "\t.T800", None, Some(Processor("T800"))),
+            Line(2, "\tORG 0x1000", None, Some(Org(Number(0x1000)))),
+            Line(3, "\tDD V1", None, Some(DD(List(SymbolArg("V1"))))), // Is this storage updated when V1 is known?
+            Line(4, "\tLDC V1", None, Some(DirectInstruction("LDC", 0x40, SymbolArg("V1")))),
+            Line(5, "\tLDPI", None, Some(IndirectInstruction("LDPI", List(0x21, 0xfb)))),
+            Line(6, "\tDB\t255 DUP 10", None, Some(DBDup(Number(255), Number(10)))), // pad the LDC out to 3 bytes
+            Line(7, "V1\t=\t$", None, Some(ConstantAssignment(new SymbolName("V1"), SymbolArg("$"))))
+        )
+        val model = generateFromLines(lines)
+        model.convergeMode must be(false)
+        showListing(model)
+
+        model.getDollar must be(0x1109)
+
+        val expectedV1 = 0x1109
+        model.getConstant("V1") must be(expectedV1)
+
+        // What is that DD now set to?
+        val line3Storages = model.getSourcedValuesForLineNumber(3)
+        line3Storages must have size 1
+        val line3Storage = singleStorage(line3Storages)
+        line3Storage.address must be(0x1000)
+        line3Storage.cellWidth must be(4)
+        line3Storage.data.toList must be(List(expectedV1))
     }
 
     @Test

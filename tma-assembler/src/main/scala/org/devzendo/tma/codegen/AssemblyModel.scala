@@ -129,22 +129,46 @@ class StorageForwardReferenceFixups {
     val logger: Logger = org.log4s.getLogger
 
     private val map = mutable.HashMap[String, mutable.HashSet[Storage]]()
+    private val resolutionCount = mutable.HashMap[String, Integer]()
+
+    def dump(): Unit = {
+        logger.debug(s"Storage forward reference fixups: Size ${map.size}")
+        map.keySet.foreach ((symbol: String) => {
+            logger.debug(s"  Undefined Symbol ${map(symbol)}; Resolution Count: ${resolutionCount(symbol)}")
+        })
+    }
 
     def getSymbolReferences(symbolUC: String): Set[Storage] = {
         map.getOrElse(symbolUC, Set.empty).toSet
     }
 
     def unresolvedStorages(): Map[String, Set[Storage]] = {
+        val unresolveds = map.filter { case (symbol, storageSet) => resolutionCount(symbol) == 0 }
         // return deep immutable version
-        map.map {case (symbol, storageSet) => (symbol, storageSet.toSet)}.toMap
+        unresolveds.map {case (symbol, storageSet) => (symbol, storageSet.toSet)}.toMap
     }
 
     def += (symbolUC: String, storageToReEvaluate: Storage): mutable.Set[Storage] = {
+        logger.debug(s"Adding storage for symbol $symbolUC, set resolution count to 0")
+        resolutionCount.put(symbolUC, 0)
         map.getOrElseUpdate(symbolUC, mutable.HashSet[Storage]()) += storageToReEvaluate
     }
 
-    def resolve(symbol: String): Unit = {
-        map.remove(symbol.toUpperCase())
+    def resolve(symbol: String, symbolType: SymbolType.Value): Unit = {
+        val symbolUC = symbol.toUpperCase()
+        logger.debug(s"Resolving symbol $symbolUC as a $symbolType")
+        // Undefined Constants and Labels can be initially defined, and redefined during Convergence; So can
+        // Variables - but they are defined once, and redefinition is not allowed.
+        symbolType match {
+            case SymbolType.Variable =>
+                map.remove(symbolUC)
+
+            case _ =>
+                // Constants and Labels track changes, so don't get removed.
+        }
+        val increment = resolutionCount.getOrElseUpdate(symbolUC, -1) + 1
+        resolutionCount.put(symbolUC, increment)
+        logger.debug(s"Resolved resolution count of $symbolUC is now " + resolutionCount.get(symbolUC))
     }
 }
 
@@ -334,14 +358,14 @@ class AssemblyModel(debugCodegen: Boolean) {
       * @return undefined variable names, or the evaluated value.
       */
     def evaluateExpression(expr: Expression): Either[Set[String], Int] = {
-        logger.debug("Evaluating " + expr)
+        //logger.debug("Evaluating " + expr)
         val undefineds = findUndefineds(expr)
         if (undefineds.nonEmpty) {
-            logger.debug("Undefined symbols: " + undefineds)
+            //logger.debug("Undefined symbols: " + undefineds)
             Left(undefineds)
         } else {
             val value = evaluateExpressionWithNoUndefineds(expr)
-            logger.debug("Evaluation of " + expr + " = " + value)
+            //logger.debug("Evaluation of " + expr + " = " + value)
             Right(value)
         }
     }
@@ -443,7 +467,7 @@ class AssemblyModel(debugCodegen: Boolean) {
         }
         for (d <- data) {
             val dUnsigned = getUnsignedInt(d)
-            logger.debug("cellWidth " + cellWidth + "; max " + max + "; name " + name + "; data " + dUnsigned)
+            //logger.debug("cellWidth " + cellWidth + "; max " + max + "; name " + name + "; data " + dUnsigned)
             if (dUnsigned < 0 || dUnsigned > max) {
                 throw new AssemblyModelException("Value of " + dUnsigned + " cannot be expressed in a " + name + " on line " + lineNumber)
             }
@@ -619,7 +643,7 @@ class AssemblyModel(debugCodegen: Boolean) {
             storageForwardReferenceFixups += (undefinedSymbol.toUpperCase, storageToReEvaluate)
         }
         if (debugCodegen) {
-            logger.debug(storageForwardReferenceFixups.toString)
+            storageForwardReferenceFixups.dump()
         }
     }
 
@@ -651,7 +675,7 @@ class AssemblyModel(debugCodegen: Boolean) {
                 })
                 dumpStorage(storage)
             }
-            storageForwardReferenceFixups.resolve(symbolName) // TODO But only if it's a variable....
+            storageForwardReferenceFixups.resolve(symbolName, symbolType)
         }
 
         // Resolve forward references to UnresolvableSymbols...
