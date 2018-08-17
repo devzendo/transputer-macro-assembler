@@ -67,6 +67,71 @@
 
     <build>
         <plugins>
+            <!-- Override defaults from group-parent-scala, to increase the stack size, as our Parser Combinators
+            need a big stack. -->
+            <plugin>
+                <groupId>net.alchim31.maven</groupId>
+                <artifactId>scala-maven-plugin</artifactId>
+                <version>3.3.2</version>
+                <executions>
+                    <execution>
+                        <id>default-compile</id>
+                        <phase>process-resources</phase>
+                        <goals>
+                            <goal>add-source</goal>
+                            <goal>compile</goal>
+                        </goals>
+                        <configuration>
+                            <scalaVersion>${scala.version}</scalaVersion>
+                            <sendJavaToScalac>true</sendJavaToScalac>
+                            <args>
+                                <arg>-deprecation</arg>
+                                <arg>-feature</arg>
+                                <!-- Would like to enable -Xexperimental for SAM types https://herringtondarkholme.github.io/2015/01/24/scala-sam/
+                                     but doing so breaks ScalaTest's use of eq/any argument matchers -->
+                                <arg>-language:implicitConversions</arg>
+                            </args>
+                            <jvmArgs>
+                                <jvmArg>-Xss10m</jvmArg>
+                            </jvmArgs>
+                        </configuration>
+                    </execution>
+                    <execution>
+                        <id>default-testCompile</id>
+                        <phase>process-test-resources</phase>
+                        <goals>
+                            <goal>testCompile</goal>
+                        </goals>
+                        <configuration>
+                            <scalaVersion>${scala.version}</scalaVersion>
+                            <sendJavaToScalac>true</sendJavaToScalac>
+                            <args>
+                                <arg>-deprecation</arg>
+                                <arg>-feature</arg>
+                                <!-- Would like to enable -Xexperimental for SAM types https://herringtondarkholme.github.io/2015/01/24/scala-sam/
+                                     but doing so breaks ScalaTest's use of eq/any argument matchers -->
+                                <arg>-language:implicitConversions</arg>
+                            </args>
+                            <jvmArgs>
+                                <jvmArg>-Xss10m</jvmArg>
+                            </jvmArgs>
+                        </configuration>
+                    </execution>
+                    <execution>
+                        <id>default-package</id>
+                        <phase>package</phase>
+                        <goals>
+                            <goal>doc-jar</goal>
+                        </goals>
+                        <configuration>
+                            <jvmArgs>
+                                <jvmArg>-Xss10m</jvmArg>
+                            </jvmArgs>
+                        </configuration>
+                    </execution>
+                </executions>
+            </plugin>
+
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-shade-plugin</artifactId>
