@@ -128,7 +128,7 @@ class TestAssemblyModel extends AssertionsForJUnit with MustMatchers {
     @Test
     def variableCannotBeDefinedOverExistingConstant(): Unit = {
         thrown.expect(classOf[AssemblyModelException])
-        thrown.expectMessage("Variable '" + fnord + "' cannot override existing constant; initially defined on line 1")
+        thrown.expectMessage("Variable 'FNORD' cannot override existing constant; initially defined on line 1")
 
         model.setConstant(fnord, 69, genDummyLine(1))
         model.setVariable(fnord, 17, genDummyLine(2))
@@ -137,7 +137,7 @@ class TestAssemblyModel extends AssertionsForJUnit with MustMatchers {
     @Test
     def variableCannotBeDefinedOverExistingLabel(): Unit = {
         thrown.expect(classOf[AssemblyModelException])
-        thrown.expectMessage("Variable '" + fnord + "' cannot override existing label; initially defined on line 1")
+        thrown.expectMessage("Variable 'FNORD' cannot override existing label; initially defined on line 1")
 
         model.setLabel(fnord, 69, genDummyLine(1))
         model.setVariable(fnord, 17, genDummyLine(2))
@@ -146,7 +146,7 @@ class TestAssemblyModel extends AssertionsForJUnit with MustMatchers {
     @Test
     def variableCannotBeDefinedOverExistingConstantEvenInConvergeMode(): Unit = {
         thrown.expect(classOf[AssemblyModelException])
-        thrown.expectMessage("Variable '" + fnord + "' cannot override existing constant; initially defined on line 1")
+        thrown.expectMessage("Variable 'FNORD' cannot override existing constant; initially defined on line 1")
 
         model.setConvergeMode(true)
 
@@ -157,7 +157,7 @@ class TestAssemblyModel extends AssertionsForJUnit with MustMatchers {
     @Test
     def variableCannotBeDefinedOverExistingLabelEvenInConvergeMode(): Unit = {
         thrown.expect(classOf[AssemblyModelException])
-        thrown.expectMessage("Variable '" + fnord + "' cannot override existing label; initially defined on line 1")
+        thrown.expectMessage("Variable 'FNORD' cannot override existing label; initially defined on line 1")
 
         model.setConvergeMode(true)
 
