@@ -272,7 +272,7 @@ class TestAssemblyModel extends AssertionsForJUnit with MustMatchers {
     @Test
     def constantCannotBeRedefined(): Unit = {
         thrown.expect(classOf[AssemblyModelException])
-        thrown.expectMessage("Constant '" + fnord + "' cannot be redefined; initially defined on line 1")
+        thrown.expectMessage("Constant '" + fnord + "' cannot override existing constant; defined on line 1")
 
         model.setConstant(fnord, 69, genDummyLine(1))
         model.setConstant(fnord, 17, genDummyLine(2))
@@ -298,7 +298,7 @@ class TestAssemblyModel extends AssertionsForJUnit with MustMatchers {
         model.setConstant(fnord, 17, genDummyLine(2))
 
         thrown.expect(classOf[AssemblyModelException])
-        thrown.expectMessage("Constant '" + fnord + "' cannot be redefined; initially defined on line 2")
+        thrown.expectMessage("Constant '" + fnord + "' cannot override existing constant; defined on line 2")
 
         model.setConvergeMode(false)
 
@@ -308,7 +308,7 @@ class TestAssemblyModel extends AssertionsForJUnit with MustMatchers {
     @Test
     def constantCannotBeDefinedOverExistingVariable(): Unit = {
         thrown.expect(classOf[AssemblyModelException])
-        thrown.expectMessage("Constant '" + fnord + "' cannot override existing variable; last stored on line 1")
+        thrown.expectMessage("Constant '" + fnord + "' cannot override existing variable; defined on line 1")
 
         model.setVariable(fnord, 69, genDummyLine(1))
         model.setConstant(fnord, 17, genDummyLine(2))
@@ -317,7 +317,7 @@ class TestAssemblyModel extends AssertionsForJUnit with MustMatchers {
     @Test
     def constantCannotBeDefinedOverExistingLabel(): Unit = {
         thrown.expect(classOf[AssemblyModelException])
-        thrown.expectMessage("Constant '" + fnord + "' cannot override existing label; initially defined on line 1")
+        thrown.expectMessage("Constant '" + fnord + "' cannot override existing label; defined on line 1")
 
         model.setLabel(fnord, 69, genDummyLine(1))
         model.setConstant(fnord, 17, genDummyLine(2))
@@ -326,7 +326,7 @@ class TestAssemblyModel extends AssertionsForJUnit with MustMatchers {
     @Test
     def constantCannotBeDefinedOverExistingVariableEvenInConvergeMode(): Unit = {
         thrown.expect(classOf[AssemblyModelException])
-        thrown.expectMessage("Constant '" + fnord + "' cannot override existing variable; last stored on line 1")
+        thrown.expectMessage("Constant '" + fnord + "' cannot override existing variable; defined on line 1")
 
         model.setConvergeMode(true)
 
@@ -337,7 +337,7 @@ class TestAssemblyModel extends AssertionsForJUnit with MustMatchers {
     @Test
     def constantCannotBeDefinedOverExistingLabelEvenInConvergeMode(): Unit = {
         thrown.expect(classOf[AssemblyModelException])
-        thrown.expectMessage("Constant '" + fnord + "' cannot override existing label; initially defined on line 1")
+        thrown.expectMessage("Constant '" + fnord + "' cannot override existing label; defined on line 1")
 
         model.setConvergeMode(true)
 
@@ -440,7 +440,7 @@ class TestAssemblyModel extends AssertionsForJUnit with MustMatchers {
     @Test
     def labelCannotBeRedefined(): Unit = {
         thrown.expect(classOf[AssemblyModelException])
-        thrown.expectMessage("Label '" + fnord + "' cannot be redefined; initially defined on line 1")
+        thrown.expectMessage("Label '" + fnord + "' cannot override existing label; defined on line 1")
 
         model.setLabel(fnord, 69, genDummyLine(1))
         model.setLabel(fnord, 17, genDummyLine(2))
@@ -466,7 +466,7 @@ class TestAssemblyModel extends AssertionsForJUnit with MustMatchers {
         model.setLabel(fnord, 17, genDummyLine(2))
 
         thrown.expect(classOf[AssemblyModelException])
-        thrown.expectMessage("Label '" + fnord + "' cannot be redefined; initially defined on line 2")
+        thrown.expectMessage("Label '" + fnord + "' cannot override existing label; defined on line 2")
 
         model.setConvergeMode(false)
 
@@ -476,7 +476,7 @@ class TestAssemblyModel extends AssertionsForJUnit with MustMatchers {
     @Test
     def labelCannotBeDefinedOverExistingVariable(): Unit = {
         thrown.expect(classOf[AssemblyModelException])
-        thrown.expectMessage("Label '" + fnord + "' cannot override existing variable; last stored on line 1")
+        thrown.expectMessage("Label '" + fnord + "' cannot override existing variable; defined on line 1")
 
         model.setVariable(fnord, 17, genDummyLine(1))
         model.setLabel(fnord, 69, genDummyLine(2))
@@ -485,7 +485,7 @@ class TestAssemblyModel extends AssertionsForJUnit with MustMatchers {
     @Test
     def labelCannotBeDefinedOverExistingConstant(): Unit = {
         thrown.expect(classOf[AssemblyModelException])
-        thrown.expectMessage("Label '" + fnord + "' cannot override existing constant; initially defined on line 1")
+        thrown.expectMessage("Label '" + fnord + "' cannot override existing constant; defined on line 1")
 
         model.setConstant(fnord, 17, genDummyLine(1))
         model.setLabel(fnord, 69, genDummyLine(2))
@@ -494,7 +494,7 @@ class TestAssemblyModel extends AssertionsForJUnit with MustMatchers {
     @Test
     def labelCannotBeDefinedOverExistingVariableEvenInConvergeMode(): Unit = {
         thrown.expect(classOf[AssemblyModelException])
-        thrown.expectMessage("Label '" + fnord + "' cannot override existing variable; last stored on line 1")
+        thrown.expectMessage("Label '" + fnord + "' cannot override existing variable; defined on line 1")
 
         model.setConvergeMode(true)
 
@@ -505,7 +505,7 @@ class TestAssemblyModel extends AssertionsForJUnit with MustMatchers {
     @Test
     def labelCannotBeDefinedOverExistingConstantEvenInConvergeMode(): Unit = {
         thrown.expect(classOf[AssemblyModelException])
-        thrown.expectMessage("Label '" + fnord + "' cannot override existing constant; initially defined on line 1")
+        thrown.expectMessage("Label '" + fnord + "' cannot override existing constant; defined on line 1")
 
         model.setConvergeMode(true)
 

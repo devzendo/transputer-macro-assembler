@@ -189,11 +189,9 @@ class AssemblyModel(debugCodegen: Boolean) {
     // constant addresses may be adjusted in this state. If not in this state, then throw on reassignment.
     var convergeMode: Boolean = false
 
-    case class Value(value: Int, definitionLine: Int)
+    case class Value(value: Int, symbolType: SymbolType.Value, definitionLine: Int)
 
-    private val variables = mutable.HashMap[String, Value]()
-    private val constants = mutable.HashMap[String, Value]()
-    private val labels = mutable.HashMap[String, Value]()
+    private val symbols = mutable.HashMap[String, Value]()
 
     // All incoming Lines (original-in-source and macro expansion lines) are appended here. Recall that macro expansion
     // lines will have the same line number as original-in-source lines.
@@ -227,34 +225,31 @@ class AssemblyModel(debugCodegen: Boolean) {
     def setDollarSilently(n: Int): Unit = {
         // Set $ without storing back reference to a Line, since there isn't one.
         logger.debug("Variable $ (silently) = " + n)
-        variables.put(dollar, Value(n, 0))
+        symbols.put(dollar, Value(n, SymbolType.Variable, 0))
     }
     def incrementDollar(n: Int): Unit = {
         setDollarSilently(getDollar + n)
     }
 
     def getVariable(name: String): Int = {
-        variables.get(name.toUpperCase) match {
-            case Some(vr) => vr.value
-            case None => throw new AssemblyModelException("Variable '" + name + "' has not been defined")
+        symbols.get(name.toUpperCase) match {
+            case Some(Value(value, SymbolType.Variable, _)) => value
+            case _ => throw new AssemblyModelException("Variable '" + name + "' has not been defined")
         }
     }
-    def variable(name: String): Option[Int] = variables.get(name.toUpperCase) match {
-        case Some(con) => Some(con.value)
+    def variable(name: String): Option[Int] = symbols.get(name.toUpperCase) match {
+        case Some(sym) => if (sym.symbolType == SymbolType.Variable) Some(sym.value) else None
         case None => None
     }
 
     def setVariable(oddcasename: String, n: Int, line: Line): Unit = {
         val name = oddcasename.toUpperCase
-        constants.get(name) match {
-            case Some(con) => throw new AssemblyModelException("Variable '" + name + "' cannot override existing constant; initially defined on line " + con.definitionLine)
+        symbols.get(name) match {
+            case Some(Value(_, SymbolType.Variable, _)) => // drop through to reassign
+            case Some(sym) => throw new AssemblyModelException("Variable '" + name + "' cannot override existing " + sym.symbolType.toString.toLowerCase + "; initially defined on line " + sym.definitionLine)
             case None => // drop through
         }
-        labels.get(name) match {
-            case Some(label) => throw new AssemblyModelException("Variable '" + name + "' cannot override existing label; initially defined on line " + label.definitionLine)
-            case None => // drop through
-        }
-        variables.put(name, Value(n, line.number))
+        symbols.put(name, Value(n, SymbolType.Variable, line.number))
         sourcedValuesForLineNumber(line.number) += AssignmentValue(n, line, isLabel = false)
         if (debugCodegen) {
             logger.info("Variable " + name + " = " + n)
@@ -263,33 +258,25 @@ class AssemblyModel(debugCodegen: Boolean) {
     }
 
     def getConstant(name: String): Int = {
-        constants.get(name.toUpperCase) match {
-            case Some(con) => con.value
-            case None => throw new AssemblyModelException("Constant '" + name + "' has not been defined")
+        symbols.get(name.toUpperCase) match {
+            case Some(Value(value, SymbolType.Constant, _)) => value
+            case _ => throw new AssemblyModelException("Constant '" + name + "' has not been defined")
         }
     }
-    def constant(name: String): Option[Int] = constants.get(name.toUpperCase) match {
-        case Some(con) => Some(con.value)
+    def constant(name: String): Option[Int] = symbols.get(name.toUpperCase) match {
+        case Some(sym) => if (sym.symbolType == SymbolType.Constant) Some(sym.value) else None
         case None => None
     }
     def setConstant(oddcasename: String, n: Int, line: Line): Unit = {
         val name = oddcasename.toUpperCase
-        variables.get(name) match {
-            case Some(vr) => throw new AssemblyModelException("Constant '" + name + "' cannot override existing variable; last stored on line " + vr.definitionLine)
-            case None => // drop through
-        }
-        labels.get(name) match {
-            case Some(label) => throw new AssemblyModelException("Constant '" + name + "' cannot override existing label; initially defined on line " + label.definitionLine)
-            case None => // drop through
-        }
         // Allow replacement...
-        if (convergeMode) {
-            constants.remove(name)
+        if (convergeMode && constant(name).isDefined) {
+            symbols.remove(name)
         }
-        constants.get(name) match {
-            case Some(con) => throw new AssemblyModelException("Constant '" + name + "' cannot be redefined; initially defined on line " + con.definitionLine)
+        symbols.get(name) match {
+            case Some(sym) => throw new AssemblyModelException("Constant '" + name + "' cannot override existing " + sym.symbolType.toString.toLowerCase + "; defined on line " + sym.definitionLine)
             case None =>
-                constants.put(name, Value(n, line.number))
+                symbols.put(name, Value(n, SymbolType.Constant, line.number))
                 sourcedValuesForLineNumber(line.number) += AssignmentValue(n, line, isLabel = false)
                 if (debugCodegen) {
                     logger.info("Constant " + name + " = " + n)
@@ -299,34 +286,25 @@ class AssemblyModel(debugCodegen: Boolean) {
     }
 
     def getLabel(name: String): Int = {
-        labels.get(name.toUpperCase) match {
-            case Some(con) => con.value
-            case None => throw new AssemblyModelException("Label '" + name + "' has not been defined")
+        symbols.get(name.toUpperCase) match {
+            case Some(Value(value, SymbolType.Label, _)) => value
+            case _ => throw new AssemblyModelException("Label '" + name + "' has not been defined")
         }
     }
-    def label(name: String): Option[Int] = labels.get(name.toUpperCase) match {
-        case Some(label) => Some(label.value)
+    def label(name: String): Option[Int] = symbols.get(name.toUpperCase) match {
+        case Some(sym) => if (sym.symbolType == SymbolType.Label) Some(sym.value) else None
         case None => None
     }
     def setLabel(oddcasename: String, n: Int, line: Line): Unit = {
         val name = oddcasename.toUpperCase
-        variables.get(name) match {
-            case Some(vr) => throw new AssemblyModelException("Label '" + name + "' cannot override existing variable; last stored on line " + vr.definitionLine)
-            case None => // drop through
-        }
-        constants.get(name) match {
-            case Some(con) => throw new AssemblyModelException("Label '" + name + "' cannot override existing constant; initially defined on line " + con.definitionLine)
-            case None => // drop through
-        }
         // Allow replacement...
-        if (convergeMode) {
-            labels.remove(name)
+        if (convergeMode && label(name).isDefined) {
+            symbols.remove(name)
         }
-
-        labels.get(name) match {
-            case Some(label) => throw new AssemblyModelException("Label '" + name + "' cannot be redefined; initially defined on line " + label.definitionLine)
+        symbols.get(name) match {
+            case Some(sym) => throw new AssemblyModelException("Label '" + name + "' cannot override existing " + sym.symbolType.toString.toLowerCase + "; defined on line " + sym.definitionLine)
             case None =>
-                labels.put(name, Value(n, line.number))
+                symbols.put(name, Value(n, SymbolType.Label, line.number))
                 sourcedValuesForLineNumber(line.number) += AssignmentValue(n, line, isLabel = true)
                 if (debugCodegen) {
                     logger.info("Label " + name + " = " + n)
@@ -340,9 +318,9 @@ class AssemblyModel(debugCodegen: Boolean) {
             SymbolTableEntry(pair._1, pair._2.value)
         }
 
-        val labelList = labels.toList
-        val constantList = constants.toList
-        (labelList ++ constantList).map(toSTE)
+        val labelsAndConstantsList = symbols.toList.filter(
+            (p: (String, Value)) => { p._2.symbolType == SymbolType.Label || p._2.symbolType == SymbolType.Constant })
+        labelsAndConstantsList.map(toSTE)
     }
 
     def getConvergeMode: Boolean = convergeMode
@@ -384,20 +362,20 @@ class AssemblyModel(debugCodegen: Boolean) {
     // precondition: name is defined as a variable/constant/label
     private def lookupValue(oddcasename: SymbolName): Int = {
         val name = oddcasename.toUpperCase
-        def getFallback(map: mutable.HashMap[String, Value], key: String)(fallback: => Int): Int = {
-            map.get(key) match {
-                case Some(x) => x.value
+        def getFallback(symbolType: SymbolType.Value, key: String)(fallback: => Int): Int = {
+            symbols.get(key) match {
+                case Some(x) => if (x.symbolType == symbolType) x.value else fallback
                 case None => fallback
             }
         }
-        getFallback(variables, name) (getFallback(constants, name) (getFallback(labels, name) ({
+        getFallback(SymbolType.Variable, name) (getFallback(SymbolType.Constant, name) (getFallback(SymbolType.Label, name) ({
             throw new IllegalStateException("Precondition violation: " + name + " is supposed to be present as a variable/constant/label")
         })))
     }
 
     def definedValue(oddcasename: SymbolName): Boolean = {
         val name = oddcasename.toUpperCase
-        variables.contains(name) || constants.contains(name) || labels.contains(name)
+        symbols.contains(name)
     }
 
     def findUndefineds(expr: Expression): Set[String] = {

@@ -306,7 +306,7 @@ class TestCodeGenerator extends AssertionsForJUnit with MustMatchers {
     def constantAssignmentToUndefinedSymbolIsFixedUpOnDefinitionOfVariableAndTracksChanges(): Unit = {
         // if this were in convergence, constant redefinition would be OK.
         thrown.expect(classOf[CodeGenerationException])
-        thrown.expectMessage("3: Constant 'FNORD' cannot be redefined; initially defined on line 1")
+        thrown.expectMessage("3: Constant 'FNORD' cannot override existing constant; defined on line 1")
 
         generateFromStatements(List(
             ConstantAssignment(new SymbolName(fnord), SymbolArg("undef")),
@@ -418,7 +418,7 @@ class TestCodeGenerator extends AssertionsForJUnit with MustMatchers {
         // Constant reassignment throws an exception, in the model (and this is tested in the model's tests); this is
         // rethrown including line number by the code generator.
         thrown.expect(classOf[CodeGenerationException])
-        thrown.expectMessage("2: Constant 'FNORD' cannot be redefined; initially defined on line 1")
+        thrown.expectMessage("2: Constant 'FNORD' cannot override existing constant; defined on line 1")
 
         generateFromStatements(List(
             ConstantAssignment(new SymbolName(fnord), Number(42)),
