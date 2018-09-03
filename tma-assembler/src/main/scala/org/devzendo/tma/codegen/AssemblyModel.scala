@@ -232,10 +232,7 @@ class AssemblyModel(debugCodegen: Boolean) {
     }
 
     def getVariable(name: String): Int = {
-        symbols.get(name.toUpperCase) match {
-            case Some(Value(value, SymbolType.Variable, _)) => value
-            case _ => throw new AssemblyModelException("Variable '" + name + "' has not been defined")
-        }
+        getSymbolValue(SymbolType.Variable, name.toUpperCase)
     }
     def variable(name: String): Option[Int] = symbols.get(name.toUpperCase) match {
         case Some(sym) => if (sym.symbolType == SymbolType.Variable) Some(sym.value) else None
@@ -258,10 +255,7 @@ class AssemblyModel(debugCodegen: Boolean) {
     }
 
     def getConstant(name: String): Int = {
-        symbols.get(name.toUpperCase) match {
-            case Some(Value(value, SymbolType.Constant, _)) => value
-            case _ => throw new AssemblyModelException("Constant '" + name + "' has not been defined")
-        }
+        getSymbolValue(SymbolType.Constant, name.toUpperCase)
     }
     def constant(name: String): Option[Int] = symbols.get(name.toUpperCase) match {
         case Some(sym) => if (sym.symbolType == SymbolType.Constant) Some(sym.value) else None
@@ -286,10 +280,7 @@ class AssemblyModel(debugCodegen: Boolean) {
     }
 
     def getLabel(name: String): Int = {
-        symbols.get(name.toUpperCase) match {
-            case Some(Value(value, SymbolType.Label, _)) => value
-            case _ => throw new AssemblyModelException("Label '" + name + "' has not been defined")
-        }
+        getSymbolValue(SymbolType.Label, name.toUpperCase)
     }
     def label(name: String): Option[Int] = symbols.get(name.toUpperCase) match {
         case Some(sym) => if (sym.symbolType == SymbolType.Label) Some(sym.value) else None
@@ -310,6 +301,13 @@ class AssemblyModel(debugCodegen: Boolean) {
                     logger.info("Label " + name + " = " + n)
                 }
                 resolveForwardReferences(name, n, SymbolType.Label)
+        }
+    }
+
+    private def getSymbolValue(requiredSymbolType: SymbolType.Value, ucSymbolName: SymbolName) = {
+        symbols.get(ucSymbolName) match {
+            case Some(Value(value, `requiredSymbolType`, _)) => value
+            case _ => throw new AssemblyModelException(requiredSymbolType + " '" + ucSymbolName + "' has not been defined")
         }
     }
 
