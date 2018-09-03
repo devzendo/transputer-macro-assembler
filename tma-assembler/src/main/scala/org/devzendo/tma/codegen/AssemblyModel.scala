@@ -234,11 +234,9 @@ class AssemblyModel(debugCodegen: Boolean) {
     def getVariable(name: String): Int = {
         getSymbolValue(SymbolType.Variable, name.toUpperCase)
     }
-    def variable(name: String): Option[Int] = symbols.get(name.toUpperCase) match {
-        case Some(sym) => if (sym.symbolType == SymbolType.Variable) Some(sym.value) else None
-        case None => None
+    def variable(name: String): Option[Int] = {
+        maybeSymbol(SymbolType.Variable, name.toUpperCase)
     }
-
     def setVariable(oddcasename: String, n: Int, line: Line): Unit = {
         val name = oddcasename.toUpperCase
         symbols.get(name) match {
@@ -257,9 +255,8 @@ class AssemblyModel(debugCodegen: Boolean) {
     def getConstant(name: String): Int = {
         getSymbolValue(SymbolType.Constant, name.toUpperCase)
     }
-    def constant(name: String): Option[Int] = symbols.get(name.toUpperCase) match {
-        case Some(sym) => if (sym.symbolType == SymbolType.Constant) Some(sym.value) else None
-        case None => None
+    def constant(name: String): Option[Int] = {
+        maybeSymbol(SymbolType.Constant, name.toUpperCase)
     }
     def setConstant(oddcasename: String, n: Int, line: Line): Unit = {
         val name = oddcasename.toUpperCase
@@ -282,9 +279,8 @@ class AssemblyModel(debugCodegen: Boolean) {
     def getLabel(name: String): Int = {
         getSymbolValue(SymbolType.Label, name.toUpperCase)
     }
-    def label(name: String): Option[Int] = symbols.get(name.toUpperCase) match {
-        case Some(sym) => if (sym.symbolType == SymbolType.Label) Some(sym.value) else None
-        case None => None
+    def label(name: String): Option[Int] =  {
+        maybeSymbol(SymbolType.Label, name.toUpperCase)
     }
     def setLabel(oddcasename: String, n: Int, line: Line): Unit = {
         val name = oddcasename.toUpperCase
@@ -301,6 +297,13 @@ class AssemblyModel(debugCodegen: Boolean) {
                     logger.info("Label " + name + " = " + n)
                 }
                 resolveForwardReferences(name, n, SymbolType.Label)
+        }
+    }
+
+    private def maybeSymbol(requiredSymbolType: SymbolType.Value, ucSymbolName: SymbolName) = {
+        symbols.get(ucSymbolName) match {
+            case Some(sym) => if (sym.symbolType == requiredSymbolType) Some(sym.value) else None
+            case None => None
         }
     }
 
