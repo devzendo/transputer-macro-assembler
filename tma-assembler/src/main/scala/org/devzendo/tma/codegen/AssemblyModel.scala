@@ -248,7 +248,7 @@ class AssemblyModel(debugCodegen: Boolean) {
         maybeSymbol(SymbolType.Constant, name.toUpperCase)
     }
     def setConstant(oddcasename: String, n: Int, line: Line): Unit = {
-        setSymbolInternal(n, line, oddcasename.toUpperCase, SymbolType.Constant)
+        setConstantOrLabelInternal(n, line, oddcasename.toUpperCase, SymbolType.Constant)
     }
 
     def getLabel(name: String): Int = {
@@ -258,7 +258,7 @@ class AssemblyModel(debugCodegen: Boolean) {
         maybeSymbol(SymbolType.Label, name.toUpperCase)
     }
     def setLabel(oddcasename: String, n: Int, line: Line): Unit = {
-        setSymbolInternal(n, line, oddcasename.toUpperCase, SymbolType.Label)
+        setConstantOrLabelInternal(n, line, oddcasename.toUpperCase, SymbolType.Label)
     }
 
     private def setVariableInternal(n: Int, line: Line, ucSymbolName: SymbolName, symbolType: SymbolType.Value) = {
@@ -267,29 +267,27 @@ class AssemblyModel(debugCodegen: Boolean) {
             case Some(sym) => throw new AssemblyModelException(symbolType + " '" + ucSymbolName + "' cannot override existing " + sym.symbolType.toString.toLowerCase + "; initially defined on line " + sym.definitionLine)
             case None => // drop through
         }
-        symbols.put(ucSymbolName, Value(n, symbolType, line.number))
-        sourcedValuesForLineNumber(line.number) += AssignmentValue(n, line, symbolType)
-        if (debugCodegen) {
-            logger.info(symbolType + " " + ucSymbolName + " = " + n)
-        }
-        resolveForwardReferences(ucSymbolName, n, symbolType)
+        storeSymbolInternal(n, line, ucSymbolName, symbolType)
     }
 
-    private def setSymbolInternal(n: Int, line: Line, ucSymbolName: SymbolName, symbolType: SymbolType.Value) = {
+    private def setConstantOrLabelInternal(n: Int, line: Line, ucSymbolName: SymbolName, symbolType: SymbolType.Value) = {
         // Allow replacement...
         if (convergeMode && symbolExists(symbolType, ucSymbolName)) {
             symbols.remove(ucSymbolName)
         }
         symbols.get(ucSymbolName) match {
             case Some(sym) => throw new AssemblyModelException(symbolType + " '" + ucSymbolName + "' cannot override existing " + sym.symbolType.toString.toLowerCase + "; defined on line " + sym.definitionLine)
-            case None =>
-                symbols.put(ucSymbolName, Value(n, symbolType, line.number))
-                sourcedValuesForLineNumber(line.number) += AssignmentValue(n, line, symbolType)
-                if (debugCodegen) {
-                    logger.info(symbolType + " " + ucSymbolName + " = " + n)
-                }
-                resolveForwardReferences(ucSymbolName, n, symbolType)
+            case None => storeSymbolInternal(n, line, ucSymbolName, symbolType)
         }
+    }
+
+    private def storeSymbolInternal(n: Int, line: Line, ucSymbolName: SymbolName, symbolType: SymbolType.Value) = {
+        symbols.put(ucSymbolName, Value(n, symbolType, line.number))
+        sourcedValuesForLineNumber(line.number) += AssignmentValue(n, line, symbolType)
+        if (debugCodegen) {
+            logger.info(symbolType + " " + ucSymbolName + " = " + n)
+        }
+        resolveForwardReferences(ucSymbolName, n, symbolType)
     }
 
     private def maybeSymbol(requiredSymbolType: SymbolType.Value, ucSymbolName: SymbolName) = {
