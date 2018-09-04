@@ -238,8 +238,30 @@ class AssemblyModel(debugCodegen: Boolean) {
         maybeSymbol(SymbolType.Variable, name.toUpperCase)
     }
     def setVariable(oddcasename: String, n: Int, line: Line): Unit = {
-        val ucSymbolName = oddcasename.toUpperCase
-        val symbolType = SymbolType.Variable
+        setVariableInternal(n, line, oddcasename.toUpperCase, SymbolType.Variable)
+    }
+
+    def getConstant(name: String): Int = {
+        getSymbolValue(SymbolType.Constant, name.toUpperCase)
+    }
+    def constant(name: String): Option[Int] = {
+        maybeSymbol(SymbolType.Constant, name.toUpperCase)
+    }
+    def setConstant(oddcasename: String, n: Int, line: Line): Unit = {
+        setConstantInternal(n, line, oddcasename.toUpperCase, SymbolType.Constant)
+    }
+
+    def getLabel(name: String): Int = {
+        getSymbolValue(SymbolType.Label, name.toUpperCase)
+    }
+    def label(name: String): Option[Int] =  {
+        maybeSymbol(SymbolType.Label, name.toUpperCase)
+    }
+    def setLabel(oddcasename: String, n: Int, line: Line): Unit = {
+        setLabelInternal(n, line, oddcasename.toUpperCase, SymbolType.Label)
+    }
+
+    private def setVariableInternal(n: Int, line: Line, ucSymbolName: SymbolName, symbolType: SymbolType.Value) = {
         symbols.get(ucSymbolName) match {
             case Some(Value(_, `symbolType`, _)) => // drop through to reassign
             case Some(sym) => throw new AssemblyModelException(symbolType + " '" + ucSymbolName + "' cannot override existing " + sym.symbolType.toString.toLowerCase + "; initially defined on line " + sym.definitionLine)
@@ -253,15 +275,7 @@ class AssemblyModel(debugCodegen: Boolean) {
         resolveForwardReferences(ucSymbolName, n, symbolType)
     }
 
-    def getConstant(name: String): Int = {
-        getSymbolValue(SymbolType.Constant, name.toUpperCase)
-    }
-    def constant(name: String): Option[Int] = {
-        maybeSymbol(SymbolType.Constant, name.toUpperCase)
-    }
-    def setConstant(oddcasename: String, n: Int, line: Line): Unit = {
-        val ucSymbolName = oddcasename.toUpperCase
-        val symbolType = SymbolType.Constant
+    private def setConstantInternal(n: Int, line: Line, ucSymbolName: SymbolName, symbolType: SymbolType.Value) = {
         // Allow replacement...
         if (convergeMode && symbolExists(symbolType, ucSymbolName)) {
             symbols.remove(ucSymbolName)
@@ -278,15 +292,7 @@ class AssemblyModel(debugCodegen: Boolean) {
         }
     }
 
-    def getLabel(name: String): Int = {
-        getSymbolValue(SymbolType.Label, name.toUpperCase)
-    }
-    def label(name: String): Option[Int] =  {
-        maybeSymbol(SymbolType.Label, name.toUpperCase)
-    }
-    def setLabel(oddcasename: String, n: Int, line: Line): Unit = {
-        val ucSymbolName = oddcasename.toUpperCase
-        val symbolType = SymbolType.Label
+    private def setLabelInternal(n: Int, line: Line, ucSymbolName: SymbolName, symbolType: SymbolType.Value) = {
         // Allow replacement...
         if (convergeMode && symbolExists(symbolType, ucSymbolName)) {
             symbols.remove(ucSymbolName)
