@@ -261,7 +261,7 @@ class AssemblyModel(debugCodegen: Boolean) {
         setConstantOrLabelInternal(n, line, oddcasename.toUpperCase, SymbolType.Label)
     }
 
-    private def setVariableInternal(n: Int, line: Line, ucSymbolName: SymbolName, symbolType: SymbolType.Value) = {
+    private def setVariableInternal(n: Int, line: Line, ucSymbolName: SymbolName, symbolType: SymbolType.Value): Unit = {
         symbols.get(ucSymbolName) match {
             case Some(Value(_, `symbolType`, _)) => // drop through to reassign
             case Some(sym) => throw new AssemblyModelException(symbolType + " '" + ucSymbolName + "' cannot override existing " + sym.symbolType.toString.toLowerCase + "; initially defined on line " + sym.definitionLine)
@@ -270,7 +270,7 @@ class AssemblyModel(debugCodegen: Boolean) {
         storeSymbolInternal(n, line, ucSymbolName, symbolType)
     }
 
-    private def setConstantOrLabelInternal(n: Int, line: Line, ucSymbolName: SymbolName, symbolType: SymbolType.Value) = {
+    private def setConstantOrLabelInternal(n: Int, line: Line, ucSymbolName: SymbolName, symbolType: SymbolType.Value): Unit = {
         // Allow replacement...
         if (convergeMode && symbolExists(symbolType, ucSymbolName)) {
             symbols.remove(ucSymbolName)
