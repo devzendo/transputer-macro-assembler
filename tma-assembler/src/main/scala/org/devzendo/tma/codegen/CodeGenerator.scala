@@ -82,6 +82,8 @@ class CodeGenerator(debugCodegen: Boolean, model: AssemblyModel) {
 
     // End of converge mode state
 
+    private val codeGenerationErrors = mutable.ArrayBuffer[CodeGenerationException]()
+
 
     def createModel(lines: List[Line]): AssemblyModel = {
         // Store the lines in a mutable, random accessible form, to aid the DirectInstructionOffsetEncoder
@@ -504,6 +506,4 @@ class CodeGenerator(debugCodegen: Boolean, model: AssemblyModel) {
     private def processIndirectInstruction(line: Line, opcode: Opcode, opbytes: List[Int]): Unit = {
         model.allocateInstructionStorageForLine(line, opbytes)
     }
-
-    private val codeGenerationErrors = mutable.ArrayBuffer[CodeGenerationException]()
 }
