@@ -300,10 +300,7 @@ class AssemblyModel(debugCodegen: Boolean) {
     }
 
     private def symbolExists(requiredSymbolType: SymbolType.Value, ucSymbolName: SymbolName): Boolean = {
-        symbols.get(ucSymbolName) match {
-            case Some(sym) => if (sym.symbolType == requiredSymbolType) true else false
-            case None => false
-        }
+        maybeSymbol(requiredSymbolType, ucSymbolName).isDefined
     }
 
     private def getSymbolValue(requiredSymbolType: SymbolType.Value, ucSymbolName: SymbolName) = {
