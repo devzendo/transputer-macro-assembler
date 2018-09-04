@@ -30,26 +30,26 @@ a close inspection of the listing side-by-side with that produced by MASM sugges
 MASM! I can't generate a binary with MASM - linking fails - but the listing is sufficient for verification
 
 Current work:
-
-  * There's duplication in the storage of references to storage contents/symbols so that if embedded constants/labels
-    change during convergence, the storage/expressions are re-evaluated; should unify this and use closures to
-    process fixups.
-  
+  * Using it to build "hello world", Node Server client code, eForth.
+   
 Remaining work:
   * local labels
   * global and extern symbols
-  * use types to enforce case of symbols/fixups consistently
   * INCLUDE, in lieu of building linkable object files
+
+* later....
+  * ELF writing (or other object format: TCOFF?)  
 
 * nice-to-haves...
   * binary map listing, showing symbols sorted by address and the binary dump at those addresses.
+  * use types to enforce case of symbols/fixups consistently
   * handling conversion of exceptions that the macro manager might throw when expanding
   * macros shouldn't be able to replace keywords
   * exception handling - is... odd..... use Try instead of throwing? Easier collection of phase errors?
+  * There's duplication in the storage of references to storage contents/symbols so that if embedded constants/labels
+    change during convergence, the storage/expressions are re-evaluated; should unify this and use closures to
+    process fixups.  
 
-* later....
-  * ELF writing
-  
 Rationale
 ---------
 I needed a macro assembler to assemble eForth (and in a reusable form for future Transputer language projects). I have
