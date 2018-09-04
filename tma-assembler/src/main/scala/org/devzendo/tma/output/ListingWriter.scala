@@ -23,7 +23,7 @@ import java.time.format.DateTimeFormatter
 import org.devzendo.commoncode.string.HexDump
 import org.devzendo.tma.Version
 import org.devzendo.tma.ast.Line
-import org.devzendo.tma.codegen.{AssemblyModel, AssignmentValue, SourcedValue, Storage}
+import org.devzendo.tma.codegen.{AssemblyModel, AssignmentValue, SourcedValue, Storage, SymbolType}
 
 object ListingWriter {
     def numPrintableLinesForSourcedValue(sourcedValue: SourcedValue): Int = {
@@ -145,7 +145,7 @@ class ListingWriter(val outputFile: File) {
                                     eachLinesInts.map((a: Array[Int]) => a.map((b: Int) => HexDump.int2hex(b)).mkString(" ")).toList
                             }
                         case assignmentValue: AssignmentValue =>
-                            if (assignmentValue.isLabel) {
+                            if (assignmentValue.symbolType == SymbolType.Label) {
                                 address = HexDump.int2hex(assignmentValue.data)
                             } else {
                                 assignment = "= " +

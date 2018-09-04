@@ -864,7 +864,7 @@ class TestCodeGenerator extends AssertionsForJUnit with MustMatchers {
         storage.cellWidth must be(1)
 
         val assignmentValue = singleAssignmentValue(sourcedValues)
-        assignmentValue.isLabel must be(true)
+        assignmentValue.symbolType must be(SymbolType.Label)
         assignmentValue.data must be(42)
     }
 
@@ -880,10 +880,10 @@ class TestCodeGenerator extends AssertionsForJUnit with MustMatchers {
 
         val assignmentValues = sourcedValues.map(_.asInstanceOf[AssignmentValue])
 
-        val label = assignmentValues.filter(_.isLabel).head
+        val label = assignmentValues.filter(_.symbolType == SymbolType.Label).head
         label.data must be(42)
 
-        val assignment = assignmentValues.filter(!_.isLabel).head
+        val assignment = assignmentValues.filter(_.symbolType != SymbolType.Label).head
         assignment.data must be(77)
     }
 

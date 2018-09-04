@@ -20,7 +20,7 @@ import java.io.File
 
 import org.devzendo.tma.ast.AST.SymbolName
 import org.devzendo.tma.ast._
-import org.devzendo.tma.codegen.{AssemblyModel, AssignmentValue, Storage}
+import org.devzendo.tma.codegen.{AssemblyModel, AssignmentValue, Storage, SymbolType}
 import org.devzendo.tma.util.TempFolder
 import org.junit.Test
 import org.scalatest.MustMatchers
@@ -300,7 +300,7 @@ class TestListingWriter extends TempFolder with AssertionsForJUnit with MustMatc
         numPrintableLinesForSourcedValue(widthAndIntsToStorage(4, 2)) must be(2)
         numPrintableLinesForSourcedValue(widthAndIntsToStorage(4, 3)) must be(3)
 
-        numPrintableLinesForSourcedValue(AssignmentValue(0, null, isLabel = false)) must be(1)
+        numPrintableLinesForSourcedValue(AssignmentValue(0, null, SymbolType.Constant)) must be(1)
     }
 
     @Test

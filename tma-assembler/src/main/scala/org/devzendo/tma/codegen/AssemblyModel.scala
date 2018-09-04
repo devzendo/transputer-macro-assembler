@@ -32,7 +32,7 @@ sealed abstract class SourcedValue(val line: Line)
 // Macro expansions have the same line number as their invocation; hence line number -> list[storage+]
 case class Storage(address: Int, cellWidth: Int, data: Array[Int], override val line: Line, exprs: List[Expression]) extends SourcedValue(line)
 // Constant and Variable assignments are recalled against the line that sets them to a particular value
-case class AssignmentValue(data: Int, override val line: Line, isLabel: Boolean) extends SourcedValue(line)
+case class AssignmentValue(data: Int, override val line: Line, symbolType: SymbolType.Value) extends SourcedValue(line)
 
 case class SymbolTableEntry(name: String, value: Int)
 
@@ -268,7 +268,7 @@ class AssemblyModel(debugCodegen: Boolean) {
             case None => // drop through
         }
         symbols.put(ucSymbolName, Value(n, symbolType, line.number))
-        sourcedValuesForLineNumber(line.number) += AssignmentValue(n, line, isLabel = false)
+        sourcedValuesForLineNumber(line.number) += AssignmentValue(n, line, symbolType)
         if (debugCodegen) {
             logger.info(symbolType + " " + ucSymbolName + " = " + n)
         }
@@ -276,7 +276,6 @@ class AssemblyModel(debugCodegen: Boolean) {
     }
 
     private def setSymbolInternal(n: Int, line: Line, ucSymbolName: SymbolName, symbolType: SymbolType.Value) = {
-        val isLabel = symbolType == SymbolType.Label
         // Allow replacement...
         if (convergeMode && symbolExists(symbolType, ucSymbolName)) {
             symbols.remove(ucSymbolName)
@@ -285,7 +284,7 @@ class AssemblyModel(debugCodegen: Boolean) {
             case Some(sym) => throw new AssemblyModelException(symbolType + " '" + ucSymbolName + "' cannot override existing " + sym.symbolType.toString.toLowerCase + "; defined on line " + sym.definitionLine)
             case None =>
                 symbols.put(ucSymbolName, Value(n, symbolType, line.number))
-                sourcedValuesForLineNumber(line.number) += AssignmentValue(n, line, isLabel)
+                sourcedValuesForLineNumber(line.number) += AssignmentValue(n, line, symbolType)
                 if (debugCodegen) {
                     logger.info(symbolType + " " + ucSymbolName + " = " + n)
                 }

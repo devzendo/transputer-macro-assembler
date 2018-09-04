@@ -817,7 +817,7 @@ class TestAssemblyModel extends AssertionsForJUnit with MustMatchers {
     private def checkAssignmentOfValue(isLabel: Boolean) = {
         var foundLine = 0
         var foundValue = 0
-        var foundIsLabel = false
+        var foundSymbolType = SymbolType.Variable
 
         // the only way to get AssignmentValues out
         model.foreachSourcedValue((lineNumber: Int, sourcedValues: List[SourcedValue]) => {
@@ -825,12 +825,16 @@ class TestAssemblyModel extends AssertionsForJUnit with MustMatchers {
                 val assignmentValue = sourcedValue.asInstanceOf[AssignmentValue]
                 foundLine = lineNumber
                 foundValue = assignmentValue.data
-                foundIsLabel = assignmentValue.isLabel
+                foundSymbolType = assignmentValue.symbolType
             }
         })
         foundLine must be(4)
         foundValue must be(42)
-        foundIsLabel must be(isLabel)
+        if (isLabel) {
+            foundSymbolType must be(SymbolType.Label)
+        } else {
+            foundSymbolType must not(be(SymbolType.Label))
+        }
     }
 
     @Test
