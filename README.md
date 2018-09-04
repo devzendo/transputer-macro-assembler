@@ -167,7 +167,7 @@ For example, to assemble the file test.asm, producing a binary file and listing
 file:
 
 ```
-tmasm -i test.asm -o test.bin -l test.lst
+tmasm -o test.bin -l test.lst test.asm 
 ```
 
 Contributing
