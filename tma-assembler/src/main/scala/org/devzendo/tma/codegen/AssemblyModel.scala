@@ -308,7 +308,7 @@ class AssemblyModel(debugCodegen: Boolean) {
         }
     }
 
-    def getSymbols: List[SymbolTableEntry] = {
+    def getLabelsAndConstants: List[SymbolTableEntry] = {
         def toSTE(pair: (String, Value)): SymbolTableEntry = {
             SymbolTableEntry(pair._1, pair._2.value)
         }

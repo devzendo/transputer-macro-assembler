@@ -107,7 +107,7 @@ class TestAssemblyModel extends AssertionsForJUnit with MustMatchers {
         model.variable(fnord) must be(Some(69))
         model.constant(fnord) must be(None) // it's a variable, not a constant, nor a label
         model.label(fnord) must be(None)
-        model.getSymbols must be(empty)
+        model.getLabelsAndConstants must be(empty)
     }
 
     @Test
@@ -195,7 +195,7 @@ class TestAssemblyModel extends AssertionsForJUnit with MustMatchers {
             symbolsC.head.name must be("A") // C is needed by A
             // won't bother checking the rest of the detail that was checked above..
 
-            model.getSymbols must be(empty)
+            model.getLabelsAndConstants must be(empty)
         }
 
         logger.info("*** Defining B")
@@ -213,7 +213,7 @@ class TestAssemblyModel extends AssertionsForJUnit with MustMatchers {
             symbolsC must have size 1
             symbolsC.head.name must be("A") // C still needed by A
 
-            val symbolSet = model.getSymbols.toSet
+            val symbolSet = model.getLabelsAndConstants.toSet
             symbolSet must be(Set(SymbolTableEntry("B", 3)))
         }
 
@@ -231,7 +231,7 @@ class TestAssemblyModel extends AssertionsForJUnit with MustMatchers {
             val symbolsC = model.unresolvedSymbolForwardReferences("C")
             symbolsC must have size 0 // C not needed by A any more, since A is a variable (their changes are not tracked after first definition)
 
-            val symbolSet = model.getSymbols.toSet
+            val symbolSet = model.getLabelsAndConstants.toSet
             symbolSet must be(Set(
                 SymbolTableEntry("B", 3),
                 SymbolTableEntry("C", 4)
@@ -256,8 +256,8 @@ class TestAssemblyModel extends AssertionsForJUnit with MustMatchers {
         model.constant(fnord) must be(Some(69))
         model.variable(fnord) must be(None) // it's a constant, not a variable, nor a label
         model.label(fnord) must be(None)
-        model.getSymbols must have size 1
-        model.getSymbols.head must be(SymbolTableEntry(fnord, 69))
+        model.getLabelsAndConstants must have size 1
+        model.getLabelsAndConstants.head must be(SymbolTableEntry(fnord, 69))
     }
 
     @Test
@@ -266,7 +266,7 @@ class TestAssemblyModel extends AssertionsForJUnit with MustMatchers {
         model.getConstant("FNORD") must be(69)
         model.getConstant("fnord") must be(69)
         model.getConstant("FnORd") must be(69)
-        model.getSymbols.head must be(SymbolTableEntry("FNORD", 69))
+        model.getLabelsAndConstants.head must be(SymbolTableEntry("FNORD", 69))
     }
 
     @Test
@@ -368,7 +368,7 @@ class TestAssemblyModel extends AssertionsForJUnit with MustMatchers {
             symbolsC.head.name must be("A")
             // won't bother checking the rest of the detail that was checked above..
 
-            model.getSymbols must be(empty)
+            model.getLabelsAndConstants must be(empty)
         }
 
         // Now let's define B. Then only C will be unresolvable. B should exist, A and C should not.
@@ -383,7 +383,7 @@ class TestAssemblyModel extends AssertionsForJUnit with MustMatchers {
             symbolsC must have size 1
             symbolsC.head.name must be("A")
 
-            val symbolSet = model.getSymbols.toSet
+            val symbolSet = model.getLabelsAndConstants.toSet
             symbolSet must be(Set(SymbolTableEntry("B", 3)))
         }
 
@@ -399,7 +399,7 @@ class TestAssemblyModel extends AssertionsForJUnit with MustMatchers {
             model.resolutionCount("C") must be (1)
             symbolsC must have size 1 // but it has now been resolved; it is retained for change tracking
 
-            val symbolSet = model.getSymbols.toSet
+            val symbolSet = model.getLabelsAndConstants.toSet
             symbolSet must be(Set(
                 SymbolTableEntry("A", 11),
                 SymbolTableEntry("B", 3),
@@ -424,8 +424,8 @@ class TestAssemblyModel extends AssertionsForJUnit with MustMatchers {
         model.label(fnord) must be(Some(69))
         model.variable(fnord) must be(None) // it's a label, not a variable, nor a constant (semantically, though it is constant)
         model.constant(fnord) must be(None)
-        model.getSymbols must have size 1
-        model.getSymbols.head must be(SymbolTableEntry(fnord, 69))
+        model.getLabelsAndConstants must have size 1
+        model.getLabelsAndConstants.head must be(SymbolTableEntry(fnord, 69))
     }
 
     @Test
@@ -434,7 +434,7 @@ class TestAssemblyModel extends AssertionsForJUnit with MustMatchers {
         model.getLabel("FNORD") must be(69)
         model.getLabel("fnord") must be(69)
         model.getLabel("FnORd") must be(69)
-        model.getSymbols.head must be(SymbolTableEntry("FNORD", 69))
+        model.getLabelsAndConstants.head must be(SymbolTableEntry("FNORD", 69))
     }
 
     @Test
