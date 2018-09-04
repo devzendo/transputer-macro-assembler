@@ -36,6 +36,7 @@ Remaining work:
   * local labels
   * global and extern symbols
   * INCLUDE, in lieu of building linkable object files
+  * Add builds/install scripts for Linux and Windows
 
 * later....
   * ELF writing (or other object format: TCOFF?)  
@@ -151,11 +152,13 @@ and is guaranteed to converge - if a little slowly.
 When the address of a label/constant/variable changes due to convergence, all references to it are re-evaluated.
 Even if a constant is defined to refer to a changing address.
 
-Getting Started
-----------------
+Using the Assembler
+-------------------
 The assembler requires Java 8 (it's written in Scala), with the 'java' JRE
 runtime available on your PATH. For convenience, add the 'bin' directory of the
 assembler's distribution to your PATH.
+
+Distributions of the Parachute project will include the assembler in its bin/lib directories.
 
 The assembler is invoked via the 'tmasm' command. Running 'tmasm -h' gives a
 full summary of command line arguments.
