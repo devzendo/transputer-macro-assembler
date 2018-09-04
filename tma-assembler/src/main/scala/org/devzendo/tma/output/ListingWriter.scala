@@ -179,14 +179,15 @@ class ListingWriter(val outputFile: File) {
 
             padOutToFullPages()
 
-            // Secondly, the symbol table, sorted by name, then address.
-            val labels = model.getSymbols
-            if (labels.nonEmpty) {
+            // Secondly, the symbol table, sorted by name, then address. "Symbols" are Constants and Labels, not
+            // Variables.
+            val symbols = model.getSymbols
+            if (symbols.nonEmpty) {
                 val lineBuf = new StringBuilder()
 
                 emitLineWithHeader("Symbol Table - by Name")
-                val labelsByName = labels.sortWith(_.name < _.name)
-                for (l <- labelsByName) {
+                val symbolsByName = symbols.sortWith(_.name < _.name)
+                for (l <- symbolsByName) {
                     lineBuf.clear()
                     lineBuf.append(padToLength(l.name, 21))
                     lineBuf.append(HexDump.int2hex(l.value))
@@ -195,8 +196,8 @@ class ListingWriter(val outputFile: File) {
 
                 emitLineWithHeader("")
                 emitLineWithHeader("Symbol Table - by Address")
-                val labelsByAddress = labels.sortWith(_.value < _.value)
-                for (l <- labelsByAddress) {
+                val symbolsByAddress = symbols.sortWith(_.value < _.value)
+                for (l <- symbolsByAddress) {
                     lineBuf.clear()
                     lineBuf.append(padToLength(l.name, 21))
                     lineBuf.append(HexDump.int2hex(l.value))
