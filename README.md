@@ -20,7 +20,7 @@ Status
 Project started 19 April 2018.
 Successful eForth assembly verified 25 June 2018.
  
-In active development; unfinished; not yet at its first release (as of mid-August 2018).
+In active development; unfinished; not yet at its first release (as of early September 2018).
 
 Parser, macro expansion, code generation and output of binary file and listing are done. Optimally encodes direct
 instructions into pfix/nfix sequences - especially for forward references where location might not yet be known.
@@ -34,7 +34,6 @@ Current work:
   * There's duplication in the storage of references to storage contents/symbols so that if embedded constants/labels
     change during convergence, the storage/expressions are re-evaluated; should unify this and use closures to
     process fixups.
-  * There's duplication in the storage/processing of labels/constants/variables.
   
 Remaining work:
   * local labels
