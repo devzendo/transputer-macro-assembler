@@ -143,7 +143,7 @@ class StorageForwardReferenceFixups {
     }
 
     def unresolvedStorages(): Map[String, Set[Storage]] = {
-        val unresolveds = map.filter { case (symbol, storageSet) => resolutionCount(symbol) == 0 }
+        val unresolveds = map.filter { case (symbol, _) => resolutionCount(symbol) == 0 }
         // return deep immutable version
         unresolveds.map {case (symbol, storageSet) => (symbol, storageSet.toSet)}.toMap
     }
@@ -272,16 +272,15 @@ class AssemblyModel(debugCodegen: Boolean) {
 
     private def setConstantOrLabelInternal(n: Int, line: Line, ucSymbolName: SymbolName, symbolType: SymbolType.Value): Unit = {
         // Allow replacement...
-        if (convergeMode && symbolExists(symbolType, ucSymbolName)) {
+        if (convergeMode && symbolExists(symbolType, ucSymbolName))
             symbols.remove(ucSymbolName)
-        }
         symbols.get(ucSymbolName) match {
             case Some(sym) => throw new AssemblyModelException(symbolType + " '" + ucSymbolName + "' cannot override existing " + sym.symbolType.toString.toLowerCase + "; defined on line " + sym.definitionLine)
             case None => storeSymbolInternal(n, line, ucSymbolName, symbolType)
         }
     }
 
-    private def storeSymbolInternal(n: Int, line: Line, ucSymbolName: SymbolName, symbolType: SymbolType.Value) = {
+    private def storeSymbolInternal(n: Int, line: Line, ucSymbolName: SymbolName, symbolType: SymbolType.Value): Unit = {
         symbols.put(ucSymbolName, Value(n, symbolType, line.number))
         sourcedValuesForLineNumber(line.number) += AssignmentValue(n, line, symbolType)
         if (debugCodegen) {

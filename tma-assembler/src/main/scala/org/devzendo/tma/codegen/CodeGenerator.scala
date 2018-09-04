@@ -39,7 +39,7 @@ class CodeGenerator(debugCodegen: Boolean, model: AssemblyModel) {
 
     def getLastLineNumber: Int = lastLineNumber
 
-    var inputLines = mutable.ArrayBuffer[Line]()
+    private var inputLines = mutable.ArrayBuffer[Line]()
 
     /* State maintained during converge mode - when building optimal encodings for direct instruction offsets of
      * forward-referenced symbols. Also see the AssemblyModel's converge mode flag that relaxes whether symbols can be
@@ -71,14 +71,14 @@ class CodeGenerator(debugCodegen: Boolean, model: AssemblyModel) {
      *
      * DirectEncodedInstructions are then trivially generated into binary.
      */
-    var convergeMode: Boolean = false
-    var startConvergeLineIndex = 0
-    var endConvergeLineIndex = 0
-    var symbolsToConverge = mutable.HashSet[String]()
+    private var convergeMode: Boolean = false
+    private var startConvergeLineIndex = 0
+    private var endConvergeLineIndex = 0
+    private var symbolsToConverge = mutable.HashSet[String]()
     case class DirectInstructionState(directInstruction: DirectInstruction, currentSize: Int) {
     }
-    var directInstructionByLineIndex = mutable.HashMap[Int, DirectInstructionState]()
-    var startConvergeDollar = 0
+    private val directInstructionByLineIndex = mutable.HashMap[Int, DirectInstructionState]()
+    private var startConvergeDollar = 0
 
     // End of converge mode state
 
@@ -131,7 +131,7 @@ class CodeGenerator(debugCodegen: Boolean, model: AssemblyModel) {
             case Some(DirectInstruction(_, _, expr)) =>
                 model.evaluateExpression(expr) match {
                     case Left(undefineds) => undefineds
-                    case Right(value) => Set.empty
+                    case Right(_) => Set.empty
                 }
             case Some(_) => Set.empty
             case None => Set.empty
@@ -227,7 +227,7 @@ class CodeGenerator(debugCodegen: Boolean, model: AssemblyModel) {
                 createLabel(line) // update any label with current $
                 val maybeElement = directInstructionByLineIndex.get(lineIndex)
                 maybeElement match {
-                    case Some(DirectInstructionState(di: DirectInstruction, currentSize: Int)) => {
+                    case Some(DirectInstructionState(di: DirectInstruction, currentSize: Int)) =>
                         logger.info("Current size for direct instruction: " + currentSize)
                         model.evaluateExpression(di.expr) match {
 
@@ -250,15 +250,13 @@ class CodeGenerator(debugCodegen: Boolean, model: AssemblyModel) {
                                 logger.info("CONV: Undefined: Storage size static: Symbol(s) (" + undefineds + ") are not yet defined; allocating 1 byte")
                                 model.incrementDollar(currentSize)
                         }
-                    }
 
-                    case None => {
+                    case None =>
                         logger.info("CONV: Processing non-direct-instruction")
                         // NB Not processLineStatement as that adds the Line to the model, and it's already been added once.
                         line.stmt.foreach((stmt: Statement) =>
                             processStatement(line, lineIndex, stmt)
                         )
-                    }
                 }
             }
         } while (again)
@@ -332,7 +330,7 @@ class CodeGenerator(debugCodegen: Boolean, model: AssemblyModel) {
             case If1() => processIf1()
             case Else() => processElse(line)
             case Endif() => processEndif(line)
-            case DirectInstruction(opcode, opbyte, expr) => processDirectInstruction(line, lineIndex, stmt.asInstanceOf[DirectInstruction], opbyte, expr)
+            case DirectInstruction(_, opbyte, expr) => processDirectInstruction(line, lineIndex, stmt.asInstanceOf[DirectInstruction], opbyte, expr)
             case DirectEncodedInstruction(opcode, opbytes) => processDirectEncodedInstruction(line, opcode, opbytes)
             case IndirectInstruction(opcode, opbytes) => processIndirectInstruction(line, opcode, opbytes)
         }
