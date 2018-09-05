@@ -18,7 +18,7 @@ package org.devzendo.tma
 
 import java.io.File
 
-import org.devzendo.tma.codegen.{AssemblyModel, CodeGenerationException, CodeGenerator}
+import org.devzendo.tma.codegen.{AssemblyModel, CodeGenerationException, CodeGenerator, CasedSymbolName}
 import org.devzendo.tma.parser.{AssemblyParser, AssemblyParserException, MacroManager}
 
 class AssemblerMain(val argList: List[String]) {
@@ -69,6 +69,7 @@ class AssemblerMain(val argList: List[String]) {
             case "-e" | "--expansion"  => debugExpansion = true
             case "-P" | "--parserOutput"  => showParserOutput = true
             case "-c" | "--codegen"  => debugCodegen = true
+            case "-x" | "--caseSensitive"  => CasedSymbolName.setCaseSensitivity(true)
 
             case "-o" | "--output" =>
                 outputFile = expectFileName()
@@ -154,6 +155,8 @@ class AssemblerMain(val argList: List[String]) {
         logger.info("-o|--output output.o     - create an ELF output file")
         logger.info("-b|--binary output       - create a binary output file")
         logger.info("-l|--listing output.lst  - create a listing file")
+        logger.info("-x|--caseSensitive       - treat variable, constant and label names as case-sensitive")
+        logger.info("                           (default is insensitive: they are converted to upper case)")
         logger.info("Diagnostics:")
         logger.info("-e|--expansion           - enable macro expansion diagnostics")
         logger.info("-p|--parser              - enable parser diagnostics")

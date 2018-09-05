@@ -31,6 +31,7 @@ MASM! I can't generate a binary with MASM - linking fails - but the listing is s
 
 Current work:
   * Using it to build "hello world", Node Server client code, eForth.
+  * use types to enforce case of symbols/fixups consistently
    
 Remaining work:
   * hello2.asm: "call _localStrlen" does not show up in listing, and is a single 0x00 in binary, as is
@@ -49,7 +50,6 @@ Remaining work:
 
 * nice-to-haves...
   * binary map listing, showing symbols sorted by address and the binary dump at those addresses.
-  * use types to enforce case of symbols/fixups consistently
   * handling conversion of exceptions that the macro manager might throw when expanding
   * macros shouldn't be able to replace keywords
   * exception handling - is... odd..... use Try instead of throwing? Easier collection of phase errors?
@@ -160,9 +160,8 @@ Even if a constant is defined to refer to a changing address.
 
 Using the Assembler
 -------------------
-The assembler requires Java 8 (it's written in Scala), with the 'java' JRE
-runtime available on your PATH. For convenience, add the 'bin' directory of the
-assembler's distribution to your PATH.
+The assembler requires Java 8, with the 'java' JRE runtime available on your PATH.
+For convenience, add the 'bin' directory of the assembler's distribution to your PATH.
 
 Distributions of the Parachute project will include the assembler in its bin/lib directories.
 
@@ -175,6 +174,12 @@ file:
 ```
 tmasm -b test.bin -l test.lst test.asm 
 ```
+
+By default the assembler is case-insensitive, like MASM's /Cu option. All variables,
+constants and labels are converted to upper case. To switch to processing variables,
+constants and labels in a case-sensitive manner, use the -x (--caseSensitive) option.
+This is like MASM's /Cx option.
+
 
 Contributing
 ------------
