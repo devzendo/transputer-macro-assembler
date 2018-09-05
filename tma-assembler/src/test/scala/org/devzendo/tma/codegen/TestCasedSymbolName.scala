@@ -23,6 +23,11 @@ import org.junit.Test
 class TestCasedSymbolName extends AssertionsForJUnit with MustMatchers {
 
     @Test
+    def default(): Unit = {
+        CasedSymbolName("fNoRd").name must be("FNORD")
+    }
+
+    @Test
     def insensitive(): Unit = {
         CasedSymbolName.setCaseSensitivity(false)
 
