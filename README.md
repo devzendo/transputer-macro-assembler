@@ -33,6 +33,12 @@ Current work:
   * Using it to build "hello world", Node Server client code, eForth.
    
 Remaining work:
+  * hello2.asm: "call _localStrlen" does not show up in listing, and is a single 0x00 in binary, as is
+    "call _putConsoleCString - LF6", "cj LS3", "j LS2". Could be that _putConsoleCString does not trigger the
+    end of convergence because of its case: the label is defined as _PUTCONSOLECSTRING - renamed to _PUTCONSOLECSTRING
+    and this seems to work better
+  * Many convergence diagnostics could be removed/checked for diag mode
+  * Escape codes do not work in DB strings? \12 ? \n ? \r ?
   * local labels
   * global and extern symbols
   * INCLUDE, in lieu of building linkable object files
@@ -167,7 +173,7 @@ For example, to assemble the file test.asm, producing a binary file and listing
 file:
 
 ```
-tmasm -o test.bin -l test.lst test.asm 
+tmasm -b test.bin -l test.lst test.asm 
 ```
 
 Contributing
