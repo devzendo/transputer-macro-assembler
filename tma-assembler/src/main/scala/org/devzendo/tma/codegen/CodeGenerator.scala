@@ -201,19 +201,24 @@ class CodeGenerator(debugCodegen: Boolean, model: AssemblyModel) {
     }
 
     private def converge(): Unit = {
-        logger.info("Converging line indices [" + startConvergeLineIndex + " .. " + endConvergeLineIndex + "] Start $ " + HexDump.int2hex(startConvergeDollar))
+        if (debugCodegen) {
+            logger.info("Converging line indices [" + startConvergeLineIndex + " .. " + endConvergeLineIndex + "] Start $ " + HexDump.int2hex(startConvergeDollar))
+        }
         model.setConvergeMode(true)
         var iteration = 0
         val lineNumbersInConvergence = setOfLineNumbersInConvergence()
-        logger.info("Line numbers in convergence: " + lineNumbersInConvergence)
+        if (debugCodegen) {
+            logger.info("Line numbers in convergence: " + lineNumbersInConvergence)
+        }
 
         var again = false
         do {
             iteration += 1
             again = false
             model.setDollarSilently(startConvergeDollar)
-
-            logger.info("Convergence iteration " + iteration)
+            if (debugCodegen) {
+                logger.info("Convergence iteration " + iteration)
+            }
 
             // At top of loop, clear down model storage for all lines - macro expansions mean that multiple entries
             // in inputLines could have the same line number. So only clear each line once, before reprocessing them
@@ -223,37 +228,53 @@ class CodeGenerator(debugCodegen: Boolean, model: AssemblyModel) {
 
             for (lineIndex <- startConvergeLineIndex to endConvergeLineIndex) {
                 val line = inputLines(lineIndex)
-                logger.debug("Converging line index " + lineIndex + ": " + line)
+                if (debugCodegen) {
+                    logger.debug("Converging line index " + lineIndex + ": " + line)
+                }
 
                 createLabel(line) // update any label with current $
                 val maybeElement = directInstructionByLineIndex.get(lineIndex)
                 maybeElement match {
                     case Some(DirectInstructionState(di: DirectInstruction, currentSize: Int)) =>
-                        logger.info("Current size for direct instruction: " + currentSize)
+                        if (debugCodegen) {
+                            logger.info("Current size for direct instruction: " + currentSize)
+                        }
                         model.evaluateExpression(di.expr) match {
 
                             case Right(value) =>
-                                logger.info("Encoding value " + value)
+                                if (debugCodegen) {
+                                    logger.info("Encoding value " + value)
+                                }
                                 val encoded = DirectInstructionEncoder.apply(di.opbyte, value)
-                                logger.info("New encoded size for direct instruction: " + encoded.size)
+                                if (debugCodegen) {
+                                    logger.info("New encoded size for direct instruction: " + encoded.size)
+                                }
                                 if (encoded.size > currentSize) {
-                                    logger.info("CONV: Defined: Another byte of storage required")
+                                    if (debugCodegen) {
+                                        logger.info("Defined: Another byte of storage required")
+                                    }
                                     // requires more size
                                     directInstructionByLineIndex.put(lineIndex, DirectInstructionState(di, currentSize + 1))
                                     model.incrementDollar(currentSize + 1)
                                     again = true
                                 } else {
-                                    logger.info("CONV: Defined: Storage size ok; allocating")
+                                    if (debugCodegen) {
+                                        logger.info("Defined: Storage size ok; allocating")
+                                    }
                                     model.allocateStorageForLine(line, 1, encoded map Number) // silently increments $
                                 }
 
                             case Left(undefineds) =>
-                                logger.info("CONV: Undefined: Storage size static: Symbol(s) (" + undefineds + ") are not yet defined; allocating 1 byte")
+                                if (debugCodegen) {
+                                    logger.info("Undefined: Storage size static: Symbol(s) (" + undefineds + ") are not yet defined; allocating 1 byte")
+                                }
                                 model.incrementDollar(currentSize)
                         }
 
                     case None =>
-                        logger.info("CONV: Processing non-direct-instruction")
+                        if (debugCodegen) {
+                            logger.info("Processing non-direct-instruction")
+                        }
                         // NB Not processLineStatement as that adds the Line to the model, and it's already been added once.
                         line.stmt.foreach((stmt: Statement) =>
                             processStatement(line, lineIndex, stmt)
@@ -261,7 +282,9 @@ class CodeGenerator(debugCodegen: Boolean, model: AssemblyModel) {
                 }
             }
         } while (again)
-        logger.info("Convergence complete after " + iteration + " iteration(s)")
+        if (debugCodegen) {
+            logger.info("Convergence complete after " + iteration + " iteration(s)")
+        }
         model.setConvergeMode(false)
     }
 
@@ -493,8 +516,8 @@ class CodeGenerator(debugCodegen: Boolean, model: AssemblyModel) {
             case Left(undefineds) =>
                 if (debugCodegen) {
                     logger.info("Symbol(s) (" + undefineds + ") are not yet defined on line " + lineNumber)
+                    logger.info("Storing undefined direct instruction on line index " + lineIndex)
                 }
-                logger.info("Storing undefined direct instruction on line index " + lineIndex)
                 directInstructionByLineIndex.put(lineIndex, DirectInstructionState(di, 1))
                 model.incrementDollar(1)
         }
