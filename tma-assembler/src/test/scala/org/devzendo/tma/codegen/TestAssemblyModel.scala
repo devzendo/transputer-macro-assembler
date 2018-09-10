@@ -28,8 +28,10 @@ import scala.collection.mutable
 
 class TestAssemblyModel extends AssertionsForJUnit with MustMatchers {
     val logger: Logger = org.log4s.getLogger
-    val dollar = "$"
-    val fnord = "FNORD"
+    val dollar = CasedSymbolName("$")
+    val foo = CasedSymbolName("foo")
+    val fnord = CasedSymbolName("FNORD")
+    val fnordSymbolArg = SymbolArg(fnord.toString)
 
     @Rule
     def thrown: ExpectedException = _thrown
@@ -111,11 +113,27 @@ class TestAssemblyModel extends AssertionsForJUnit with MustMatchers {
     }
 
     @Test
-    def variableNamesAreCaseInsensitive(): Unit = {
-        model.setVariable("fnord", 69, genDummyLine(1))
-        model.getVariable("FNORD") must be(69)
-        model.getVariable("fnord") must be(69)
-        model.getVariable("FnORd") must be(69)
+    def variableNamesCaseInsensitivity(): Unit = {
+        CasedSymbolName.setCaseSensitivity(false)
+
+        model.setVariable(CasedSymbolName("fnord"), 69, genDummyLine(1))
+        model.getVariable(CasedSymbolName("FNORD")) must be(69)
+        model.getVariable(CasedSymbolName("fnord")) must be(69)
+        model.getVariable(CasedSymbolName("FnORd")) must be(69)
+    }
+
+    @Test
+    def variableNamesCaseSensitivity(): Unit = {
+        CasedSymbolName.setCaseSensitivity(true)
+
+        try {
+            model.setVariable(CasedSymbolName("fnord"), 69, genDummyLine(1))
+            model.setVariable(CasedSymbolName("FnORd"), 42, genDummyLine(2))
+            model.getVariable(CasedSymbolName("fnord")) must be(69)
+            model.getVariable(CasedSymbolName("FnORd")) must be(42)
+        } finally {
+            CasedSymbolName.setCaseSensitivity(false)
+        }
     }
 
     @Test
@@ -173,26 +191,26 @@ class TestAssemblyModel extends AssertionsForJUnit with MustMatchers {
         val unresolvableExpr = Binary(Add(), SymbolArg("B"), Binary(Mult(), SymbolArg("C"), Number(2)))
         val line = Line(1, "A = B + (C * 2)", None, Some(VariableAssignment(new SymbolName("A"), unresolvableExpr)))
         // When codegen processes the =, it'll do...
-        model.recordSymbolForwardReferences(Set("B", "C"), "A", unresolvableExpr, line, SymbolType.Variable)
+        model.recordSymbolForwardReferences(Set(CasedSymbolName("B"), CasedSymbolName("C")), CasedSymbolName("A"), unresolvableExpr, line, SymbolType.Variable)
         // which will record A as an unresolvable symbol keyed by (i.e. resolvable when) B and C are defined.
         // A is a variable, so as it's undefined, it'll get fixed up when B and C are defined, but not if they
         // change subsequently.
 
-        model.resolutionCount("B") must be (0)
-        model.resolutionCount("C") must be (0)
+        model.resolutionCount(CasedSymbolName("B")) must be (0)
+        model.resolutionCount(CasedSymbolName("C")) must be (0)
 
         logger.info("*** Checking initial state")
         if (true) { // just for fresh scope
-            val symbolsB = model.unresolvedSymbolForwardReferences("B")
+            val symbolsB = model.unresolvedSymbolForwardReferences(CasedSymbolName("B"))
             symbolsB must have size 1
-            symbolsB.head.name must be("A") // B is needed by A
+            symbolsB.head.casedSymbolName.toString must be("A") // B is needed by A
             symbolsB.head.line must be(line)
             symbolsB.head.symbolType must be(SymbolType.Variable)
             symbolsB.head.expr must be(unresolvableExpr)
 
-            val symbolsC = model.unresolvedSymbolForwardReferences("C")
+            val symbolsC = model.unresolvedSymbolForwardReferences(CasedSymbolName("C"))
             symbolsC must have size 1
-            symbolsC.head.name must be("A") // C is needed by A
+            symbolsC.head.casedSymbolName.toString must be("A") // C is needed by A
             // won't bother checking the rest of the detail that was checked above..
 
             model.getLabelsAndConstants must be(empty)
@@ -201,42 +219,42 @@ class TestAssemblyModel extends AssertionsForJUnit with MustMatchers {
         logger.info("*** Defining B")
         // Now let's define B. Then only C will be unresolvable. B should exist, A and C should not.
         val bLine = Line(2, "B EQU 3", None, Some(ConstantAssignment(new SymbolName("B"), Number(3))))
-        model.setConstant("B", 3, bLine)
+        model.setConstant(CasedSymbolName("B"), 3, bLine)
         logger.info("*** Checking state after defining B")
         if (true) { // just for fresh scope
-            model.resolutionCount("B") must be (1)
-            val symbolsB = model.unresolvedSymbolForwardReferences("B")
+            model.resolutionCount(CasedSymbolName("B")) must be (1)
+            val symbolsB = model.unresolvedSymbolForwardReferences(CasedSymbolName("B"))
             symbolsB must have size 1 // B still needed by A
 
-            model.resolutionCount("C") must be (0)
-            val symbolsC = model.unresolvedSymbolForwardReferences("C")
+            model.resolutionCount(CasedSymbolName("C")) must be (0)
+            val symbolsC = model.unresolvedSymbolForwardReferences(CasedSymbolName("C"))
             symbolsC must have size 1
-            symbolsC.head.name must be("A") // C still needed by A
+            symbolsC.head.casedSymbolName.toString must be("A") // C still needed by A
 
             val symbolSet = model.getLabelsAndConstants.toSet
-            symbolSet must be(Set(SymbolTableEntry("B", 3)))
+            symbolSet must be(Set(SymbolTableEntry(CasedSymbolName("B"), 3)))
         }
 
         logger.info("*** Defining C")
         // Now let's define C, then everything should exist, and there should be nothing in the unresolveable map.
         val cLine = Line(3, "C EQU 4", None, Some(ConstantAssignment(new SymbolName("C"), Number(4))))
-        model.setConstant("C", 4, cLine)
+        model.setConstant(CasedSymbolName("C"), 4, cLine)
         logger.info("*** Checking state after defining C")
         if (true) { // just for fresh scope
-            model.resolutionCount("B") must be (1)
-            val symbolsB = model.unresolvedSymbolForwardReferences("B")
+            model.resolutionCount(CasedSymbolName("B")) must be (1)
+            val symbolsB = model.unresolvedSymbolForwardReferences(CasedSymbolName("B"))
             symbolsB must have size 0 // B not needed by A any more, since A is a variable (their changes are not tracked after first definition)
 
-            model.resolutionCount("C") must be (1)
-            val symbolsC = model.unresolvedSymbolForwardReferences("C")
+            model.resolutionCount(CasedSymbolName("C")) must be (1)
+            val symbolsC = model.unresolvedSymbolForwardReferences(CasedSymbolName("C"))
             symbolsC must have size 0 // C not needed by A any more, since A is a variable (their changes are not tracked after first definition)
 
             val symbolSet = model.getLabelsAndConstants.toSet
             symbolSet must be(Set(
-                SymbolTableEntry("B", 3),
-                SymbolTableEntry("C", 4)
+                SymbolTableEntry(CasedSymbolName("B"), 3),
+                SymbolTableEntry(CasedSymbolName("C"), 4)
             )) // A isn't in there, as it's a variable. Symbols (as shown on the Listing) are only Constants and Labels
-            model.getVariable("A") must be(11)
+            model.getVariable(CasedSymbolName("A")) must be(11)
         }
     }
 
@@ -261,12 +279,31 @@ class TestAssemblyModel extends AssertionsForJUnit with MustMatchers {
     }
 
     @Test
-    def constantNamesAreCaseInsensitive(): Unit = {
-        model.setConstant("fnord", 69, genDummyLine(1))
-        model.getConstant("FNORD") must be(69)
-        model.getConstant("fnord") must be(69)
-        model.getConstant("FnORd") must be(69)
-        model.getLabelsAndConstants.head must be(SymbolTableEntry("FNORD", 69))
+    def constantNamesCaseInsensitivity(): Unit = {
+        CasedSymbolName.setCaseSensitivity(false)
+
+        model.setConstant(CasedSymbolName("fnord"), 69, genDummyLine(1))
+        model.getConstant(CasedSymbolName("FNORD")) must be(69)
+        model.getConstant(CasedSymbolName("fnord")) must be(69)
+        model.getConstant(CasedSymbolName("FnORd")) must be(69)
+        model.getLabelsAndConstants.head must be(SymbolTableEntry(CasedSymbolName("FNORD"), 69))
+    }
+
+    @Test
+    def constantNamesCaseSensitivity(): Unit = {
+        CasedSymbolName.setCaseSensitivity(true)
+
+        try {
+            model.setConstant(CasedSymbolName("fnord"), 69, genDummyLine(1))
+            model.getConstant(CasedSymbolName("fnord")) must be(69)
+            model.setConstant(CasedSymbolName("FnORd"), 42, genDummyLine(2))
+            model.getConstant(CasedSymbolName("FnORd")) must be(42)
+            model.getLabelsAndConstants.toSet must be(Set(
+                SymbolTableEntry(CasedSymbolName("fnord"), 69),
+                SymbolTableEntry(CasedSymbolName("FnORd"), 42)))
+        } finally {
+            CasedSymbolName.setCaseSensitivity(false)
+        }
     }
 
     @Test
@@ -352,20 +389,20 @@ class TestAssemblyModel extends AssertionsForJUnit with MustMatchers {
         val unresolvableExpr = Binary(Add(), SymbolArg("B"), Binary(Mult(), SymbolArg("C"), Number(2)))
         val line = Line(1, "A EQU B + (C * 2)", None, Some(ConstantAssignment(new SymbolName("A"), unresolvableExpr)))
         // When codegen processes the EQU, it'll do...
-        model.recordSymbolForwardReferences(Set("B", "C"), "A", unresolvableExpr, line, SymbolType.Constant)
+        model.recordSymbolForwardReferences(Set(CasedSymbolName("B"), CasedSymbolName("C")), CasedSymbolName("A"), unresolvableExpr, line, SymbolType.Constant)
         // which will record A as an unresolvable symbol keyed by (i.e. resolvable when) B and C are defined.
         if (true) { // just for fresh scope
-            val symbolsB = model.unresolvedSymbolForwardReferences("B")
-            model.resolutionCount("B") must be (0)
+            val symbolsB = model.unresolvedSymbolForwardReferences(CasedSymbolName("B"))
+            model.resolutionCount(CasedSymbolName("B")) must be (0)
             symbolsB must have size 1
-            symbolsB.head.name must be("A")
+            symbolsB.head.casedSymbolName.toString must be("A")
             symbolsB.head.line must be(line)
             symbolsB.head.symbolType must be(SymbolType.Constant)
             symbolsB.head.expr must be(unresolvableExpr)
 
-            val symbolsC = model.unresolvedSymbolForwardReferences("C")
+            val symbolsC = model.unresolvedSymbolForwardReferences(CasedSymbolName("C"))
             symbolsC must have size 1
-            symbolsC.head.name must be("A")
+            symbolsC.head.casedSymbolName.toString must be("A")
             // won't bother checking the rest of the detail that was checked above..
 
             model.getLabelsAndConstants must be(empty)
@@ -373,39 +410,39 @@ class TestAssemblyModel extends AssertionsForJUnit with MustMatchers {
 
         // Now let's define B. Then only C will be unresolvable. B should exist, A and C should not.
         val bLine = Line(2, "B EQU 3", None, Some(ConstantAssignment(new SymbolName("B"), Number(3))))
-        model.setConstant("B", 3, bLine)
+        model.setConstant(CasedSymbolName("B"), 3, bLine)
         if (true) { // just for fresh scope
-            val symbolsB = model.unresolvedSymbolForwardReferences("B")
-            model.resolutionCount("B") must be (1)
+            val symbolsB = model.unresolvedSymbolForwardReferences(CasedSymbolName("B"))
+            model.resolutionCount(CasedSymbolName("B")) must be (1)
             symbolsB must have size 1 // but it has now been resolved; it is retained for change tracking
 
-            val symbolsC = model.unresolvedSymbolForwardReferences("C")
+            val symbolsC = model.unresolvedSymbolForwardReferences(CasedSymbolName("C"))
             symbolsC must have size 1
-            symbolsC.head.name must be("A")
+            symbolsC.head.casedSymbolName.toString must be("A")
 
             val symbolSet = model.getLabelsAndConstants.toSet
-            symbolSet must be(Set(SymbolTableEntry("B", 3)))
+            symbolSet must be(Set(SymbolTableEntry(CasedSymbolName("B"), 3)))
         }
 
         // Now let's define C, then everything should exist, and there should be nothing in the unresolveable map.
         val cLine = Line(3, "C EQU 4", None, Some(ConstantAssignment(new SymbolName("C"), Number(4))))
-        model.setConstant("C", 4, cLine)
+        model.setConstant(CasedSymbolName("C"), 4, cLine)
         if (true) { // just for fresh scope
-            val symbolsB = model.unresolvedSymbolForwardReferences("B")
-            model.resolutionCount("B") must be (1)
+            val symbolsB = model.unresolvedSymbolForwardReferences(CasedSymbolName("B"))
+            model.resolutionCount(CasedSymbolName("B")) must be (1)
             symbolsB must have size 1 // but it has now been resolved; it is retained for change tracking
 
-            val symbolsC = model.unresolvedSymbolForwardReferences("C")
-            model.resolutionCount("C") must be (1)
+            val symbolsC = model.unresolvedSymbolForwardReferences(CasedSymbolName("C"))
+            model.resolutionCount(CasedSymbolName("C")) must be (1)
             symbolsC must have size 1 // but it has now been resolved; it is retained for change tracking
 
             val symbolSet = model.getLabelsAndConstants.toSet
             symbolSet must be(Set(
-                SymbolTableEntry("A", 11),
-                SymbolTableEntry("B", 3),
-                SymbolTableEntry("C", 4)
+                SymbolTableEntry(CasedSymbolName("A"), 11),
+                SymbolTableEntry(CasedSymbolName("B"), 3),
+                SymbolTableEntry(CasedSymbolName("C"), 4)
             ))
-            model.getConstant("A") must be(11)
+            model.getConstant(CasedSymbolName("A")) must be(11)
         }
     }
 
@@ -429,12 +466,31 @@ class TestAssemblyModel extends AssertionsForJUnit with MustMatchers {
     }
 
     @Test
-    def labelNamesAreCaseInsensitive(): Unit = {
-        model.setLabel("fnord", 69, genDummyLine(1))
-        model.getLabel("FNORD") must be(69)
-        model.getLabel("fnord") must be(69)
-        model.getLabel("FnORd") must be(69)
-        model.getLabelsAndConstants.head must be(SymbolTableEntry("FNORD", 69))
+    def labelNamesCaseInsensitivity(): Unit = {
+        CasedSymbolName.setCaseSensitivity(false)
+
+        model.setLabel(CasedSymbolName("fnord"), 69, genDummyLine(1))
+        model.getLabel(CasedSymbolName("FNORD")) must be(69)
+        model.getLabel(CasedSymbolName("fnord")) must be(69)
+        model.getLabel(CasedSymbolName("FnORd")) must be(69)
+        model.getLabelsAndConstants.head must be(SymbolTableEntry(CasedSymbolName("FNORD"), 69))
+    }
+
+    @Test
+    def labelNamesCaseSensitivity(): Unit = {
+        CasedSymbolName.setCaseSensitivity(true)
+
+        try {
+            model.setLabel(CasedSymbolName("fnord"), 69, genDummyLine(1))
+            model.getLabel(CasedSymbolName("fnord")) must be(69)
+            model.setLabel(CasedSymbolName("FnORd"), 42, genDummyLine(2))
+            model.getLabel(CasedSymbolName("FnORd")) must be(42)
+            model.getLabelsAndConstants.toSet must be(Set(
+                SymbolTableEntry(CasedSymbolName("fnord"), 69),
+                SymbolTableEntry(CasedSymbolName("FnORd"), 42)))
+        } finally {
+            CasedSymbolName.setCaseSensitivity(false)
+        }
     }
 
     @Test
@@ -523,7 +579,7 @@ class TestAssemblyModel extends AssertionsForJUnit with MustMatchers {
     @Test
     def evalSymbolArgOfExistingVariable(): Unit = {
         model.setVariable(fnord, 45, genDummyLine(0))
-        model.evaluateExpression(SymbolArg(fnord)) must be(Right(45))
+        model.evaluateExpression(fnordSymbolArg) must be(Right(45))
     }
 
     @Test
@@ -533,28 +589,28 @@ class TestAssemblyModel extends AssertionsForJUnit with MustMatchers {
 
     @Test
     def evalSymbolArgOfUndefinedVariable(): Unit = {
-        model.evaluateExpression(SymbolArg(fnord)) must be(Left(Set(fnord)))
+        model.evaluateExpression(fnordSymbolArg) must be(Left(Set(fnord)))
     }
 
     @Test
     def evalMultipleUndefinedVariable(): Unit = {
         // A completely nonsense expression that could not be evaluated, but that contains all types of Expression
         // subclass.
-        val expr = Binary(Add(), Binary(Add(), Unary(Negate(), SymbolArg(fnord)), SymbolArg("waaah")), Binary(Add(),
+        val expr = Binary(Add(), Binary(Add(), Unary(Negate(), fnordSymbolArg), SymbolArg("waaah")), Binary(Add(),
             SymbolArg("foo"), Binary(Add(), Characters("xxx"), Binary(Add(), Number(5), SymbolArg("bar")))))
-        model.evaluateExpression(expr) must be(Left(Set("waaah", fnord, "bar", "foo")))
+        model.evaluateExpression(expr) must be(Left(Set(CasedSymbolName("waaah"), fnord, CasedSymbolName("bar"), foo)))
     }
 
     @Test
     def evalSymbolArgOfExistingConstant(): Unit = {
         model.setConstant(fnord, 45, genDummyLine(1))
-        model.evaluateExpression(SymbolArg(fnord)) must be(Right(45))
+        model.evaluateExpression(fnordSymbolArg) must be(Right(45))
     }
 
     @Test
     def evalSymbolArgOfExistingLabel(): Unit = {
         model.setLabel(fnord, 45, genDummyLine(1))
-        model.evaluateExpression(SymbolArg(fnord)) must be(Right(45))
+        model.evaluateExpression(fnordSymbolArg) must be(Right(45))
     }
 
     @Test
@@ -564,7 +620,7 @@ class TestAssemblyModel extends AssertionsForJUnit with MustMatchers {
 
         thrown.expect(classOf[AssemblyModelException])
         thrown.expectMessage("Cannot evaluate 'Characters(FNORD)' as an Int")
-        model.evaluateExpression(Characters(fnord))
+        model.evaluateExpression(Characters(fnord.toString))
     }
 
     @Test
@@ -641,32 +697,32 @@ class TestAssemblyModel extends AssertionsForJUnit with MustMatchers {
 
     @Test
     def undefinedSymbol(): Unit = {
-        model.definedValue(new SymbolName(fnord)) must be(false)
+        model.definedValue(fnord) must be(false)
     }
 
     @Test
     def definedVariable(): Unit = {
         model.setVariable(fnord, 1, genDummyLine(1))
-        model.definedValue(new SymbolName(fnord)) must be(true)
+        model.definedValue(fnord) must be(true)
     }
 
     @Test
     def definedConstant(): Unit = {
         model.setConstant(fnord, 1, genDummyLine(1))
-        model.definedValue(new SymbolName(fnord)) must be(true)
+        model.definedValue(fnord) must be(true)
     }
 
     @Test
     def definedLabel(): Unit = {
         model.setLabel(fnord, 1, genDummyLine(1))
-        model.definedValue(new SymbolName(fnord)) must be(true)
+        model.definedValue(fnord) must be(true)
     }
 
     @Test
     def findUndefinedSymbolInSymbolArg(): Unit = {
-        model.findUndefineds(SymbolArg(fnord)) must be(Set(fnord))
+        model.findUndefineds(fnordSymbolArg) must be(Set(fnord))
         model.setConstant(fnord, 1, genDummyLine(1))
-        model.findUndefineds(SymbolArg(fnord)) must be(empty)
+        model.findUndefineds(fnordSymbolArg) must be(empty)
     }
 
     @Test
@@ -677,18 +733,19 @@ class TestAssemblyModel extends AssertionsForJUnit with MustMatchers {
 
     @Test
     def findUndefinedSymbolInUnary(): Unit = {
-        model.findUndefineds(Unary(Negate(), SymbolArg(fnord))) must be(Set(fnord))
+        model.findUndefineds(Unary(Negate(), fnordSymbolArg)) must be(Set(fnord))
         model.setConstant(fnord, 1, genDummyLine(1))
-        model.findUndefineds(Unary(Negate(), SymbolArg(fnord))) must be(empty)
+        model.findUndefineds(Unary(Negate(), fnordSymbolArg)) must be(empty)
     }
+
 
     @Test
     def findUndefinedSymbolInBinary(): Unit = {
-        model.findUndefineds(Binary(Add(), SymbolArg(fnord), SymbolArg("foo"))) must be(Set(fnord, "foo"))
+        model.findUndefineds(Binary(Add(), fnordSymbolArg, SymbolArg("foo"))) must be(Set(fnord, foo))
         model.setConstant(fnord, 1, genDummyLine(1))
-        model.findUndefineds(Binary(Add(), SymbolArg(fnord), SymbolArg("foo"))) must be(Set("foo"))
-        model.setConstant("foo", 1, genDummyLine(1))
-        model.findUndefineds(Binary(Add(), SymbolArg(fnord), SymbolArg("foo"))) must be(empty)
+        model.findUndefineds(Binary(Add(), fnordSymbolArg, SymbolArg("foo"))) must be(Set(foo))
+        model.setConstant(foo, 1, genDummyLine(1))
+        model.findUndefineds(Binary(Add(), fnordSymbolArg, SymbolArg("foo"))) must be(empty)
     }
 
     // Storage ---------------------------------------------------------------------------------------------------------
@@ -726,7 +783,7 @@ class TestAssemblyModel extends AssertionsForJUnit with MustMatchers {
 
     @Test
     def storageWithForwardReferenceHasZeroesInItsData(): Unit = {
-        val exprs = List(Number(42), SymbolArg(fnord), SymbolArg("foo"), Number(96))
+        val exprs = List(Number(42), fnordSymbolArg, SymbolArg("foo"), Number(96))
         val storage = model.allocateStorageForLine(Line(3, "irrelevant", None, Some(DB(exprs))), 1, exprs)
 
         storage.data must be(Array[Int](42, 0, 0, 96))
@@ -734,26 +791,26 @@ class TestAssemblyModel extends AssertionsForJUnit with MustMatchers {
 
     @Test
     def storageWithForwardReferenceIsRecordedForLaterFixup(): Unit = {
-        val exprs = List(SymbolArg(fnord), SymbolArg("foo"))
+        val exprs = List(fnordSymbolArg, SymbolArg("foo"))
         val storage = model.allocateStorageForLine(Line(3, "irrelevant", None, Some(DB(exprs))), 1, exprs)
 
         model.storageForwardReferences(fnord) must be (Set(storage))
-        model.storageForwardReferences("foo") must be (Set(storage))
+        model.storageForwardReferences(foo) must be (Set(storage))
     }
 
     @Test
     def storageWithForwardReferenceIsRemovedOnVariableDefinitionButOtherForwardReferencesRemain(): Unit = {
-        val exprs = List(SymbolArg(fnord), SymbolArg("foo"))
+        val exprs = List(fnordSymbolArg, SymbolArg("foo"))
         val storage = model.allocateStorageForLine(Line(3, "irrelevant", None, Some(DB(exprs))), 1, exprs)
         model.setVariable(fnord, 73, genDummyLine(4))
 
         model.storageForwardReferences(fnord) must be (Set.empty)
-        model.storageForwardReferences("foo") must be (Set(storage))
+        model.storageForwardReferences(foo) must be (Set(storage))
     }
 
     @Test
     def storageWithForwardReferenceIsFixedUpAndForwardReferenceRemovedOnVariableDefinition(): Unit = {
-        val exprs = List(SymbolArg(fnord))
+        val exprs = List(fnordSymbolArg)
         val storage = model.allocateStorageForLine(Line(3, "irrelevant", None, Some(DB(exprs))), 1, exprs)
         model.setVariable(fnord, 73, genDummyLine(4))
 
@@ -763,7 +820,7 @@ class TestAssemblyModel extends AssertionsForJUnit with MustMatchers {
 
     @Test
     def storageWithForwardReferenceIsFixedUpAndForwardReferenceNotRemovedOnConstantDefinition(): Unit = {
-        val exprs = List(SymbolArg(fnord))
+        val exprs = List(fnordSymbolArg)
         val storage = model.allocateStorageForLine(Line(3, "irrelevant", None, Some(DB(exprs))), 1, exprs)
         model.setConstant(fnord, 73, genDummyLine(4))
 
@@ -773,7 +830,7 @@ class TestAssemblyModel extends AssertionsForJUnit with MustMatchers {
 
     @Test
     def storageWithForwardReferenceIsFixedUpAndForwardReferenceNotRemovedOnLabelDefinition(): Unit = {
-        val exprs = List(SymbolArg(fnord))
+        val exprs = List(fnordSymbolArg)
         val storage = model.allocateStorageForLine(Line(3, "irrelevant", None, Some(DB(exprs))), 1, exprs)
         model.setLabel(fnord, 73, genDummyLine(4))
 
@@ -861,7 +918,7 @@ class TestAssemblyModel extends AssertionsForJUnit with MustMatchers {
         thrown.expect(classOf[AssemblyModelException])
         thrown.expectMessage("Count of 'SymbolArg(FNORD)' is undefined on line 3")
 
-        model.allocateStorageForLine(Line(3, "irrelevant", None, Some(DBDup(SymbolArg(fnord), Number(5)))), 1, SymbolArg(fnord), Number(5))
+        model.allocateStorageForLine(Line(3, "irrelevant", None, Some(DBDup(fnordSymbolArg, Number(5)))), 1, fnordSymbolArg, Number(5))
     }
 
     @Test
@@ -889,15 +946,15 @@ class TestAssemblyModel extends AssertionsForJUnit with MustMatchers {
 
     @Test
     def storageOfDbDupWithForwardReferenceIsRecordedForLaterFixup(): Unit = {
-        val line = Line(3, "irrelevant", None, Some(DBDup(Number(5), SymbolArg(fnord))))
-        val storage = model.allocateStorageForLine(line, 1, Number(5), SymbolArg(fnord))
+        val line = Line(3, "irrelevant", None, Some(DBDup(Number(5), fnordSymbolArg)))
+        val storage = model.allocateStorageForLine(line, 1, Number(5), fnordSymbolArg)
         model.storageForwardReferences(fnord) must be (Set(storage))
     }
 
     @Test
     def storageOfDbDupWithForwardReferenceIsFixedUpAndForwardReferenceRemovedOnVariableDefinition(): Unit = {
-        val line = Line(3, "irrelevant", None, Some(DBDup(Number(5), SymbolArg(fnord))))
-        val storage = model.allocateStorageForLine(line, 1, Number(5), SymbolArg(fnord))
+        val line = Line(3, "irrelevant", None, Some(DBDup(Number(5), fnordSymbolArg)))
+        val storage = model.allocateStorageForLine(line, 1, Number(5), fnordSymbolArg)
         model.setVariable(fnord, 73, genDummyLine(4))
 
         storage.data must be(Array[Int](73, 73, 73, 73, 73))
@@ -1000,11 +1057,11 @@ class TestAssemblyModel extends AssertionsForJUnit with MustMatchers {
         val line1 = Line(1, "irrelevant", None, Some(DB(List(SymbolArg("aardvark"), SymbolArg("zygote")))))
         model.allocateStorageForLine(line1, 1, List(SymbolArg("aardvark"), SymbolArg("zygote")))
 
-        val line3 = Line(3, "irrelevant", None, Some(DBDup(Number(5), SymbolArg(fnord))))
-        model.allocateStorageForLine(line3, 1, Number(5), SymbolArg(fnord))
+        val line3 = Line(3, "irrelevant", None, Some(DBDup(Number(5), fnordSymbolArg)))
+        model.allocateStorageForLine(line3, 1, Number(5), fnordSymbolArg)
 
-        val line4 = Line(4, "irrelevant", None, Some(DB(List(SymbolArg(fnord)))))
-        model.allocateStorageForLine(line4, 1, List(SymbolArg(fnord)))
+        val line4 = Line(4, "irrelevant", None, Some(DB(List(fnordSymbolArg))))
+        model.allocateStorageForLine(line4, 1, List(fnordSymbolArg))
 
         val line5 = Line(5, "irrelevant", None, Some(DB(List(SymbolArg("foo")))))
         model.allocateStorageForLine(line5, 1, List(SymbolArg("foo")))
@@ -1014,8 +1071,8 @@ class TestAssemblyModel extends AssertionsForJUnit with MustMatchers {
 
     @Test
     def noForwardReferencesAtEndOfFirstPassIsGood(): Unit = {
-        val line = Line(3, "irrelevant", None, Some(DBDup(Number(5), SymbolArg(fnord))))
-        model.allocateStorageForLine(line, 1, Number(5), SymbolArg(fnord))
+        val line = Line(3, "irrelevant", None, Some(DBDup(Number(5), fnordSymbolArg)))
+        model.allocateStorageForLine(line, 1, Number(5), fnordSymbolArg)
         model.setVariable(fnord, 34, genDummyLine(9))
 
         model.checkUnresolvedForwardReferences()

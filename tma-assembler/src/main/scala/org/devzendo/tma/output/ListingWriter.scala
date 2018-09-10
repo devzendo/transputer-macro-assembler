@@ -186,10 +186,10 @@ class ListingWriter(val outputFile: File) {
                 val lineBuf = new StringBuilder()
 
                 emitLineWithHeader("Symbol Table - by Name")
-                val symbolsByName = symbols.sortWith(_.name < _.name)
+                val symbolsByName = symbols.sortWith(_.casedSymbolName.toString < _.casedSymbolName.toString)
                 for (l <- symbolsByName) {
                     lineBuf.clear()
-                    lineBuf.append(padToLength(l.name, 21))
+                    lineBuf.append(padToLength(l.casedSymbolName.toString, 21))
                     lineBuf.append(HexDump.int2hex(l.value))
                     emitLineWithHeader(lineBuf.toString())
                 }
@@ -199,7 +199,7 @@ class ListingWriter(val outputFile: File) {
                 val symbolsByAddress = symbols.sortWith(_.value < _.value)
                 for (l <- symbolsByAddress) {
                     lineBuf.clear()
-                    lineBuf.append(padToLength(l.name, 21))
+                    lineBuf.append(padToLength(l.casedSymbolName.toString, 21))
                     lineBuf.append(HexDump.int2hex(l.value))
                     emitLineWithHeader(lineBuf.toString())
                 }

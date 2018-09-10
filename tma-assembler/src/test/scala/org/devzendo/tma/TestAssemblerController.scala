@@ -17,7 +17,7 @@
 package org.devzendo.tma
 
 import org.devzendo.tma.ast._
-import org.devzendo.tma.codegen.{AssemblyModel, CodeGenerationException, CodeGenerator}
+import org.devzendo.tma.codegen.{AssemblyModel, CasedSymbolName, CodeGenerationException, CodeGenerator}
 import org.devzendo.tma.parser.{AssemblyParser, AssemblyParserException, MacroManager}
 import org.junit.rules.ExpectedException
 import org.junit.{Rule, Test}
@@ -92,9 +92,12 @@ class TestAssemblerController extends AssertionsForJUnit with MustMatchers {
 
     @Test
     def codeGenerationErrorsAccumulate(): Unit = {
+        // Precondition
+        CasedSymbolName.caseSensitivity must be (false)
+
         // no parse errors here, but will cause code gen / model exceptions
         controller.addParsedLine(Line(1, "", None, Some(Org(Characters("blah"))))) // characters as an Org argument
-        controller.addParsedLine(Line(2, "", None, Some(Org(SymbolArg("fnorg"))))) // fnord is undefined
+        controller.addParsedLine(Line(2, "", None, Some(Org(SymbolArg("fnorg"))))) // fnorg is undefined
         controller.addParsedLine(Line(3, "", None, Some(ConstantAssignment("bar", Characters("foo"))))) // cannot set a constant to characters
         controller.addParsedLine(Line(4, "", None, Some(ConstantAssignment("valid", Number(5))))) // perfectly valid
         controller.addParsedLine(Line(5, "", Some("valid"), Some(DB(List(Number(5)))))) // label can't override constant...
@@ -108,7 +111,7 @@ class TestAssemblerController extends AssertionsForJUnit with MustMatchers {
         val errors = controller.getCodeGenerationExceptions.map((e: CodeGenerationException) => e.getMessage )
         errors must be(List(
             "1: Origin cannot be set to a Character expression 'Characters(blah)'",
-            "2: Undefined symbol(s) 'fnorg'",
+            "2: Undefined symbol(s) 'FNORG'", // case insensitive symbols
             "3: Constant cannot be set to a Character expression 'Characters(foo)'",
             "5: Label 'VALID' cannot override existing constant; defined on line 4",
             "8: No statements allowed after End statement",

@@ -22,22 +22,29 @@ import org.junit.Test
 
 class TestCasedSymbolName extends AssertionsForJUnit with MustMatchers {
 
-    @Test
-    def default(): Unit = {
-        CasedSymbolName("fNoRd").name must be("FNORD")
-    }
+    // The default is insensitive, i.e. CasedSymbolName.caseSensitivity must be(false)
+    // but since this setting is object-based not an instance variable, other test execution will set this as needed,
+    // so it can't reliably be sensed in a test. It is set only once in the assembler's main, from the command line.
+
+    // As a consequence, any test that sets it true must set it back to false, to correctly isolate other tests.
 
     @Test
     def insensitive(): Unit = {
         CasedSymbolName.setCaseSensitivity(false)
 
-        CasedSymbolName("fNoRd").name must be("FNORD")
+        val casedSymbolName = CasedSymbolName("fNoRd")
+        casedSymbolName.toString must be("FNORD")
     }
 
     @Test
     def sensitive(): Unit = {
         CasedSymbolName.setCaseSensitivity(true)
 
-        CasedSymbolName("fNoRd").name must be("fNoRd")
+        try {
+            val casedSymbolName = CasedSymbolName("fNoRd")
+            casedSymbolName.toString must be("fNoRd")
+        } finally {
+            CasedSymbolName.setCaseSensitivity(false)
+        }
     }
 }

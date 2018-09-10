@@ -34,7 +34,7 @@ case class Storage(address: Int, cellWidth: Int, data: Array[Int], override val 
 // Constant and Variable assignments are recalled against the line that sets them to a particular value
 case class AssignmentValue(data: Int, override val line: Line, symbolType: SymbolType.Value) extends SourcedValue(line)
 
-case class SymbolTableEntry(name: String, value: Int)
+case class SymbolTableEntry(casedSymbolName: CasedSymbolName, value: Int)
 
 object SymbolType extends Enumeration {
     // This used to be named 'UnresolvableSymbolType', but now is used to denote symbol types for resolved ones.
@@ -44,7 +44,7 @@ object SymbolType extends Enumeration {
     val Variable, Constant, Label = Value
 }
 
-case class UnresolvableSymbol(line: Line, symbolType: SymbolType.Value, name: String, expr: Expression)
+case class UnresolvableSymbol(line: Line, symbolType: SymbolType.Value, casedSymbolName: CasedSymbolName, expr: Expression)
 
 class SymbolForwardReferenceFixupState {
 
@@ -64,15 +64,15 @@ class SymbolForwardReferenceFixupState {
 class SymbolForwardReferenceFixups {
     val logger: Logger = org.log4s.getLogger
 
-    private val map = mutable.HashMap[String, SymbolForwardReferenceFixupState]()
+    private val map = mutable.HashMap[CasedSymbolName, SymbolForwardReferenceFixupState]()
 
     def dump(): Unit = {
         logger.debug(s"Symbol forward reference fixups: Size ${size()}")
-        def logEntry(entry: (String, SymbolForwardReferenceFixupState)): Unit = {
+        def logEntry(entry: (CasedSymbolName, SymbolForwardReferenceFixupState)): Unit = {
             logger.debug(s"Undefined Symbol ${entry._1}; Resolution Count: ${entry._2.resolutionCount}")
             val references = entry._2.unresolvableSymbols
             references.foreach((us: UnresolvableSymbol) => {
-                logger.debug(s"  Unresolvable ${us.symbolType} ${us.name} line number ${us.line.number}")
+                logger.debug(s"  Unresolvable ${us.symbolType} ${us.casedSymbolName} line number ${us.line.number}")
             })
         }
         map.foreach (logEntry)
@@ -83,17 +83,17 @@ class SymbolForwardReferenceFixups {
         map.foreach (_._2.unresolvableSymbols -= us)
     }
 
-    def += (symbolNameUC: SymbolName, us: UnresolvableSymbol): Unit = {
-        logger.debug(s"Adding $us as needing fixup when $symbolNameUC is defined in the fixup map")
-        getOrElseCreate(symbolNameUC) += us
+    def += (casedSymbolName: CasedSymbolName, us: UnresolvableSymbol): Unit = {
+        logger.debug(s"Adding $us as needing fixup when $casedSymbolName is defined in the fixup map")
+        getOrElseCreate(casedSymbolName) += us
     }
 
-    private def getOrElseCreate(undefinedSymbolUC: SymbolName): SymbolForwardReferenceFixupState = {
-        map.getOrElseUpdate(undefinedSymbolUC, new SymbolForwardReferenceFixupState())
+    private def getOrElseCreate(casedSymbolName: CasedSymbolName): SymbolForwardReferenceFixupState = {
+        map.getOrElseUpdate(casedSymbolName, new SymbolForwardReferenceFixupState())
     }
 
-    def resolve(symbolNameUC: SymbolName): Unit = {
-        map.get(symbolNameUC) match {
+    def resolve(casedSymbolName: CasedSymbolName): Unit = {
+        map.get(casedSymbolName) match {
             case Some(fixupState) => fixupState.resolve()
             case None =>
         }
@@ -101,22 +101,22 @@ class SymbolForwardReferenceFixups {
 
     def size(): Int = map.size
 
-    def resolutionCount(symbolNameUC: SymbolName): Int = {
-        map.get(symbolNameUC) match {
+    def resolutionCount(casedSymbolName: CasedSymbolName): Int = {
+        map.get(casedSymbolName) match {
             case Some(fixupState) => fixupState.resolutionCount
             case None => 0
         }
     }
 
-    def getUnresolvableSymbols(symbolNameUC: SymbolName): Set[UnresolvableSymbol] = {
-        map.get(symbolNameUC) match {
+    def getUnresolvableSymbols(casedSymbolName: CasedSymbolName): Set[UnresolvableSymbol] = {
+        map.get(casedSymbolName) match {
             case Some(fixupState) => fixupState.unresolvableSymbols.toSet
             case None => Set.empty
         }
     }
 
-    def allUnresolvedSymbolForwardReferences(): Map[String, SymbolForwardReferenceFixupState] = {
-        def isUnresolved(mapEntry: (String, SymbolForwardReferenceFixupState)): Boolean = {
+    def allUnresolvedSymbolForwardReferences(): Map[CasedSymbolName, SymbolForwardReferenceFixupState] = {
+        def isUnresolved(mapEntry: (CasedSymbolName, SymbolForwardReferenceFixupState)): Boolean = {
             mapEntry._2.resolutionCount == 0
         }
         val unresolved = map.filter(isUnresolved).toMap
@@ -128,47 +128,46 @@ class SymbolForwardReferenceFixups {
 class StorageForwardReferenceFixups {
     val logger: Logger = org.log4s.getLogger
 
-    private val map = mutable.HashMap[String, mutable.HashSet[Storage]]()
-    private val resolutionCount = mutable.HashMap[String, Integer]()
+    private val map = mutable.HashMap[CasedSymbolName, mutable.HashSet[Storage]]()
+    private val resolutionCount = mutable.HashMap[CasedSymbolName, Integer]()
 
     def dump(): Unit = {
         logger.debug(s"Storage forward reference fixups: Size ${map.size}")
-        map.keySet.foreach ((symbol: String) => {
-            logger.debug(s"  Undefined Symbol ${map(symbol)}; Resolution Count: ${resolutionCount(symbol)}")
+        map.keySet.foreach ((casedSymbolName: CasedSymbolName) => {
+            logger.debug(s"  Undefined Symbol ${map(casedSymbolName)}; Resolution Count: ${resolutionCount(casedSymbolName)}")
         })
     }
 
-    def getSymbolReferences(symbolUC: String): Set[Storage] = {
-        map.getOrElse(symbolUC, Set.empty).toSet
+    def getSymbolReferences(casedSymbolName: CasedSymbolName): Set[Storage] = {
+        map.getOrElse(casedSymbolName, Set.empty).toSet
     }
 
-    def unresolvedStorages(): Map[String, Set[Storage]] = {
+    def unresolvedStorages(): Map[CasedSymbolName, Set[Storage]] = {
         val unresolveds = map.filter { case (symbol, _) => resolutionCount(symbol) == 0 }
         // return deep immutable version
         unresolveds.map {case (symbol, storageSet) => (symbol, storageSet.toSet)}.toMap
     }
 
-    def += (symbolUC: String, storageToReEvaluate: Storage): mutable.Set[Storage] = {
-        logger.debug(s"Adding storage for symbol $symbolUC, set resolution count to 0")
-        resolutionCount.put(symbolUC, 0)
-        map.getOrElseUpdate(symbolUC, mutable.HashSet[Storage]()) += storageToReEvaluate
+    def += (casedSymbolName: CasedSymbolName, storageToReEvaluate: Storage): mutable.Set[Storage] = {
+        logger.debug(s"Adding storage for symbol $casedSymbolName, set resolution count to 0")
+        resolutionCount.put(casedSymbolName, 0)
+        map.getOrElseUpdate(casedSymbolName, mutable.HashSet[Storage]()) += storageToReEvaluate
     }
 
-    def resolve(symbol: String, symbolType: SymbolType.Value): Unit = {
-        val symbolUC = symbol.toUpperCase()
-        logger.debug(s"Resolving symbol $symbolUC as a $symbolType")
+    def resolve(casedSymbolName: CasedSymbolName, symbolType: SymbolType.Value): Unit = {
+        logger.debug(s"Resolving symbol $casedSymbolName as a $symbolType")
         // Undefined Constants and Labels can be initially defined, and redefined during Convergence; So can
         // Variables - but they are defined once, and redefinition is not allowed.
         symbolType match {
             case SymbolType.Variable =>
-                map.remove(symbolUC)
+                map.remove(casedSymbolName)
 
             case _ =>
                 // Constants and Labels track changes, so don't get removed.
         }
-        val increment = resolutionCount.getOrElseUpdate(symbolUC, -1) + 1
-        resolutionCount.put(symbolUC, increment)
-        logger.debug(s"Resolved resolution count of $symbolUC is now " + resolutionCount.get(symbolUC))
+        val increment = resolutionCount.getOrElseUpdate(casedSymbolName, -1) + 1
+        resolutionCount.put(casedSymbolName, increment)
+        logger.debug(s"Resolved resolution count of $casedSymbolName is now " + resolutionCount.get(casedSymbolName))
     }
 }
 
@@ -178,7 +177,7 @@ class StorageForwardReferenceFixups {
 class AssemblyModel(debugCodegen: Boolean) {
     val logger: Logger = org.log4s.getLogger
 
-    private val dollar = "$"
+    private val dollar = CasedSymbolName("$")
 
     var title = ""
     var rows = 25
@@ -191,7 +190,7 @@ class AssemblyModel(debugCodegen: Boolean) {
 
     case class Value(value: Int, symbolType: SymbolType.Value, definitionLine: Int)
 
-    private val symbols = mutable.HashMap[String, Value]()
+    private val symbols = mutable.HashMap[CasedSymbolName, Value]()
 
     // All incoming Lines (original-in-source and macro expansion lines) are appended here. Recall that macro expansion
     // lines will have the same line number as original-in-source lines.
@@ -231,89 +230,89 @@ class AssemblyModel(debugCodegen: Boolean) {
         setDollarSilently(getDollar + n)
     }
 
-    def getVariable(name: String): Int = {
-        getSymbolValue(SymbolType.Variable, name.toUpperCase)
+    def getVariable(casedSymbolName: CasedSymbolName): Int = {
+        getSymbolValue(SymbolType.Variable, casedSymbolName)
     }
-    def variable(name: String): Option[Int] = {
-        maybeSymbol(SymbolType.Variable, name.toUpperCase)
+    def variable(casedSymbolName: CasedSymbolName): Option[Int] = {
+        maybeSymbol(SymbolType.Variable, casedSymbolName)
     }
-    def setVariable(oddcasename: String, n: Int, line: Line): Unit = {
-        setVariableInternal(n, line, oddcasename.toUpperCase, SymbolType.Variable)
-    }
-
-    def getConstant(name: String): Int = {
-        getSymbolValue(SymbolType.Constant, name.toUpperCase)
-    }
-    def constant(name: String): Option[Int] = {
-        maybeSymbol(SymbolType.Constant, name.toUpperCase)
-    }
-    def setConstant(oddcasename: String, n: Int, line: Line): Unit = {
-        setConstantOrLabelInternal(n, line, oddcasename.toUpperCase, SymbolType.Constant)
+    def setVariable(casedSymbolName: CasedSymbolName, n: Int, line: Line): Unit = {
+        setVariableInternal(n, line, casedSymbolName, SymbolType.Variable)
     }
 
-    def getLabel(name: String): Int = {
-        getSymbolValue(SymbolType.Label, name.toUpperCase)
+    def getConstant(casedSymbolName: CasedSymbolName): Int = {
+        getSymbolValue(SymbolType.Constant, casedSymbolName)
     }
-    def label(name: String): Option[Int] =  {
-        maybeSymbol(SymbolType.Label, name.toUpperCase)
+    def constant(casedSymbolName: CasedSymbolName): Option[Int] = {
+        maybeSymbol(SymbolType.Constant, casedSymbolName)
     }
-    def setLabel(oddcasename: String, n: Int, line: Line): Unit = {
-        setConstantOrLabelInternal(n, line, oddcasename.toUpperCase, SymbolType.Label)
+    def setConstant(casedSymbolName: CasedSymbolName, n: Int, line: Line): Unit = {
+        setConstantOrLabelInternal(n, line, casedSymbolName, SymbolType.Constant)
     }
 
-    private def setVariableInternal(n: Int, line: Line, ucSymbolName: SymbolName, symbolType: SymbolType.Value): Unit = {
-        symbols.get(ucSymbolName) match {
+    def getLabel(casedSymbolName: CasedSymbolName): Int = {
+        getSymbolValue(SymbolType.Label, casedSymbolName)
+    }
+    def label(casedSymbolName: CasedSymbolName): Option[Int] =  {
+        maybeSymbol(SymbolType.Label, casedSymbolName)
+    }
+    def setLabel(casedSymbolName: CasedSymbolName, n: Int, line: Line): Unit = {
+        setConstantOrLabelInternal(n, line, casedSymbolName, SymbolType.Label)
+    }
+
+    private def setVariableInternal(n: Int, line: Line, casedSymbolName: CasedSymbolName, symbolType: SymbolType.Value): Unit = {
+        symbols.get(casedSymbolName) match {
             case Some(Value(_, `symbolType`, _)) => // drop through to reassign
-            case Some(sym) => throw new AssemblyModelException(symbolType + " '" + ucSymbolName + "' cannot override existing " + sym.symbolType.toString.toLowerCase + "; initially defined on line " + sym.definitionLine)
+            case Some(sym) => throw new AssemblyModelException(symbolType + " '" + casedSymbolName + "' cannot override existing " + sym.symbolType.toString.toLowerCase + "; initially defined on line " + sym.definitionLine)
             case None => // drop through
         }
-        storeSymbolInternal(n, line, ucSymbolName, symbolType)
+        storeSymbolInternal(n, line, casedSymbolName, symbolType)
     }
 
-    private def setConstantOrLabelInternal(n: Int, line: Line, ucSymbolName: SymbolName, symbolType: SymbolType.Value): Unit = {
+    private def setConstantOrLabelInternal(n: Int, line: Line, casedSymbolName: CasedSymbolName, symbolType: SymbolType.Value): Unit = {
         // Allow replacement...
-        if (convergeMode && symbolExists(symbolType, ucSymbolName))
-            symbols.remove(ucSymbolName)
-        symbols.get(ucSymbolName) match {
-            case Some(sym) => throw new AssemblyModelException(symbolType + " '" + ucSymbolName + "' cannot override existing " + sym.symbolType.toString.toLowerCase + "; defined on line " + sym.definitionLine)
-            case None => storeSymbolInternal(n, line, ucSymbolName, symbolType)
+        if (convergeMode && symbolExists(symbolType, casedSymbolName))
+            symbols.remove(casedSymbolName)
+        symbols.get(casedSymbolName) match {
+            case Some(sym) => throw new AssemblyModelException(symbolType + " '" + casedSymbolName + "' cannot override existing " + sym.symbolType.toString.toLowerCase + "; defined on line " + sym.definitionLine)
+            case None => storeSymbolInternal(n, line, casedSymbolName, symbolType)
         }
     }
 
-    private def storeSymbolInternal(n: Int, line: Line, ucSymbolName: SymbolName, symbolType: SymbolType.Value): Unit = {
-        symbols.put(ucSymbolName, Value(n, symbolType, line.number))
+    private def storeSymbolInternal(n: Int, line: Line, casedSymbolName: CasedSymbolName, symbolType: SymbolType.Value): Unit = {
+        symbols.put(casedSymbolName, Value(n, symbolType, line.number))
         sourcedValuesForLineNumber(line.number) += AssignmentValue(n, line, symbolType)
         if (debugCodegen) {
-            logger.info(symbolType + " " + ucSymbolName + " = " + n)
+            logger.info(symbolType + " " + casedSymbolName + " = " + n)
         }
-        resolveForwardReferences(ucSymbolName, n, symbolType)
+        resolveForwardReferences(casedSymbolName, n, symbolType)
     }
 
-    private def maybeSymbol(requiredSymbolType: SymbolType.Value, ucSymbolName: SymbolName) = {
-        symbols.get(ucSymbolName) match {
+    private def maybeSymbol(requiredSymbolType: SymbolType.Value, casedSymbolName: CasedSymbolName) = {
+        symbols.get(casedSymbolName) match {
             case Some(sym) => if (sym.symbolType == requiredSymbolType) Some(sym.value) else None
             case None => None
         }
     }
 
-    private def symbolExists(requiredSymbolType: SymbolType.Value, ucSymbolName: SymbolName): Boolean = {
-        maybeSymbol(requiredSymbolType, ucSymbolName).isDefined
+    private def symbolExists(requiredSymbolType: SymbolType.Value, casedSymbolName: CasedSymbolName): Boolean = {
+        maybeSymbol(requiredSymbolType, casedSymbolName).isDefined
     }
 
-    private def getSymbolValue(requiredSymbolType: SymbolType.Value, ucSymbolName: SymbolName) = {
-        symbols.get(ucSymbolName) match {
+    private def getSymbolValue(requiredSymbolType: SymbolType.Value, casedSymbolName: CasedSymbolName) = {
+        symbols.get(casedSymbolName) match {
             case Some(Value(value, `requiredSymbolType`, _)) => value
-            case _ => throw new AssemblyModelException(requiredSymbolType + " '" + ucSymbolName + "' has not been defined")
+            case _ => throw new AssemblyModelException(requiredSymbolType + " '" + casedSymbolName + "' has not been defined")
         }
     }
 
     def getLabelsAndConstants: List[SymbolTableEntry] = {
-        def toSTE(pair: (String, Value)): SymbolTableEntry = {
+        def toSTE(pair: (CasedSymbolName, Value)): SymbolTableEntry = {
             SymbolTableEntry(pair._1, pair._2.value)
         }
 
         val labelsAndConstantsList = symbols.toList.filter(
-            (p: (String, Value)) => { p._2.symbolType == SymbolType.Label || p._2.symbolType == SymbolType.Constant })
+            (p: (CasedSymbolName, Value)) => { p._2.symbolType == SymbolType.Label || p._2.symbolType == SymbolType.Constant })
         labelsAndConstantsList.map(toSTE)
     }
 
@@ -329,7 +328,7 @@ class AssemblyModel(debugCodegen: Boolean) {
       * @param expr some expression, of any complexity
       * @return undefined variable names, or the evaluated value.
       */
-    def evaluateExpression(expr: Expression): Either[Set[String], Int] = {
+    def evaluateExpression(expr: Expression): Either[Set[CasedSymbolName], Int] = {
         //logger.debug("Evaluating " + expr)
         val undefineds = findUndefineds(expr)
         if (undefineds.nonEmpty) {
@@ -345,7 +344,7 @@ class AssemblyModel(debugCodegen: Boolean) {
     // precondition: all SymbolArgs here are defined as a variable/constant/label
     private def evaluateExpressionWithNoUndefineds(expr: Expression): Int = {
         expr match {
-            case SymbolArg(name) => lookupValue(name)
+            case SymbolArg(name) => lookupValue(CasedSymbolName(name))
             case Number(n) => n
             case Characters(_) => throw new AssemblyModelException("Cannot evaluate '" + expr + "' as an Int")
             case Unary(op, uExpr) => evaluateUnary(op, uExpr)
@@ -354,9 +353,8 @@ class AssemblyModel(debugCodegen: Boolean) {
     }
 
     // precondition: name is defined as a variable/constant/label
-    private def lookupValue(oddcasename: SymbolName): Int = {
-        val name = oddcasename.toUpperCase
-        def getFallback(symbolType: SymbolType.Value, key: String)(fallback: => Int): Int = {
+    private def lookupValue(name: CasedSymbolName): Int = {
+        def getFallback(symbolType: SymbolType.Value, key: CasedSymbolName)(fallback: => Int): Int = {
             symbols.get(key) match {
                 case Some(x) => if (x.symbolType == symbolType) x.value else fallback
                 case None => fallback
@@ -367,14 +365,13 @@ class AssemblyModel(debugCodegen: Boolean) {
         })))
     }
 
-    def definedValue(oddcasename: SymbolName): Boolean = {
-        val name = oddcasename.toUpperCase
-        symbols.contains(name)
+    def definedValue(casedSymbolName: CasedSymbolName): Boolean = {
+        symbols.contains(casedSymbolName)
     }
 
-    def findUndefineds(expr: Expression): Set[String] = {
+    def findUndefineds(expr: Expression): Set[CasedSymbolName] = {
         expr match {
-            case SymbolArg(name) => if (definedValue(name)) Set.empty else Set(name)
+            case SymbolArg(name) => if (definedValue(CasedSymbolName(name))) Set.empty else Set(CasedSymbolName(name))
             case Number(_) => Set.empty
             case Characters(_) => Set.empty
             case Unary(_, uExpr) => findUndefineds(uExpr)
@@ -587,19 +584,18 @@ class AssemblyModel(debugCodegen: Boolean) {
     // where B and C are undefined...
     // unresolvableSymbolName=A, unresolvableExpr=B+C*2, undefinedSymbols={B,C},
     // unresolvableSymbolType=Constant and line = (5, "A EQU B+C*2", None, Some(unresolvableExpr)) (etc.)
-    def recordSymbolForwardReferences(undefinedSymbols: Set[String], unresolvableSymbolName: String,
+    def recordSymbolForwardReferences(undefinedSymbols: Set[CasedSymbolName], unresolvableSymbolName: CasedSymbolName,
                                       unresolvableExpr: Expression, line: Line, unresolvableSymbolType: SymbolType.Value): Unit = {
         val unresolvableSymbol = UnresolvableSymbol(line, unresolvableSymbolType, unresolvableSymbolName, unresolvableExpr)
         for (undefinedSymbol <- undefinedSymbols) {
-            val undefinedSymbolUC = undefinedSymbol.toUpperCase
             if (debugCodegen) {
-                logger.info(s"Recording symbol $unresolvableSymbolName's forward reference to $undefinedSymbolUC")
+                logger.info(s"Recording symbol $unresolvableSymbolName's forward reference to $undefinedSymbol")
             }
             // For all {B, C} add a reference to UnresolvableSymbol A
             // But {B, C} might be referenced from a set of other UnresolvableSymbols e.g. {D, E}
             // So B -> {A, D, E}
             // and C -> {A, D, E}
-            symbolForwardReferenceFixups += (undefinedSymbolUC, unresolvableSymbol)  // (B, A) and (C, A)
+            symbolForwardReferenceFixups += (undefinedSymbol, unresolvableSymbol)  // (B, A) and (C, A)
         }
 
         if (debugCodegen) {
@@ -607,12 +603,12 @@ class AssemblyModel(debugCodegen: Boolean) {
         }
     }
 
-    private def recordStorageForwardReferences(undefinedSymbols: Set[String], storageToReEvaluate: Storage): Unit = {
+    private def recordStorageForwardReferences(undefinedSymbols: Set[CasedSymbolName], storageToReEvaluate: Storage): Unit = {
         for (undefinedSymbol <- undefinedSymbols) {
             if (debugCodegen) {
                 logger.info(s"Recording storage forward reference to $undefinedSymbol")
             }
-            storageForwardReferenceFixups += (undefinedSymbol.toUpperCase, storageToReEvaluate)
+            storageForwardReferenceFixups += (undefinedSymbol, storageToReEvaluate)
         }
         if (debugCodegen) {
             storageForwardReferenceFixups.dump()
@@ -622,15 +618,15 @@ class AssemblyModel(debugCodegen: Boolean) {
     // The Symbol (Label/Variable/Constant) symbolName has been resolved to a value. Where it had been recorded as
     // needing fixing up in Storages or other Symbols, fix up, and if each fix up is complete, remove the record of it
     // needing fixing up.
-    private def resolveForwardReferences(symbolName: String, value: Int, symbolType: SymbolType.Value): Unit = {
+    private def resolveForwardReferences(casedSymbolName: CasedSymbolName, value: Int, symbolType: SymbolType.Value): Unit = {
         // TODO mark the storage as having had a forward reference resolved, so the R can be shown in the listing
         // TODO can the two types of forward reference fixup be generalised?
 
         // Resolve forward references to Storages...
-        val storagesWithForwardReferences = storageForwardReferences(symbolName)
+        val storagesWithForwardReferences = storageForwardReferences(casedSymbolName)
         if (storagesWithForwardReferences.nonEmpty) {
             if (debugCodegen) {
-                logger.info("Resolving Storage references to symbol '" + symbolName + "' with value " + value)
+                logger.info("Resolving Storage references to symbol '" + casedSymbolName + "' with value " + value)
             }
             for (storage <- storagesWithForwardReferences) {
                 if (debugCodegen) {
@@ -647,19 +643,19 @@ class AssemblyModel(debugCodegen: Boolean) {
                 })
                 dumpStorage(storage)
             }
-            storageForwardReferenceFixups.resolve(symbolName, symbolType)
+            storageForwardReferenceFixups.resolve(casedSymbolName, symbolType)
         }
 
         // Resolve forward references to UnresolvableSymbols...
-        val unresolvableSymbols = unresolvedSymbolForwardReferences(symbolName)
+        val unresolvableSymbols = unresolvedSymbolForwardReferences(casedSymbolName)
         if (unresolvableSymbols.nonEmpty) {
             if (debugCodegen) {
-                logger.info("Resolving Symbol references to symbol '" + symbolName + "' with value " + value)
+                logger.info("Resolving Symbol references to symbol '" + casedSymbolName + "' with value " + value)
             }
             for (unresolvableSymbol <- unresolvableSymbols) {
                 if (debugCodegen) {
                     logger.info("Resolving " + unresolvableSymbol.symbolType + " " +
-                      unresolvableSymbol.name + " on line " + unresolvableSymbol.line.number)
+                      unresolvableSymbol.casedSymbolName + " on line " + unresolvableSymbol.line.number)
                 }
 
                 // Re-evaluate expressions, setting variable or constant, and removing the forward reference if it's a
@@ -668,18 +664,18 @@ class AssemblyModel(debugCodegen: Boolean) {
                     case Right(result) =>
                         unresolvableSymbol.symbolType match {
                             case SymbolType.Constant =>
-                                setConstant(unresolvableSymbol.name, result, unresolvableSymbol.line)
+                                setConstant(unresolvableSymbol.casedSymbolName, result, unresolvableSymbol.line)
                                 // When Converging, constant changes are tracked, so keep the
                                 // unresolvableSymbolReference in the fixup map.
                                 if (debugCodegen) {
-                                    logger.debug(s"${unresolvableSymbol.name} is a Constant so not removing from fixup map, so convergence will track changes")
+                                    logger.debug(s"${unresolvableSymbol.casedSymbolName} is a Constant so not removing from fixup map, so convergence will track changes")
                                 }
                             case SymbolType.Variable =>
-                                setVariable(unresolvableSymbol.name, result, unresolvableSymbol.line)
+                                setVariable(unresolvableSymbol.casedSymbolName, result, unresolvableSymbol.line)
                                 // When Converging, variable changes are not tracked, so remove the
                                 // unresolvableSymbolReference in the fixup map, now that it has been set initially.
                                 if (debugCodegen) {
-                                    logger.debug(s"${unresolvableSymbol.name} is a Variable and not in Converge mode,so removing from fixup map")
+                                    logger.debug(s"${unresolvableSymbol.casedSymbolName} is a Variable and not in Converge mode, so removing from fixup map")
                                 }
                                 symbolForwardReferenceFixups -= unresolvableSymbol
                             case SymbolType.Label => // This should not happen....
@@ -687,34 +683,34 @@ class AssemblyModel(debugCodegen: Boolean) {
                         }
                     case Left(_) => // Expr still contains other undefined symbols, so more resolution to do....
                 }
-                symbolForwardReferenceFixups.resolve(symbolName)
+                symbolForwardReferenceFixups.resolve(casedSymbolName)
                 symbolForwardReferenceFixups.dump()
             }
         }
     }
 
-    private [codegen] def storageForwardReferences(symbol: String): Set[Storage] = {
-        storageForwardReferenceFixups.getSymbolReferences(symbol.toUpperCase())
+    private [codegen] def storageForwardReferences(casedSymbolName: CasedSymbolName): Set[Storage] = {
+        storageForwardReferenceFixups.getSymbolReferences(casedSymbolName)
     }
 
-    private [codegen] def unresolvedSymbolForwardReferences(symbol: String): Set[UnresolvableSymbol] = {
-        symbolForwardReferenceFixups.getUnresolvableSymbols(symbol.toUpperCase)
+    private [codegen] def unresolvedSymbolForwardReferences(casedSymbolName: CasedSymbolName): Set[UnresolvableSymbol] = {
+        symbolForwardReferenceFixups.getUnresolvableSymbols(casedSymbolName)
     }
 
-    private [codegen] def resolutionCount(symbol: SymbolName): Int = {
-        symbolForwardReferenceFixups.resolutionCount(symbol.toUpperCase)
+    private [codegen] def resolutionCount(casedSymbolName: CasedSymbolName): Int = {
+        symbolForwardReferenceFixups.resolutionCount(casedSymbolName: CasedSymbolName)
     }
 
 
     def checkUnresolvedForwardReferences(): Unit = {
         // If there are any undefined symbols, sort them alphabetically, and list them with the line numbers they're
         // referenced on (sorted numerically). e.g. (aardvark: #1; FNORD: #3, #4; foo: #5; zygote: #1)
-        val unresolvedStorages: Map[String, Set[Storage]] = storageForwardReferenceFixups.unresolvedStorages()
+        val unresolvedStorages: Map[CasedSymbolName, Set[Storage]] = storageForwardReferenceFixups.unresolvedStorages()
         if (unresolvedStorages.nonEmpty) {
-            val undefinedSymbolNamesSorted = unresolvedStorages.keySet.toList.sortWith((a: String, b: String) => {
-                a.compareToIgnoreCase(b) < 0
+            val undefinedSymbolNamesSorted = unresolvedStorages.keySet.toList.sortWith((a: CasedSymbolName, b: CasedSymbolName) => {
+                a.toString.compareToIgnoreCase(b.toString) < 0
             })
-            val allStorageNamesAndLineReferences = undefinedSymbolNamesSorted.map((usn: String) => {
+            val allStorageNamesAndLineReferences = undefinedSymbolNamesSorted.map((usn: CasedSymbolName) => {
                 val storageSet = unresolvedStorages(usn)
                 val storageLinesSorted = storageSet.map(_.line.number).toList.sorted
                 val storageLineReferences = storageLinesSorted.map("#" + _).mkString(", ")
@@ -729,10 +725,10 @@ class AssemblyModel(debugCodegen: Boolean) {
 
         val unresolvedSymbols = symbolForwardReferenceFixups.allUnresolvedSymbolForwardReferences()
         if (unresolvedSymbols.nonEmpty) {
-            val undefinedSymbolNamesSorted = unresolvedSymbols.keySet.toList.sortWith((a: String, b: String) => {
-                a.compareToIgnoreCase(b) < 0
+            val undefinedSymbolNamesSorted = unresolvedSymbols.keySet.toList.sortWith((a: CasedSymbolName, b: CasedSymbolName) => {
+                a.toString.compareToIgnoreCase(b.toString) < 0
             })
-            val allStorageNamesAndLineReferences = undefinedSymbolNamesSorted.map((usn: String) => {
+            val allStorageNamesAndLineReferences = undefinedSymbolNamesSorted.map((usn: CasedSymbolName) => {
                 val unresolvableSymbols = unresolvedSymbols(usn).unresolvableSymbols
                 val unresolvableSymbolLinesSorted = unresolvableSymbols.map(_.line.number).toList.sorted
                 val unresolvableSymbolLineReferences = unresolvableSymbolLinesSorted.map("#" + _).mkString(", ")

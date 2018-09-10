@@ -17,12 +17,19 @@
 package org.devzendo.tma.codegen
 
 case object CasedSymbolName {
-    var caseSensitivity = true
+    // "By default, MASM is not case sensitive." MASM 6.1 Programmer's Guide, p25.
+    var caseSensitivity = false
+
     def setCaseSensitivity(newSensitivity: Boolean): Unit = {
         caseSensitivity = newSensitivity
     }
+
+    def apply(oddCaseName: String): CasedSymbolName = {
+        val name = if (CasedSymbolName.caseSensitivity) oddCaseName else oddCaseName.toUpperCase
+        new CasedSymbolName(name)
+    }
 }
 
-case class CasedSymbolName(private val oddCaseName: String) {
-    val name = if (CasedSymbolName.caseSensitivity) oddCaseName else oddCaseName.toUpperCase
+case class CasedSymbolName private (private val name: String) {
+    override def toString: String = name
 }

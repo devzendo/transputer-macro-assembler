@@ -51,7 +51,7 @@ class TestCodeGenerator extends AssertionsForJUnit with MustMatchers {
         model.columns must be(80)
         model.processor must be(None)
         model.getDollar must be(0)
-        model.getVariable(dollar) must be (0)
+        model.getVariable(CasedSymbolName(dollar)) must be (0)
         model.hasEndBeenSeen must be (true) // cannot sense it being false initially after model created
         codegen.getLastLineNumber must be(1)
     }
@@ -229,7 +229,7 @@ class TestCodeGenerator extends AssertionsForJUnit with MustMatchers {
     def orgNumber(): Unit = {
         val model = generateFromStatement(Org(Number(42)))
         model.getDollar must be(42)
-        model.getVariable(dollar) must be(42)
+        model.getVariable(CasedSymbolName(dollar)) must be(42)
     }
 
     @Test
@@ -239,13 +239,13 @@ class TestCodeGenerator extends AssertionsForJUnit with MustMatchers {
             Org(SymbolArg(fnord))
         ))
         model.getDollar must be(42)
-        model.getVariable(dollar) must be(42)
+        model.getVariable(CasedSymbolName(dollar)) must be(42)
     }
 
     @Test
     def constantAssignment(): Unit = {
         val model = generateFromStatement(ConstantAssignment(new SymbolName(fnord), Number(42)))
-        model.getConstant(fnord) must be(42)
+        model.getConstant(CasedSymbolName(fnord)) must be(42)
     }
 
     @Test
@@ -272,9 +272,9 @@ class TestCodeGenerator extends AssertionsForJUnit with MustMatchers {
             ConstantAssignment(new SymbolName("undef"),Number(42))) // causes fixup
         )
 
-        model.resolutionCount("undef") must be (1)
+        model.resolutionCount(CasedSymbolName("undef")) must be (1)
 
-        model.getConstant("fnord") must be(42)
+        model.getConstant(CasedSymbolName("fnord")) must be(42)
     }
 
     @Test
@@ -284,9 +284,9 @@ class TestCodeGenerator extends AssertionsForJUnit with MustMatchers {
             VariableAssignment(new SymbolName("undef"),Number(42))) // causes fixup
         )
 
-        model.resolutionCount("undef") must be (1)
+        model.resolutionCount(CasedSymbolName("undef")) must be (1)
 
-        model.getConstant("fnord") must be(42)
+        model.getConstant(CasedSymbolName("fnord")) must be(42)
     }
 
     @Test
@@ -297,9 +297,9 @@ class TestCodeGenerator extends AssertionsForJUnit with MustMatchers {
             Line(3, "undef:", Some("undef"), None)
         ))
 
-        model.resolutionCount("undef") must be (1)
+        model.resolutionCount(CasedSymbolName("undef")) must be (1)
 
-        model.getConstant("fnord") must be(42)
+        model.getConstant(CasedSymbolName("fnord")) must be(42)
     }
 
     @Test
@@ -318,7 +318,7 @@ class TestCodeGenerator extends AssertionsForJUnit with MustMatchers {
     @Test
     def variableAssignment(): Unit = {
         val model = generateFromStatement(VariableAssignment(new SymbolName(fnord), Number(42)))
-        model.getVariable(fnord) must be(42)
+        model.getVariable(CasedSymbolName(fnord)) must be(42)
     }
 
     @Test
@@ -345,9 +345,9 @@ class TestCodeGenerator extends AssertionsForJUnit with MustMatchers {
             ConstantAssignment(new SymbolName("undef"),Number(42))) // causes fixup
         )
 
-        model.resolutionCount("undef") must be (1)
+        model.resolutionCount(CasedSymbolName("undef")) must be (1)
 
-        model.getVariable("fnord") must be(42)
+        model.getVariable(CasedSymbolName("fnord")) must be(42)
     }
 
     @Test
@@ -357,9 +357,9 @@ class TestCodeGenerator extends AssertionsForJUnit with MustMatchers {
             VariableAssignment(new SymbolName("undef"),Number(42))) // causes fixup
         )
 
-        model.resolutionCount("undef") must be (1)
+        model.resolutionCount(CasedSymbolName("undef")) must be (1)
 
-        model.getVariable("fnord") must be(42)
+        model.getVariable(CasedSymbolName("fnord")) must be(42)
     }
 
     @Test
@@ -370,9 +370,9 @@ class TestCodeGenerator extends AssertionsForJUnit with MustMatchers {
             Line(3, "undef:", Some("undef"), None)
         ))
 
-        model.resolutionCount("undef") must be (1)
+        model.resolutionCount(CasedSymbolName("undef")) must be (1)
 
-        model.getVariable("fnord") must be(42)
+        model.getVariable(CasedSymbolName("fnord")) must be(42)
     }
 
     // NOTE: Constants and Labels can be used in expressions when they're not yet defined, and when they are, the
@@ -388,10 +388,10 @@ class TestCodeGenerator extends AssertionsForJUnit with MustMatchers {
             VariableAssignment(new SymbolName("undef"),Number(69))) // does not cause change to fnord
         )
 
-        model.resolutionCount("undef") must be (1)
+        model.resolutionCount(CasedSymbolName("undef")) must be (1)
 
-        model.getVariable("fnord") must be(42)
-        model.getVariable("undef") must be(69)
+        model.getVariable(CasedSymbolName("fnord")) must be(42)
+        model.getVariable(CasedSymbolName("undef")) must be(69)
     }
 
     @Test
@@ -400,7 +400,7 @@ class TestCodeGenerator extends AssertionsForJUnit with MustMatchers {
             VariableAssignment(new SymbolName(fnord), Number(42)),
             VariableAssignment(new SymbolName(fnord), Number(12))
         ))
-        model.getVariable(fnord) must be(12)
+        model.getVariable(CasedSymbolName(fnord)) must be(12)
     }
 
     @Test
@@ -409,7 +409,7 @@ class TestCodeGenerator extends AssertionsForJUnit with MustMatchers {
             Line(1, "irrelevant", None, Some(Org(Number(42)))),
             Line(2, "irrelevant", Some(new Label(fnord)), None))
         )
-        model.getLabel(fnord) must be(42)
+        model.getLabel(CasedSymbolName(fnord)) must be(42)
     }
 
     @Test
@@ -783,7 +783,7 @@ class TestCodeGenerator extends AssertionsForJUnit with MustMatchers {
             Line(11, "", None, Some(DB(List(Number(11)))))
         ))
 
-        model.getLabel(fnord) must be(42)
+        model.getLabel(CasedSymbolName(fnord)) must be(42)
 
         val line2SourcedValues = model.getSourcedValuesForLineNumber(2)
         line2SourcedValues must have size 2
@@ -1030,13 +1030,13 @@ class TestCodeGenerator extends AssertionsForJUnit with MustMatchers {
     @Test
     def directInstructionWithUndefinedExpression(): Unit = {
         val line = Line(1, "LDC FOO + BAR", None, Some(DirectInstruction("LDC", 0x40, Binary(Add(), SymbolArg("FOO"), SymbolArg("BAR")))))
-        lcdiwus(line) must be(Set("FOO", "BAR"))
+        lcdiwus(line) must be(Set(CasedSymbolName("FOO"), CasedSymbolName("BAR")))
     }
 
     @Test
     def directInstructionWithDefinedExpression(): Unit = {
         val constline = Line(1, "FOO EQU 10", None, Some(ConstantAssignment("FOO", Number(10))))
-        model.setConstant("FOO", 10, constline)
+        model.setConstant(CasedSymbolName("FOO"), 10, constline)
         val line = Line(2, "LDC FOO", None, Some(DirectInstruction("LDC", 0x40, SymbolArg("FOO"))))
         lcdiwus(line) must be('empty)
     }
@@ -1062,7 +1062,7 @@ class TestCodeGenerator extends AssertionsForJUnit with MustMatchers {
 
         model.getDollar must be(0x10F)
 
-        model.getLabel("L1") must be(0x104)
+        model.getLabel(CasedSymbolName("L1")) must be(0x104)
 
         // The LDC is encoded with the right size for the offest of L1 - there have been iterations to increase its
         // size from its initial length of 1 byte.
@@ -1172,7 +1172,7 @@ class TestCodeGenerator extends AssertionsForJUnit with MustMatchers {
         model.getDollar must be(0x1114)
 
         val expectedL1 = 0x1109
-        model.getLabel("L1") must be(expectedL1)
+        model.getLabel(CasedSymbolName("L1")) must be(expectedL1)
 
         // What is that DD now set to?
         val line3Storages = model.getSourcedValuesForLineNumber(3)
@@ -1201,7 +1201,7 @@ class TestCodeGenerator extends AssertionsForJUnit with MustMatchers {
         model.getDollar must be(0x1109)
 
         val expectedC1 = 0x1109
-        model.getConstant("C1") must be(expectedC1)
+        model.getConstant(CasedSymbolName("C1")) must be(expectedC1)
 
         // What is that DD now set to?
         val line3Storages = model.getSourcedValuesForLineNumber(3)
@@ -1230,7 +1230,7 @@ class TestCodeGenerator extends AssertionsForJUnit with MustMatchers {
         model.getDollar must be(0x1109)
 
         val expectedV1 = 0x1109
-        model.getConstant("V1") must be(expectedV1)
+        model.getConstant(CasedSymbolName("V1")) must be(expectedV1)
 
         // What is that DD now set to?
         val line3Storages = model.getSourcedValuesForLineNumber(3)
@@ -1260,8 +1260,8 @@ class TestCodeGenerator extends AssertionsForJUnit with MustMatchers {
         model.getDollar must be(0x1114)
 
         val expectedL1 = 0x1105
-        model.getLabel("L1") must be(expectedL1)
-        model.getConstant("L1COPY") must be(expectedL1)
+        model.getLabel(CasedSymbolName("L1")) must be(expectedL1)
+        model.getConstant(CasedSymbolName("L1COPY")) must be(expectedL1)
 
         // What is that AssignedValue now set to? There will be several, what's in the last (which will be what's in
         // the binary file)
@@ -1297,10 +1297,10 @@ class TestCodeGenerator extends AssertionsForJUnit with MustMatchers {
         model.getDollar must be(0x1110)
 
         val expectedL1 = 0x1105
-        model.getLabel("L1") must be(expectedL1)
+        model.getLabel(CasedSymbolName("L1")) must be(expectedL1)
 
         val firstL1 = 0x1102
-        model.getVariable("L1COPY") must be(firstL1)
+        model.getVariable(CasedSymbolName("L1COPY")) must be(firstL1)
 
         // What is that AssignedValue now set to?
         val line3SourcedValues = model.getSourcedValuesForLineNumber(3)
@@ -1329,10 +1329,10 @@ class TestCodeGenerator extends AssertionsForJUnit with MustMatchers {
         model.getDollar must be(0x1114)
 
         val expectedL1 = 0x1105
-        model.getLabel("L1") must be(expectedL1)
+        model.getLabel(CasedSymbolName("L1")) must be(expectedL1)
 
         val firstL1 = 0x1102
-        model.getVariable("L1COPY") must be(firstL1)
+        model.getVariable(CasedSymbolName("L1COPY")) must be(firstL1)
 
         // What is that DD now set to?
         val line8Storages = model.getSourcedValuesForLineNumber(8)

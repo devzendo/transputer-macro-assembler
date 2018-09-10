@@ -20,7 +20,7 @@ import java.io.File
 
 import org.devzendo.tma.ast.AST.SymbolName
 import org.devzendo.tma.ast._
-import org.devzendo.tma.codegen.{AssemblyModel, AssignmentValue, Storage, SymbolType}
+import org.devzendo.tma.codegen._
 import org.devzendo.tma.util.TempFolder
 import org.junit.Test
 import org.scalatest.MustMatchers
@@ -308,7 +308,7 @@ class TestListingWriter extends TempFolder with AssertionsForJUnit with MustMatc
         model.setDollarSilently(0x40000000)
         val line = Line(1, "FNORD:", Some(fnord), None)
         model.addLine(line)
-        model.setLabel(fnord, model.getDollar, line)
+        model.setLabel(CasedSymbolName(fnord), model.getDollar, line)
         //                  123456789012345678901234567890
         val expectedLine = " 40000000             FNORD:"
         listingBodyLinesAre(expectedLine)
@@ -318,7 +318,7 @@ class TestListingWriter extends TempFolder with AssertionsForJUnit with MustMatc
     def assignmentOf16BitNumber(): Unit = {
         val line = Line(1, "FNORD = 65534", None, Some(VariableAssignment(new SymbolName(fnord), Number(65534))))
         model.addLine(line)
-        model.setVariable(fnord, 65534, line)
+        model.setVariable(CasedSymbolName(fnord), 65534, line)
         //                  12345678901234567890123456789012345
         val expectedLine = " = FFFE               FNORD = 65534"
         listingBodyLinesAre(expectedLine)
@@ -328,7 +328,7 @@ class TestListingWriter extends TempFolder with AssertionsForJUnit with MustMatc
     def assignmentOf32BitNumber(): Unit = {
         val line = Line(1, "FNORD = 65536", None, Some(VariableAssignment(new SymbolName(fnord), Number(65536))))
         model.addLine(line)
-        model.setVariable(fnord, 65536, line)
+        model.setVariable(CasedSymbolName(fnord), 65536, line)
         //                  12345678901234567890123456789012345
         val expectedLine = " = 00010000           FNORD = 65536"
         listingBodyLinesAre(expectedLine)
@@ -423,11 +423,11 @@ class TestListingWriter extends TempFolder with AssertionsForJUnit with MustMatc
         model.setDollarSilently(0x40000000)
         val line1 = Line(1, "FNORD:", Some(fnord), None)
         model.addLine(line1)
-        model.setLabel(fnord, model.getDollar, line1)
+        model.setLabel(CasedSymbolName(fnord), model.getDollar, line1)
         model.setDollarSilently(0x40000020)
         val line2 = Line(2, "AARDVARK:", Some("AARDVARK"), None)
         model.addLine(line2)
-        model.setLabel("AARDVARK", model.getDollar, line2)
+        model.setLabel(CasedSymbolName("AARDVARK"), model.getDollar, line2)
 
         checkSymbolTableContents()
     }
@@ -436,10 +436,10 @@ class TestListingWriter extends TempFolder with AssertionsForJUnit with MustMatc
     def constantsShownInSymbolTable(): Unit = {
         val line1 = Line(1, "EQU FNORD 0x40000020", None, Some(ConstantAssignment(new SymbolName(fnord), Number(0x40000020))))
         model.addLine(line1)
-        model.setConstant(fnord, 0x40000000, line1)
+        model.setConstant(CasedSymbolName(fnord), 0x40000000, line1)
         val line2 = Line(2, "EQL AARDVARK 0x40000000", None, Some(ConstantAssignment(new SymbolName("AARDVARK"), Number(0x40000010))))
         model.addLine(line2)
-        model.setConstant("AARDVARK", 0x40000020, line2)
+        model.setConstant(CasedSymbolName("AARDVARK"), 0x40000020, line2)
 
         checkSymbolTableContents()
     }

@@ -74,7 +74,7 @@ class CodeGenerator(debugCodegen: Boolean, model: AssemblyModel) {
     private var convergeMode: Boolean = false
     private var startConvergeLineIndex = 0
     private var endConvergeLineIndex = 0
-    private var symbolsToConverge = mutable.HashSet[String]()
+    private var symbolsToConverge = mutable.HashSet[CasedSymbolName]()
     case class DirectInstructionState(directInstruction: DirectInstruction, currentSize: Int) {
     }
     private val directInstructionByLineIndex = mutable.HashMap[Int, DirectInstructionState]()
@@ -128,7 +128,7 @@ class CodeGenerator(debugCodegen: Boolean, model: AssemblyModel) {
         }
     }
 
-    private[codegen] def lineContainsDirectInstructionWithUndefinedSymbols(line: Line): Set[String] = {
+    private[codegen] def lineContainsDirectInstructionWithUndefinedSymbols(line: Line): Set[CasedSymbolName] = {
         line.stmt match {
             case Some(DirectInstruction(_, _, expr)) =>
                 model.evaluateExpression(expr) match {
@@ -169,7 +169,7 @@ class CodeGenerator(debugCodegen: Boolean, model: AssemblyModel) {
                 processLineStatement(line, lineIndex)
 
                 line.label.foreach((label: Label) => {
-                    resolveConvergeSetSymbol(label)
+                    resolveConvergeSetSymbol(CasedSymbolName(label))
                 })
 
                 if (convergeMode && symbolsToConverge.isEmpty) {
@@ -184,11 +184,10 @@ class CodeGenerator(debugCodegen: Boolean, model: AssemblyModel) {
         }
     }
 
-    private def resolveConvergeSetSymbol(symbol: String) = {
-        val symbolUC = symbol.toUpperCase
-        if (symbolsToConverge.contains(symbolUC)) {
-            logger.debug("Removing " + symbolUC + " from converge symbol set")
-            symbolsToConverge.remove(symbolUC)
+    private def resolveConvergeSetSymbol(casedSymbolName: CasedSymbolName) = {
+        if (symbolsToConverge.contains(casedSymbolName)) {
+            logger.debug("Removing " + casedSymbolName + " from converge symbol set")
+            symbolsToConverge.remove(casedSymbolName)
         }
     }
 
@@ -275,7 +274,7 @@ class CodeGenerator(debugCodegen: Boolean, model: AssemblyModel) {
 
     private def createLabel(line: Line): Unit = {
         line.label.foreach((label: Label) =>
-            model.setLabel(label, model.getDollar, line)
+            model.setLabel(CasedSymbolName(label), model.getDollar, line)
         )
     }
 
@@ -371,6 +370,7 @@ class CodeGenerator(debugCodegen: Boolean, model: AssemblyModel) {
     }
 
     private def processConstantAssignment(line: Line, name: SymbolName, expr: Expression): Unit = {
+        val casedName = CasedSymbolName(name)
         val lineNumber = line.number
         if (expressionContainsCharacters(expr)) {
             throw new CodeGenerationException(lineNumber, "Constant cannot be set to a Character expression '" + expr + "'")
@@ -379,16 +379,17 @@ class CodeGenerator(debugCodegen: Boolean, model: AssemblyModel) {
         either match {
             case Left(undefineds) =>
                 if (debugCodegen) {
-                    logger.info("Cannot set constant " + name + " to expression " + expr + " due to undefined symbols " + undefineds + " on line number " + lineNumber)
+                    logger.info("Cannot set constant " + casedName + " to expression " + expr + " due to undefined symbols " + undefineds + " on line number " + lineNumber)
                 }
-                model.recordSymbolForwardReferences(undefineds, name, expr, line, SymbolType.Constant)
+                model.recordSymbolForwardReferences(undefineds, casedName, expr, line, SymbolType.Constant)
             case Right(value) =>
-                model.setConstant(name, value, line)
-                resolveConvergeSetSymbol(name)
+                model.setConstant(casedName, value, line)
+                resolveConvergeSetSymbol(casedName)
         }
     }
 
     private def processVariableAssignment(line: Line, name: SymbolName, expr: Expression): Unit = {
+        val casedName = CasedSymbolName(name)
         val lineNumber = line.number
         if (expressionContainsCharacters(expr)) {
             throw new CodeGenerationException(lineNumber, "Variable cannot be set to a Character expression '" + expr + "'")
@@ -397,12 +398,12 @@ class CodeGenerator(debugCodegen: Boolean, model: AssemblyModel) {
         either match {
             case Left(undefineds) =>
                 if (debugCodegen) {
-                    logger.info("Cannot set variable " + name + " to expression " + expr + " due to undefined symbols " + undefineds + " on line number " + lineNumber)
+                    logger.info("Cannot set variable " + casedName + " to expression " + expr + " due to undefined symbols " + undefineds + " on line number " + lineNumber)
                 }
-                model.recordSymbolForwardReferences(undefineds, name, expr, line, SymbolType.Variable)
+                model.recordSymbolForwardReferences(undefineds, casedName, expr, line, SymbolType.Variable)
             case Right(value) =>
-                model.setVariable(name, value, line)
-                resolveConvergeSetSymbol(name)
+                model.setVariable(casedName, value, line)
+                resolveConvergeSetSymbol(casedName)
         }
     }
 
