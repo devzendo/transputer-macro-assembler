@@ -111,7 +111,9 @@ trait TransputerInstructionParser extends ExpressionParser with DiagnosableParse
         fprtoi32 | fpstnli32 | fpldzerosn | fpldzerodb | fpint | fpdup | fprev | fpldnladddb | fpldnlmuldb |
         fpldnladdsn | fpentry | fpldnlmulsn | fpusqrtfirst | fpusqrtstep | fpusqrtlast | fpurp | fpurm |
         fpurz | fpur32tor64 | fpur64tor32 | fpuexpdec32 | fpuexpinc32 | fpuabs | fpunoround | fpuchki32 |
-        fpuchki64 | fpudivby2 | fpumulby2 | fpurn | fpuseterr | fpuclrerr
+        fpuchki64 | fpudivby2 | fpumulby2 | fpurn | fpuseterr | fpuclrerr |
+        // T801
+        start | testhardchan | testldd | teststd | testlde | testste | testlds | teststs
 
     // Opcode to direct instructions. As per CWG, p 117
     private def short(opcode: Int): List[Int] = List(OP_OPR | (opcode & 0x0f)) // OPR(opcode)
@@ -119,6 +121,12 @@ trait TransputerInstructionParser extends ExpressionParser with DiagnosableParse
     private def long(opcode: Int): List[Int] = {
         List(OP_PFIX | ((opcode & 0xf0) >> 4),  // PFIX(opcode left-nybble)
              OP_OPR  | (opcode & 0x0f))         // OPR(opcode right-nybble)
+    }
+
+    private def longer(opcode: Int): List[Int] = {
+        List(OP_PFIX | ((opcode & 0xf00) >> 8),  // PFIX(opcode nybble 2)
+             OP_PFIX | ((opcode & 0x0f0) >> 4),  // PFIX(opcode nybble 1)
+             OP_OPR  |  (opcode & 0x0f))         // OPR(opcode nybble 0)
     }
 
     private def seq(opcode: Int): List[Int] = {
@@ -287,5 +295,15 @@ trait TransputerInstructionParser extends ExpressionParser with DiagnosableParse
     private def fpurn: Parser[(String, List[Int])]     = """(?i)FPURN""".r     ^^ ( x => (x.toUpperCase, seq(0x22)) )
     private def fpuseterr: Parser[(String, List[Int])] = """(?i)FPUSETERR""".r ^^ ( x => (x.toUpperCase, seq(0x23)) )
     private def fpuclrerr: Parser[(String, List[Int])] = """(?i)FPUCLRERR""".r ^^ ( x => (x.toUpperCase, seq(0x9c)) )
+
+    // T801 Instructions
+    private def start: Parser[(String, List[Int])] = """(?i)START""".r ^^ ( x => (x.toUpperCase, longer(0x1ff)) )
+    private def testhardchan: Parser[(String, List[Int])] = """(?i)TESTHARDCHAN""".r ^^ ( x => (x.toUpperCase, long(0x2d)) )
+    private def testldd: Parser[(String, List[Int])] = """(?i)TESTLDD""".r ^^ ( x => (x.toUpperCase, long(0x25)) )
+    private def teststd: Parser[(String, List[Int])] = """(?i)TESTSTD""".r ^^ ( x => (x.toUpperCase, long(0x28)) )
+    private def testlde: Parser[(String, List[Int])] = """(?i)TESTLDE""".r ^^ ( x => (x.toUpperCase, long(0x24)) )
+    private def testste: Parser[(String, List[Int])] = """(?i)TESTSTE""".r ^^ ( x => (x.toUpperCase, long(0x27)) )
+    private def testlds: Parser[(String, List[Int])] = """(?i)TESTLDS""".r ^^ ( x => (x.toUpperCase, long(0x23)) )
+    private def teststs: Parser[(String, List[Int])] = """(?i)TESTSTS""".r ^^ ( x => (x.toUpperCase, long(0x26)) )
 
 }

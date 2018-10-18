@@ -882,4 +882,46 @@ class TestTransputerInstructionParser extends AssertionsForJUnit with MustMatche
     def fpuclrerr(): Unit = {
         indirect("fpuclrerr", List(0x29, 0x4c, 0x2a, 0xfb))
     }
+
+    // T801 instructions
+    @Test
+    def start(): Unit = {
+        indirect("start", List(0x21, 0x2f, 0xff))
+    }
+
+    @Test
+    def testhardchan(): Unit = {
+        indirect("testhardchan", List(0x22, 0xfd))
+    }
+
+    @Test
+    def testldd(): Unit = {
+        indirect("testldd", List(0x22, 0xf5))
+    }
+
+    @Test
+    def teststd(): Unit = {
+        indirect("teststd", List(0x22, 0xf8))
+    }
+
+    @Test
+    def testlde(): Unit = {
+        indirect("testlde", List(0x22, 0xf4))
+    }
+
+    @Test
+    def testste(): Unit = {
+        indirect("testste", List(0x22, 0xf7))
+    }
+
+    @Test
+    def testlds(): Unit = {
+        indirect("testlds", List(0x22, 0xf3))
+    }
+
+    @Test
+    def teststs(): Unit = {
+        indirect("teststs", List(0x22, 0xf6))
+    }
+
 }

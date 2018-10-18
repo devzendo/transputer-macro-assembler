@@ -28,9 +28,9 @@ In active development; unfinished; not yet at its first release (as of October 2
 Parser, macro expansion, code generation and output of binary file and listing are done. Optimally encodes direct
 instructions into pfix/nfix sequences - especially for forward references where location might not yet be known.
 
-The assembler has built a binary of eForth without any parsing/code gen errors (using macros, not .T800 mode yet) - and
-a close inspection of the listing side-by-side with that produced by MASM suggests that I'm assembling identically to
-MASM! I can't generate a binary with MASM - linking fails - but the listing is sufficient for verification
+The assembler has built a binary of eForth without any parsing/code gen errors (using macros, not .TRANSPUTER mode yet)
+- and a close inspection of the listing side-by-side with that produced by MASM suggests that I'm assembling identically
+to MASM! I can't generate a binary with MASM - linking fails - but the listing is sufficient for verification.
 
 Current work:
   * Using it to build "hello world", Node Server client code, eForth.
