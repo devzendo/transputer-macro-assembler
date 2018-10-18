@@ -23,13 +23,13 @@ import org.log4s.Logger
 import org.scalatest.MustMatchers
 import org.scalatest.junit.AssertionsForJUnit
 
-class TestT800InstructionParser extends AssertionsForJUnit with MustMatchers {
+class TestTransputerInstructionParser extends AssertionsForJUnit with MustMatchers {
     val logger: Logger = org.log4s.getLogger
 
     private val FOO = SymbolArg("FOO")
 
-    class InstructionParser extends T800InstructionParser {
-        // Because T800InstructionParser is now a trait, I need this class to extend it, so I can instantiate it.
+    class InstructionParser extends TransputerInstructionParser {
+        // Because TransputerInstructionParser is now a trait, I need this class to extend it, so I can instantiate it.
     }
     val parser = new InstructionParser()
     parser.setDebugParser(true)

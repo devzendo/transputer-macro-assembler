@@ -17,7 +17,7 @@
 package org.devzendo.tma.parser
 import org.devzendo.tma.ast._
 
-trait T800InstructionParser extends ExpressionParser with DiagnosableParser {
+trait TransputerInstructionParser extends ExpressionParser with DiagnosableParser {
 
     @throws(classOf[AssemblyParserException])
     def parse(line: String): Statement = {

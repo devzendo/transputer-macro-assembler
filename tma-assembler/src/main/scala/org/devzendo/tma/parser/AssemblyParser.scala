@@ -135,7 +135,7 @@ class AssemblyParser(val debugParser: Boolean, val showParserOutput: Boolean, va
     }
 
     private class StatementCombinatorParser(inMacroExpansion: Boolean) extends ExpressionParser with DiagnosableParser with LineParser
-        with T800InstructionParser with NoInstructionParser {
+        with TransputerInstructionParser with NoInstructionParser {
 
         def line: Parser[List[Line]] =  macroInvocationLine | statementLine
 
