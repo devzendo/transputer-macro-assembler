@@ -37,11 +37,11 @@ trait T800InstructionParser extends ExpressionParser with DiagnosableParser {
 
     def parseStatement(line: String): (String, ParseResult[Statement]) = {
         val sanitizedInput = (if (line == null) "" else line).trim()
-        val parseResult = parseAll(t800Instruction, sanitizedInput)
+        val parseResult = parseAll(transputerInstruction, sanitizedInput)
         (sanitizedInput, parseResult)
     }
 
-    def t800Instruction: Parser[Statement] = indirectInstruction | directInstruction
+    def transputerInstruction: Parser[Statement] = indirectInstruction | directInstruction
 
     private def directInstruction: Parser[DirectInstruction] = (
       directOpcode ~ expression

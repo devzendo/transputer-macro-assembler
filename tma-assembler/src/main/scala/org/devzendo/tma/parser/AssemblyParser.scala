@@ -221,7 +221,7 @@ class AssemblyParser(val debugParser: Boolean, val showParserOutput: Boolean, va
 
             processorToParse match {
                 case None => noInstructionsAllowed
-                case Some(Processor("T800")) => t800Instruction
+                case Some(Processor("TRANSPUTER")) => transputerInstruction
                 case Some(Processor(_)) => noInstructionsAllowed
             }
         }
@@ -375,7 +375,7 @@ class AssemblyParser(val debugParser: Boolean, val showParserOutput: Boolean, va
                 Page(rows.toInt, columns.toInt)
         }
 
-        def processor: Parser[Processor] = """(?i)\.(386|T800)""".r ^^ {
+        def processor: Parser[Processor] = """(?i)\.(386|TRANSPUTER)""".r ^^ {
             cpuString =>
                 val cpu = cpuString.substring(1)
                 if (debugParser) {
@@ -384,10 +384,10 @@ class AssemblyParser(val debugParser: Boolean, val showParserOutput: Boolean, va
                 val out = Processor(cpu)
                 cpu match {
                     case "386" =>
-                        logger.warn("386 Processor; only its endianness is understood, none of its instructions")
-                    case "T800" =>
-                        processorToParse = Some(out)
-                        logger.debug("Enabling T800 opcodes")
+                        logger.warn("386 Processor; only its little-endianness is understood, none of its instructions")
+                    case "TRANSPUTER" =>
+                        processorToParse = Some(out) // Enables extra instruction set parser combinator.
+                        logger.debug("Enabling Transputer opcodes, little-endianness")
                 }
                 out
         }

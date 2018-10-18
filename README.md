@@ -5,6 +5,9 @@ irrespective of actual CPU instructions. You can build your set of 'opcodes'
 via macros and ALIGN/DB/DD/DW directives. Its input language is a small subset
 of Microsoft MASM 5.1.
 
+It also supports the instruction set of the Inmos T414/T800/T801/T805 Transputer,
+when the .TRANSPUTER directive is given.
+
 (C) 2018 Matt J. Gumbley
 matt.gumbley@devzendo.org
 @mattgumbley @devzendo
@@ -20,7 +23,7 @@ Status
 Project started 19 April 2018.
 Successful eForth assembly verified 25 June 2018.
  
-In active development; unfinished; not yet at its first release (as of early September 2018).
+In active development; unfinished; not yet at its first release (as of October 2018).
 
 Parser, macro expansion, code generation and output of binary file and listing are done. Optimally encodes direct
 instructions into pfix/nfix sequences - especially for forward references where location might not yet be known.
@@ -31,6 +34,7 @@ MASM! I can't generate a binary with MASM - linking fails - but the listing is s
 
 Current work:
   * Using it to build "hello world", Node Server client code, eForth.
+  * Adding support for the full T414/T800/T801/T805 instruction set in .TRANSPUTER mode.
   * use types to enforce case of symbols/fixups consistently
    
 Remaining work:
@@ -115,10 +119,11 @@ LABEL:    ; A label starting a line with a colon; a semicolon introduces a comme
                          ; also use DW count DUP n, and DD count DUP n.
           TITLE My Title ; Sets the title given in the listing.
           PAGE 80,25     ; Sets the page size in the listing.
-          .386           ; Sets the instruction set and endianness to 386.
-          .T800          ; Sets the instruction set and endianness to T800.
-                         ; (Currently only the endianness is set; build macros up
-                         ; to generate DBs from opcodes)
+          .386           ; Sets the instruction set to 386 and endianness to Little.
+                         ; (If you want to write Transputer code in .386 mode, note that this only sets the endianness
+                         ;  you have to build macros up to generate DBs from opcodes - as eForth originally does.)
+          .TRANSPUTER    ; Sets the instruction set to T414/T800/T801/T805 and endianness to Little.
+                         ; Note that by default, the assembler's endianness is Big.
           ALIGN 4        ; Increase $ if necessary to the next address that's a multiple
                          ; of the argument.
           IF1            ; Mark out a section that will only be assembled during pass 1.

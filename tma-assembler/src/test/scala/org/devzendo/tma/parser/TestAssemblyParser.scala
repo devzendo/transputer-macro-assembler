@@ -585,8 +585,8 @@ class TestAssemblyParser extends AssertionsForJUnit with MustMatchers {
     }
 
     @Test
-    def cpuT800(): Unit = {
-        singleLineParsesToStatement(".T800", Processor("T800"))
+    def cpuTRANSPUTER(): Unit = {
+        singleLineParsesToStatement(".TRANSPUTER", Processor("TRANSPUTER"))
     }
 
     @Test
@@ -597,9 +597,9 @@ class TestAssemblyParser extends AssertionsForJUnit with MustMatchers {
     }
 
     @Test
-    def t800InstructionRecognisedIfProcessorSet(): Unit = {
+    def transputerInstructionRecognisedIfProcessorSet(): Unit = {
         val textLines = List(
-            ".T800",
+            ".TRANSPUTER",
             "CODE: ldnlp 3"
         )
 
@@ -607,7 +607,7 @@ class TestAssemblyParser extends AssertionsForJUnit with MustMatchers {
         val lines = parsedLinesSoFar.toList
 
         lines must be (List(
-            Line(1, ".T800", None, Some(Processor("T800"))),
+            Line(1, ".TRANSPUTER", None, Some(Processor("TRANSPUTER"))),
             Line(2, "CODE: ldnlp 3", Some("CODE"), Some(DirectInstruction("LDNLP", 0x50, Number(3))))
         ))
     }
