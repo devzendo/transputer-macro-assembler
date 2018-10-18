@@ -980,4 +980,29 @@ class TestTransputerInstructionParser extends AssertionsForJUnit with MustMatche
         indirect("lddevid", List(0x21, 0x27, 0xfc))
     }
 
+    // Nonstandard emulator
+    @Test
+    def togglemonitor(): Unit = {
+        indirect("togglemonitor", List(0x2c, 0xf0))
+    }
+
+    @Test
+    def toggledisasm(): Unit = {
+        indirect("toggledisasm", List(0x2c, 0xf1))
+    }
+
+    @Test
+    def terminate(): Unit = {
+        indirect("terminate", List(0x2c, 0xf2))
+    }
+
+    @Test
+    def marker(): Unit = {
+        indirect("marker", List(0x2c, 0xf3))
+    }
+
+    @Test
+    def emuquery(): Unit = {
+        indirect("emuquery", List(0x2c, 0xf4))
+    }
 }

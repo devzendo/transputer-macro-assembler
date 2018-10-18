@@ -57,6 +57,14 @@ Remaining work:
     change during convergence, the storage/expressions are re-evaluated; should unify this and use closures to
     process fixups.  
 
+Release Notes
+-------------
+0.01 (ongoing work for the first release)
+* Added the T801 instructions, from "Transputer Instruction Set - Appendix, Guy Harriman".
+* Added the T801/T805 instructions from "Support for debugging/breakpointing in transputers" (INMOS
+  Technical Note 61).
+* Added the Parachute Transputer Emulator's nonstandard instructions.
+
 Rationale
 ---------
 I needed a macro assembler to assemble eForth (and in a reusable form for future Transputer language projects). I have

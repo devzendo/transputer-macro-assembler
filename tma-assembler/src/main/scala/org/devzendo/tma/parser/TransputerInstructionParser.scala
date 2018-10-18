@@ -116,7 +116,9 @@ trait TransputerInstructionParser extends ExpressionParser with DiagnosableParse
         start | testhardchan | testldd | teststd | testlde | testste | testlds | teststs |
         // T805
         break | clrj0break | setj0break | testj0break | timerdisablel | timerdisableh | timerenableh | timerenablel |
-        ldmemstartval | pop | lddevid
+        ldmemstartval | pop | lddevid |
+        // Nonstandard emulator
+        togglemonitor | toggledisasm | terminate | marker | emuquery
 
     // Opcode to direct instructions. As per CWG, p 117
     private def direct(opcode: Int): List[Int] = List(OP_OPR | (opcode & 0x0f)) // OPR(opcode)
@@ -321,4 +323,11 @@ trait TransputerInstructionParser extends ExpressionParser with DiagnosableParse
     private def ldmemstartval: Parser[(String, List[Int])] = """(?i)LDMEMSTARTVAL""".r ^^ ( x => (x.toUpperCase, indirect2(0x7e)) )
     private def pop: Parser[(String, List[Int])] = """(?i)POP""".r ^^ ( x => (x.toUpperCase, indirect2(0x79)) )
     private def lddevid: Parser[(String, List[Int])] = """(?i)LDDEVID""".r ^^ ( x => (x.toUpperCase, indirect3(0x17c)) )
+
+    // Nonstandard emulator
+    private def togglemonitor: Parser[(String, List[Int])] = """(?i)TOGGLEMONITOR""".r ^^ ( x => (x.toUpperCase, indirect2(0xc0)) )
+    private def toggledisasm: Parser[(String, List[Int])] = """(?i)TOGGLEDISASM""".r ^^ ( x => (x.toUpperCase, indirect2(0xc1)) )
+    private def terminate: Parser[(String, List[Int])] = """(?i)TERMINATE""".r ^^ ( x => (x.toUpperCase, indirect2(0xc2)) )
+    private def marker: Parser[(String, List[Int])] = """(?i)MARKER""".r ^^ ( x => (x.toUpperCase, indirect2(0xc3)) )
+    private def emuquery: Parser[(String, List[Int])] = """(?i)EMUQUERY""".r ^^ ( x => (x.toUpperCase, indirect2(0xc4)) )
 }
