@@ -113,7 +113,10 @@ trait TransputerInstructionParser extends ExpressionParser with DiagnosableParse
         fpurz | fpur32tor64 | fpur64tor32 | fpuexpdec32 | fpuexpinc32 | fpuabs | fpunoround | fpuchki32 |
         fpuchki64 | fpudivby2 | fpumulby2 | fpurn | fpuseterr | fpuclrerr |
         // T801
-        start | testhardchan | testldd | teststd | testlde | testste | testlds | teststs
+        start | testhardchan | testldd | teststd | testlde | testste | testlds | teststs |
+        // T805
+        break | clrj0break | setj0break | testj0break | timerdisablel | timerdisableh | timerenableh | timerenablel |
+        ldmemstartval | pop | lddevid
 
     // Opcode to direct instructions. As per CWG, p 117
     private def direct(opcode: Int): List[Int] = List(OP_OPR | (opcode & 0x0f)) // OPR(opcode)
@@ -306,4 +309,16 @@ trait TransputerInstructionParser extends ExpressionParser with DiagnosableParse
     private def testlds: Parser[(String, List[Int])] = """(?i)TESTLDS""".r ^^ ( x => (x.toUpperCase, indirect2(0x23)) )
     private def teststs: Parser[(String, List[Int])] = """(?i)TESTSTS""".r ^^ ( x => (x.toUpperCase, indirect2(0x26)) )
 
+    // T805 Instructions
+    private def break: Parser[(String, List[Int])] = """(?i)BREAK""".r ^^ ( x => (x.toUpperCase, indirect2(0xb1)) )
+    private def clrj0break: Parser[(String, List[Int])] = """(?i)CLRJ0BREAK""".r ^^ ( x => (x.toUpperCase, indirect2(0xb2)) )
+    private def setj0break: Parser[(String, List[Int])] = """(?i)SETJ0BREAK""".r ^^ ( x => (x.toUpperCase, indirect2(0xb3)) )
+    private def testj0break: Parser[(String, List[Int])] = """(?i)TESTJ0BREAK""".r ^^ ( x => (x.toUpperCase, indirect2(0xb4)) )
+    private def timerdisableh: Parser[(String, List[Int])] = """(?i)TIMERDISABLEH""".r ^^ ( x => (x.toUpperCase, indirect2(0x7a)) )
+    private def timerdisablel: Parser[(String, List[Int])] = """(?i)TIMERDISABLEL""".r ^^ ( x => (x.toUpperCase, indirect2(0x7b)) )
+    private def timerenableh: Parser[(String, List[Int])] = """(?i)TIMERENABLEH""".r ^^ ( x => (x.toUpperCase, indirect2(0x7c)) )
+    private def timerenablel: Parser[(String, List[Int])] = """(?i)TIMERENABLEL""".r ^^ ( x => (x.toUpperCase, indirect2(0x7d)) )
+    private def ldmemstartval: Parser[(String, List[Int])] = """(?i)LDMEMSTARTVAL""".r ^^ ( x => (x.toUpperCase, indirect2(0x7e)) )
+    private def pop: Parser[(String, List[Int])] = """(?i)POP""".r ^^ ( x => (x.toUpperCase, indirect2(0x79)) )
+    private def lddevid: Parser[(String, List[Int])] = """(?i)LDDEVID""".r ^^ ( x => (x.toUpperCase, indirect3(0x17c)) )
 }

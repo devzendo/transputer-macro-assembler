@@ -924,4 +924,60 @@ class TestTransputerInstructionParser extends AssertionsForJUnit with MustMatche
         indirect("teststs", List(0x22, 0xf6))
     }
 
+    // T805 Instructions
+    @Test
+    def break(): Unit = {
+        indirect("break", List(0x2b, 0xf1))
+    }
+
+    @Test
+    def clrj0break(): Unit = {
+        indirect("clrj0break", List(0x2b, 0xf2))
+    }
+
+    @Test
+    def setj0break(): Unit = {
+        indirect("setj0break", List(0x2b, 0xf3))
+    }
+
+    @Test
+    def testj0break(): Unit = {
+        indirect("testj0break", List(0x2b, 0xf4))
+    }
+
+    @Test
+    def timerdisableh(): Unit = {
+        indirect("timerdisableh", List(0x27, 0xfa))
+    }
+
+    @Test
+    def timerdisablel(): Unit = {
+        indirect("timerdisablel", List(0x27, 0xfb))
+    }
+
+    @Test
+    def timerenableh(): Unit = {
+        indirect("timerenableh", List(0x27, 0xfc))
+    }
+
+    @Test
+    def timerenablel(): Unit = {
+        indirect("timerenablel", List(0x27, 0xfd))
+    }
+
+    @Test
+    def ldmemstartval(): Unit = {
+        indirect("ldmemstartval", List(0x27, 0xfe))
+    }
+
+    @Test
+    def pop(): Unit = {
+        indirect("pop", List(0x27, 0xf9))
+    }
+
+    @Test
+    def lddevid(): Unit = {
+        indirect("lddevid", List(0x21, 0x27, 0xfc))
+    }
+
 }
