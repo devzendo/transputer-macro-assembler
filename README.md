@@ -108,6 +108,8 @@ The following fragment illustrates most of the key syntax:
 ```
 LABEL:    ; A label starting a line with a colon; a semicolon introduces a comment.
           EQU MYCONST 42 ; Here's a constant; you can't re-assign them (see Convergence).
+          EQU X 2 OR 7   ; Can use expressions: OR ||, AND &&, +, -, *, /, SHR >>, SHL <<,
+                         ; ! ~ (unary negation/complement)  
           MYVAR = 69     ; Here's a variable; you can re-assign them.
                          ; Constant, variable, and label names follow the rules for
                          ; Java identifiers: this means a letter, currency symbol or connecting
