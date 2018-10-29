@@ -333,7 +333,7 @@ class CodeGenerator(debugCodegen: Boolean, model: AssemblyModel) {
                 logger.debug("Processor is '" + name + "'")
                 model.endianness = name match {
                     case "386" => Endianness.Little
-                    case "T800" => Endianness.Little
+                    case "TRANSPUTER" => Endianness.Little
                 }
             case Align(n) => processAlign(line, n)
             case Org(expr) => processOrg(line, expr)
