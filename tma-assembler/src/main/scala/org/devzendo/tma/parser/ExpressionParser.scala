@@ -66,7 +66,7 @@ trait ExpressionParser extends JavaTokenParsers with DiagnosableParser {
     }*/
 
     def unaryE: Parser[Expression] = (
-      opt("[!~-]".r) ~ primary
+      opt("""(?i)(OFFSET|[!~-])""".r) ~ primary
       )  ^^ {
         case optUnary ~ term =>
             optUnary match {
@@ -80,7 +80,13 @@ trait ExpressionParser extends JavaTokenParsers with DiagnosableParser {
                     }
                 case Some("~") | Some("!") => Unary(Not(), term)
                 // regex ensures this can't happen
-                case Some(x) => throw new AssemblyParserException(0 /*lineNumber*/, "Unexpected 'unary' operator: '" + x + "'")
+                case Some(x) =>
+                    x.toUpperCase match {
+                        case "OFFSET" =>
+                            Unary(Offset(), term)
+                        case _ =>
+                            throw new AssemblyParserException(0 /*lineNumber*/, "Unexpected 'unary' operator: '" + x + "'")
+                    }
                 case None => term
             }
     }

@@ -324,6 +324,16 @@ class TestAssemblyParser extends AssertionsForJUnit with MustMatchers {
     }
 
     @Test
+    def unaryOffsetSymbolic(): Unit = {
+        expressionParses("offset x", Unary(Offset(), SymbolArg(new SymbolName("x"))))
+    }
+
+    @Test
+    def unaryOffsetNumber(): Unit = {
+        expressionParses("offset 12", Unary(Offset(), Number(12)))
+    }
+
+    @Test
     def equalPrecendenceLeftToRightGroup8Forward(): Unit = {
         val star = Binary(Mult(), Number(5), Number(4))
         val slash = Binary(Div(), star, Number(3))

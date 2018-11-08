@@ -169,6 +169,179 @@ class TestCodeGenerator extends AssertionsForJUnit with MustMatchers {
     }
 
     @Test
+    def offsetConversionToOffsetFrom(): Unit = {
+        val inmodel = new AssemblyModel(true)
+        inmodel.setDollarSilently(0x1000)
+        val localCodeGen = new CodeGenerator(true, inmodel)
+        val convertedExpr = localCodeGen.convertOffsets(Unary(Offset(), Number(0x10)))
+        convertedExpr must be(Unary(OffsetFrom(0x1000), Number(0x10)))
+    }
+
+    @Test
+    def nonOffsetExpressionInUnaryDoesNotGetConverted(): Unit = {
+        val inmodel = new AssemblyModel(true)
+        val localCodeGen = new CodeGenerator(true, inmodel)
+        val convertedExpr = localCodeGen.convertOffsets(Unary(Negate(), Number(0x10)))
+        convertedExpr must be(Unary(Negate(), Number(0x10)))
+    }
+
+    @Test
+    def nonOffsetExpressionInNonUnaryDoesNotGetConverted(): Unit = {
+        val inmodel = new AssemblyModel(true)
+        val localCodeGen = new CodeGenerator(true, inmodel)
+        val convertedExpr = localCodeGen.convertOffsets(Characters("foo"))
+        convertedExpr must be(Characters("foo"))
+    }
+
+    @Test
+    def offsetInOrg(): Unit = {
+        // bit odd, but why not?!
+        val model = generateFromStatements(List(
+            Org(Number(4)),
+            Org(Unary(Offset(), Number(12))) // 12 - 4
+        ))
+        model.getDollar must be(8)
+    }
+
+    @Test
+    def offsetInConstant(): Unit = {
+        val model = generateFromStatements(List(
+            Org(Number(4)),
+            ConstantAssignment(new SymbolName(fnord), Unary(Offset(), Number(12))) // 12 - 4
+        ))
+        model.getConstant(CasedSymbolName(fnord)) must be(8)
+    }
+
+    @Test
+    def offsetInVariable(): Unit = {
+        val model = generateFromStatements(List(
+            Org(Number(4)),
+            VariableAssignment(new SymbolName(fnord), Unary(Offset(), Number(12))) // 12 - 4
+        ))
+        model.getVariable(CasedSymbolName(fnord)) must be(8)
+    }
+
+    @Test
+    def offsetInDB(): Unit = {
+        val model = generateFromStatements(List(
+            Org(Number(4)),
+            DB(List(Unary(Offset(), Number(12)))) // 12 - 4
+        ))
+        model.getSourcedValuesForLineNumber(2).head match {
+            case Storage(4, _, data, _, _) => data must be(Array[Int](8))
+            case _ => fail("Did not return a Storage")
+        }
+    }
+
+    @Test
+    def offsetInDW(): Unit = {
+        val model = generateFromStatements(List(
+            Org(Number(4)),
+            DW(List(Unary(Offset(), Number(12)))) // 12 - 4
+        ))
+        model.getSourcedValuesForLineNumber(2).head match {
+            case Storage(4, _, data, _, _) => data must be(Array[Int](8))
+            case _ => fail("Did not return a Storage")
+        }
+    }
+
+    @Test
+    def offsetInDD(): Unit = {
+        val model = generateFromStatements(List(
+            Org(Number(4)),
+            DD(List(Unary(Offset(), Number(12)))) // 12 - 4
+        ))
+        model.getSourcedValuesForLineNumber(2).head match {
+            case Storage(4, _, data, _, _) => data must be(Array[Int](8))
+            case _ => fail("Did not return a Storage")
+        }
+    }
+
+    @Test
+    def offsetInDBDupCount(): Unit = {
+        val model = generateFromStatements(List(
+            Org(Number(4)),
+            DBDup(Unary(Offset(), Number(12)), Number(7)) // 12 - 4
+        ))
+        model.getSourcedValuesForLineNumber(2).head match {
+            case Storage(4, _, data, _, _) => data must be(Array[Int](7, 7, 7, 7, 7, 7, 7, 7))
+            case _ => fail("Did not return a Storage")
+        }
+    }
+
+    @Test
+    def offsetInDBDupRepeatedExpression(): Unit = {
+        val model = generateFromStatements(List(
+            Org(Number(4)),
+            DBDup(Number(3), Unary(Offset(), Number(12))) // 12 - 4
+        ))
+        model.getSourcedValuesForLineNumber(2).head match {
+            case Storage(4, _, data, _, _) => data must be(Array[Int](8, 8, 8))
+            case _ => fail("Did not return a Storage")
+        }
+    }
+
+    @Test
+    def offsetInDWDupCount(): Unit = {
+        val model = generateFromStatements(List(
+            Org(Number(4)),
+            DWDup(Unary(Offset(), Number(12)), Number(7)) // 12 - 4
+        ))
+        model.getSourcedValuesForLineNumber(2).head match {
+            case Storage(4, _, data, _, _) => data must be(Array[Int](7, 7, 7, 7, 7, 7, 7, 7))
+            case _ => fail("Did not return a Storage")
+        }
+    }
+
+    @Test
+    def offsetInDWDupRepeatedExpression(): Unit = {
+        val model = generateFromStatements(List(
+            Org(Number(4)),
+            DWDup(Number(3), Unary(Offset(), Number(12))) // 12 - 4
+        ))
+        model.getSourcedValuesForLineNumber(2).head match {
+            case Storage(4, _, data, _, _) => data must be(Array[Int](8, 8, 8))
+            case _ => fail("Did not return a Storage")
+        }
+    }
+
+    @Test
+    def offsetInDDDupCount(): Unit = {
+        val model = generateFromStatements(List(
+            Org(Number(4)),
+            DDDup(Unary(Offset(), Number(12)), Number(7)) // 12 - 4
+        ))
+        model.getSourcedValuesForLineNumber(2).head match {
+            case Storage(4, _, data, _, _) => data must be(Array[Int](7, 7, 7, 7, 7, 7, 7, 7))
+            case _ => fail("Did not return a Storage")
+        }
+    }
+
+    @Test
+    def offsetInDDDupRepeatedExpression(): Unit = {
+        val model = generateFromStatements(List(
+            Org(Number(4)),
+            DDDup(Number(3), Unary(Offset(), Number(12))) // 12 - 4
+        ))
+        model.getSourcedValuesForLineNumber(2).head match {
+            case Storage(4, _, data, _, _) => data must be(Array[Int](8, 8, 8))
+            case _ => fail("Did not return a Storage")
+        }
+    }
+
+    @Test
+    def offsetInDirectInstructionExpression(): Unit = {
+        val model = generateFromStatements(List(
+            Org(Number(4)),
+            DirectInstruction("LDC", 0x40, Unary(Offset(), Number(12))) // 12 - 4
+        ))
+        model.getSourcedValuesForLineNumber(2).head match {
+            case Storage(4, _, data, _, _) => data must be(Array[Int](0x48))
+            case _ => fail("Did not return a Storage")
+        }
+    }
+
+    @Test
     def end(): Unit = {
         val model = generateFromLines(List(Line(1, "", None, Some(End(None)))))
         codegen.endCheck()
@@ -1348,6 +1521,88 @@ class TestCodeGenerator extends AssertionsForJUnit with MustMatchers {
         line8Storage.address must be(0x1110)
         line8Storage.cellWidth must be(4)
         line8Storage.data.toList must be(List(firstL1))
+    }
+
+    @Test
+    def negativeOffset(): Unit = {
+        val lines = List(
+            Line(1, "LABEL: DB 1,2,3,4", Some("LABEL"), Some(DB(List(Number(1), Number(2), Number(3), Number(4))))),
+            Line(2, "C EQU OFFSET LABEL'", None, Some(ConstantAssignment(new SymbolName("C"), Unary(Offset(), SymbolArg(new SymbolName("LABEL"))))))
+        )
+        val model = generateFromLines(lines)
+
+        model.getConstant(CasedSymbolName("C")) must be(-4)
+    }
+
+    @Test
+    def zeroOffset(): Unit = {
+        val lines = List(
+            Line(1, "LABEL:", Some("LABEL"), None),
+            Line(2, "C EQU OFFSET LABEL'", None, Some(ConstantAssignment(new SymbolName("C"), Unary(Offset(), SymbolArg(new SymbolName("LABEL"))))))
+        )
+        val model = generateFromLines(lines)
+
+        model.getConstant(CasedSymbolName("C")) must be(0)
+    }
+
+    @Test
+    def positiveOffset(): Unit = {
+        val lines = List(
+            Line(1, "C EQU OFFSET LABEL'", None, Some(ConstantAssignment(new SymbolName("C"), Unary(Offset(), SymbolArg(new SymbolName("LABEL")))))),
+            Line(2, "DB 1,2,3,4", None, Some(DB(List(Number(1), Number(2), Number(3), Number(4))))),
+            Line(3, "LABEL:", Some("LABEL"), None)
+        )
+        val model = generateFromLines(lines)
+
+        model.getConstant(CasedSymbolName("C")) must be(4)
+    }
+
+
+    @Test
+    def convergeOffset(): Unit = {
+        val lines = List(
+            Line(1, "\t.TRANSPUTER", None, Some(Processor("TRANSPUTER"))),
+            Line(2, "\tORG 0x1000", None, Some(Org(Number(0x1000)))),
+            Line(3, "\tLDC OFFSET L1", None, Some(DirectInstruction("LDC", 0x40, Unary(Offset(), SymbolArg("L1"))))),
+            Line(4, "\tLDPI", None, Some(IndirectInstruction("LDPI", List(0x21, 0xfb)))),
+            Line(5, "\tDB\t255 DUP 10", None, Some(DBDup(Number(255), Number(10)))), // pad the LDC out to 3 bytes
+            Line(6, "L1:\tDB\t'hello world'", Some("L1"), Some(DB(List(Characters("hello world")))))
+        )
+        val model = generateFromLines(lines)
+        model.convergeMode must be(false)
+        showListing(model)
+
+        model.getDollar must be(0x110F)
+
+        model.getLabel(CasedSymbolName("L1")) must be(0x1104)
+
+        // The LDC is encoded with the right size for the offest of L1 - there have been iterations to increase its
+        // size from its initial length of 1 byte.
+        val line3Storages = model.getSourcedValuesForLineNumber(3)
+        line3Storages must have size 1
+        val line3Storage = singleStorage(line3Storages)
+        line3Storage.address must be(0x1000)
+        line3Storage.cellWidth must be(1)
+        line3Storage.data.toList must be(List(0x21, 0x20, 0x44))
+
+        // Statements that are not DirectInstructions (here's an IndirectInstruction, the LDPI)
+        val line4Storages = model.getSourcedValuesForLineNumber(4)
+        line4Storages must have size 1
+        val line4Storage = singleStorage(line4Storages)
+        line4Storage.address must be(0x1003)
+        line4Storage.cellWidth must be(1)
+        line4Storage.data.toList must be(List(0x21, 0xfb))
+
+        // Each line (that generates storage) only generates one for the whole convergence - storages generated in
+        // early iterations are removed.
+        val line6Storages = model.getSourcedValuesForLineNumber(6) // the DB hello world
+        line6Storages.size must be (2) // a storage and a label
+        val line6Storage = singleStorage(line6Storages)
+        line6Storage.address must be(0x1104)
+        line6Storage.cellWidth must be(1)
+        line6Storage.data.toList must be(List(0x68, 0x65, 0x6c, 0x6c, 0x6f, 0x20, 0x77, 0x6f, 0x72, 0x6c, 0x64))
+        val line6ValueAssignment = singleAssignmentValue(line6Storages) // L1, see above for label test
+        line6ValueAssignment.data must be(0x1104)
     }
 
     private def showListing(model: AssemblyModel): Unit = {

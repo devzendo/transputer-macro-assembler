@@ -23,7 +23,7 @@ Status
 Project started 19 April 2018.
 Successful eForth assembly verified 25 June 2018.
  
-In active development; unfinished; not yet at its first release (as of October 2018).
+In active development; unfinished; not yet at its first release (as of November 2018).
 
 Parser, macro expansion, code generation and output of binary file and listing are done. Optimally encodes direct
 instructions into pfix/nfix sequences - especially for forward references where location might not yet be known.
@@ -33,10 +33,7 @@ The assembler has built a binary of eForth without any parsing/code gen errors (
 to MASM! I can't generate a binary with MASM - linking fails - but the listing is sufficient for verification.
 
 Current work:
-  * Using it to build "hello world", Node Server client code, eForth.
-  * Adding support for the full T414/T800/T801/T805 instruction set in .TRANSPUTER mode.
-  * use types to enforce case of symbols/fixups consistently
-   
+      
 Remaining work:
   * Constants/Variables definition in listing only shows 16-bit versions of values?
   * Escape codes do not work in DB strings? \12 ? \n ? \r ?
@@ -60,6 +57,8 @@ Remaining work:
 Release Notes
 -------------
 0.01 (ongoing work for the first release)
+* Added an OFFSET operator, to compute offsets of its argument from $.
+* Added support for the full T414/T800/T801/T805 instruction set in .TRANSPUTER mode.
 * Added the T801 instructions, from "Transputer Instruction Set - Appendix, Guy Harriman".
 * Added the T801/T805 instructions from "Support for debugging/breakpointing in transputers" (INMOS
   Technical Note 61).
@@ -151,7 +150,15 @@ LABEL:    ; A label starting a line with a colon; a semicolon introduces a comme
           MAIN           ; Ignored
           ASSUME         ; Ignored
           .LIST          ; Ignored
-          .NOLIST        ; Ignored               
+          .NOLIST        ; Ignored        
+          MYOFF = OFFSET MYLABEL
+                         ; Sets the MYOFF constant to the difference between MYLABEL and $, which is positive if
+                         ; MYLABEL is ahead of this statement, negative if it is behind. OFFSET can be used in any
+                         ; expression: in an ORG (odd, but possible!), DB/DW/DD and their DUP forms, in constant (EQU)
+                         ; and variable (=) definitions, and in Transputer direct instruction arguments, e.g.
+                         ; LDC OFFSET MYLABEL. This is especially useful for CJ/J/CALL instructions which work with
+                         ; offsets to instructions rather than addresses - to allow code to be position-independent.
+                         ; OFFSETs are also recomputed during convergence (see below).
 ```
 
 Convergence

@@ -389,7 +389,15 @@ class AssemblyModel(debugCodegen: Boolean) {
         op match {
             case Negate() => value * -1
             case Not() => ~ value
-            case _ => throw new IllegalStateException("Parser has passed an operation of " + op + " to a Unary")
+            case OffsetFrom(storedDollar) => {
+                val ret = value - storedDollar
+                logger.debug("Offset of value=" + value + " and stored $=" + storedDollar + ": " + ret)
+                ret
+            }
+            case Offset() =>
+                throw new IllegalStateException("Offset should have been transformed to an OffsetFrom")
+            case _ =>
+                throw new IllegalStateException("Parser has passed an operation of " + op + " to a Unary")
         }
     }
 

@@ -131,7 +131,7 @@ class CodeGenerator(debugCodegen: Boolean, model: AssemblyModel) {
     private[codegen] def lineContainsDirectInstructionWithUndefinedSymbols(line: Line): Set[CasedSymbolName] = {
         line.stmt match {
             case Some(DirectInstruction(_, _, expr)) =>
-                model.evaluateExpression(expr) match {
+                model.evaluateExpression(convertOffsets(expr)) match {
                     case Left(undefineds) => undefineds
                     case Right(_) => Set.empty
                 }
@@ -239,7 +239,7 @@ class CodeGenerator(debugCodegen: Boolean, model: AssemblyModel) {
                         if (debugCodegen) {
                             logger.info("Current size for direct instruction: " + currentSize)
                         }
-                        model.evaluateExpression(di.expr) match {
+                        model.evaluateExpression(convertOffsets(di.expr)) match {
 
                             case Right(value) =>
                                 if (debugCodegen) {
@@ -336,27 +336,39 @@ class CodeGenerator(debugCodegen: Boolean, model: AssemblyModel) {
                     case "TRANSPUTER" => Endianness.Little
                 }
             case Align(n) => processAlign(line, n)
-            case Org(expr) => processOrg(line, expr)
+            case Org(expr) => processOrg(line, convertOffsets(expr))
             case End(expr) => processEnd(line, expr)
-            case ConstantAssignment(name, expr) => processConstantAssignment(line, name, expr)
-            case VariableAssignment(name, expr) => processVariableAssignment(line, name, expr)
+            case ConstantAssignment(name, expr) => processConstantAssignment(line, name, convertOffsets(expr))
+            case VariableAssignment(name, expr) => processVariableAssignment(line, name, convertOffsets(expr))
             case Ignored() => // Do nothing
             case MacroStart(_, _) =>  // All macro AST statements are handled by the parser; the expansions are handled
             case MacroBody(_) =>      // by the rest of the AST statement handlers, here..
             case MacroEnd() =>        // So, do nothing...
             case MacroInvocation(_, _) => // Non-macro statements would follow after an invocation, unless it's an empty macro.
-            case DB(exprs) => model.allocateStorageForLine(line, 1, exprs)
-            case DW(exprs) => model.allocateStorageForLine(line, 2, exprs)
-            case DD(exprs) => model.allocateStorageForLine(line, 4, exprs)
-            case DBDup(count, repeatedExpr) => model.allocateStorageForLine(line, 1, count, repeatedExpr)
-            case DWDup(count, repeatedExpr) => model.allocateStorageForLine(line, 2, count, repeatedExpr)
-            case DDDup(count, repeatedExpr) => model.allocateStorageForLine(line, 4, count, repeatedExpr)
+            case DB(exprs) => model.allocateStorageForLine(line, 1, exprs map convertOffsets)
+            case DW(exprs) => model.allocateStorageForLine(line, 2, exprs map convertOffsets)
+            case DD(exprs) => model.allocateStorageForLine(line, 4, exprs map convertOffsets)
+            case DBDup(count, repeatedExpr) => model.allocateStorageForLine(line, 1, convertOffsets(count), convertOffsets(repeatedExpr))
+            case DWDup(count, repeatedExpr) => model.allocateStorageForLine(line, 2, convertOffsets(count), convertOffsets(repeatedExpr))
+            case DDDup(count, repeatedExpr) => model.allocateStorageForLine(line, 4, convertOffsets(count), convertOffsets(repeatedExpr))
             case If1() => processIf1()
             case Else() => processElse(line)
             case Endif() => processEndif(line)
-            case DirectInstruction(_, opbyte, expr) => processDirectInstruction(line, lineIndex, stmt.asInstanceOf[DirectInstruction], opbyte, expr)
+            case DirectInstruction(_, opbyte, expr) => processDirectInstruction(line, lineIndex, stmt.asInstanceOf[DirectInstruction], opbyte, convertOffsets(expr))
             case DirectEncodedInstruction(opcode, opbytes) => processDirectEncodedInstruction(line, opcode, opbytes)
             case IndirectInstruction(opcode, opbytes) => processIndirectInstruction(line, opcode, opbytes)
+        }
+    }
+
+    private[codegen] def convertOffsets(expr: Expression): Expression = {
+        expr match {
+            case Unary(op, uExpr) => {
+                op match {
+                    case Offset() => Unary(OffsetFrom(model.getDollar), uExpr)
+                    case _ => expr
+                }
+            }
+            case _ => expr
         }
     }
 

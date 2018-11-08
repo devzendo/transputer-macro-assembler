@@ -639,6 +639,21 @@ class TestAssemblyModel extends AssertionsForJUnit with MustMatchers {
     }
 
     @Test
+    def evalUnaryOffset(): Unit = {
+        model.evaluateExpression(Unary(OffsetFrom(0x24), Number(0x24))) must be (Right(0))
+        model.evaluateExpression(Unary(OffsetFrom(0x24), Number(0x20))) must be (Right(-4)) // expr before $
+        model.evaluateExpression(Unary(OffsetFrom(0x24), Number(0x28))) must be (Right(4))  // expr after $
+    }
+
+    @Test
+    def evalUnaryOffsetMustHaveBeenReplacedByOffsetFrom(): Unit = {
+        thrown.expect(classOf[IllegalStateException])
+        thrown.expectMessage("Offset should have been transformed to an OffsetFrom")
+
+        model.evaluateExpression(Unary(Offset(), Number(0x24)))
+    }
+
+    @Test
     def evalBinaryAdd(): Unit = {
         model.evaluateExpression(Binary(Add(), Number(3), Number(4))) must be(Right(7))
     }
