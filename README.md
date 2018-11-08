@@ -33,9 +33,9 @@ The assembler has built a binary of eForth without any parsing/code gen errors (
 to MASM! I can't generate a binary with MASM - linking fails - but the listing is sufficient for verification.
 
 Current work:
+  * Investigate/bugfix: Constants/Variables definition in listing only shows 16-bit versions of values?
       
 Remaining work:
-  * Constants/Variables definition in listing only shows 16-bit versions of values?
   * Escape codes do not work in DB strings? \12 ? \n ? \r ?
   * local labels
   * global and extern symbols
