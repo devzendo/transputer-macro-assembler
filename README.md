@@ -33,7 +33,6 @@ The assembler has built a binary of eForth without any parsing/code gen errors (
 to MASM! I can't generate a binary with MASM - linking fails - but the listing is sufficient for verification.
 
 Current work:
-  * Investigate/bugfix: Constants/Variables definition in listing only shows 16-bit versions of values?
       
 Remaining work:
   * Escape codes do not work in DB strings? \12 ? \n ? \r ?
@@ -57,6 +56,8 @@ Remaining work:
 Release Notes
 -------------
 0.01 (ongoing work for the first release)
+* Bugfix: Negative Constant/Variable definition in listing only shows 16-bit versions of values? eg for 0x80000070 -
+  now correctly shows 0x80000070.
 * Added an OFFSET operator, to compute offsets of its argument from $.
 * Added support for the full T414/T800/T801/T805 instruction set in .TRANSPUTER mode.
 * Added the T801 instructions, from "Transputer Instruction Set - Appendix, Guy Harriman".

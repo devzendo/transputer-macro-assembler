@@ -149,7 +149,7 @@ class ListingWriter(val outputFile: File) {
                                 address = HexDump.int2hex(assignmentValue.data)
                             } else {
                                 assignment = "= " +
-                                  (if (assignmentValue.data <= 65535)
+                                  (if (assignmentValue.data >= 0 && assignmentValue.data <= 65535)
                                       HexDump.short2hex(assignmentValue.data.toShort)
                                   else
                                       HexDump.int2hex(assignmentValue.data))

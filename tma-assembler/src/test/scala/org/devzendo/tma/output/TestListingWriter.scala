@@ -335,6 +335,16 @@ class TestListingWriter extends TempFolder with AssertionsForJUnit with MustMatc
     }
 
     @Test
+    def assignmentOf32BitNegativeNumber(): Unit = {
+        val line = Line(1, "FNORD = 0x80000070", None, Some(VariableAssignment(new SymbolName(fnord), Number(0x80000070))))
+        model.addLine(line)
+        model.setVariable(CasedSymbolName(fnord), 0x80000070, line)
+        //                  12345678901234567890123456789012345
+        val expectedLine = " = 80000070           FNORD = 0x80000070"
+        listingBodyLinesAre(expectedLine)
+    }
+
+    @Test
     def storageShowsItsAddress(): Unit = {
         model.setDollarSilently(0x40000000)
         val exprs = List(Number(1), Number(2), Number(3))
