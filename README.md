@@ -33,7 +33,12 @@ The assembler has built a binary of eForth without any parsing/code gen errors (
 to MASM! I can't generate a binary with MASM - linking fails - but the listing is sufficient for verification.
 
 Current work:
-      
+  * Bugfix: Offsets are generated relative to the start of the instruction, so a sequence of DDs:
+    DD OFFSET X, OFFSET X, OFFSET X
+    should yield three distinct values. Currently it yields three copies of the offset of the first DD from X.
+  * Correct offset generation for j, cj, call direct instructions - so you don't have to specify OFFSET to a symbolic
+    argument, it's implied.
+   
 Remaining work:
   * Escape codes do not work in DB strings? \12 ? \n ? \r ?
   * local labels
