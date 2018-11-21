@@ -355,8 +355,8 @@ class CodeGenerator(debugCodegen: Boolean, model: AssemblyModel) {
             case Else() => processElse(line)
             case Endif() => processEndif(line)
             case DirectInstruction(_, opbyte, expr) => processDirectInstruction(line, lineIndex, stmt.asInstanceOf[DirectInstruction], opbyte, convertOffsets(expr))
-            case DirectEncodedInstruction(opcode, opbytes) => model.allocateInstructionStorageForLine(line, opbytes)
-            case IndirectInstruction(opcode, opbytes) => model.allocateInstructionStorageForLine(line, opbytes)
+            case DirectEncodedInstruction(_, opbytes) => model.allocateInstructionStorageForLine(line, opbytes)
+            case IndirectInstruction(_, opbytes) => model.allocateInstructionStorageForLine(line, opbytes)
         }
     }
 
