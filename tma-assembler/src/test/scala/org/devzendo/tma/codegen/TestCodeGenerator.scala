@@ -34,6 +34,8 @@ class TestCodeGenerator extends AssertionsForJUnit with MustMatchers {
     val logger: Logger = org.log4s.getLogger
     val dollar = "$"
     val fnord = "FNORD"
+    val fnordCasedSymbolName = CasedSymbolName(fnord)
+    val fnordSymbolArg = SymbolArg(fnordCasedSymbolName.toString)
 
     @Rule
     def thrown: ExpectedException = _thrown
@@ -169,6 +171,19 @@ class TestCodeGenerator extends AssertionsForJUnit with MustMatchers {
     }
 
     @Test
+    def convertRepeatedOffsetsCountUndefined(): Unit = {
+        thrown.expect(classOf[CodeGenerationException])
+        thrown.expectMessage("1: Count of 'SymbolArg(FNORD)' is undefined on line 1")
+
+        val count = SymbolArg(fnord)
+        val repeatedExpr = Number(7)
+        val line = Line(1, "DB fnord DUP(7)", None, Some(DBDup(count, repeatedExpr)))
+        val inmodel = new AssemblyModel(true)
+        val localCodeGen = new CodeGenerator(true, inmodel)
+        localCodeGen.convertRepeatedOffsets(line, count, repeatedExpr, 1)
+    }
+
+    @Test
     def offsetConversionToOffsetFrom(): Unit = {
         val inmodel = new AssemblyModel(true)
         inmodel.setDollarSilently(0x1000)
@@ -191,6 +206,54 @@ class TestCodeGenerator extends AssertionsForJUnit with MustMatchers {
         val localCodeGen = new CodeGenerator(true, inmodel)
         val convertedExpr = localCodeGen.convertOffsets(Characters("foo"))
         convertedExpr must be(Characters("foo"))
+    }
+
+    @Test
+    def listOfOffsetBytesGetIncreasingDollar(): Unit = {
+        val inmodel = new AssemblyModel(true)
+        inmodel.setDollarSilently(0x1000)
+
+        val localCodeGen = new CodeGenerator(true, inmodel)
+        val convertedExpr = localCodeGen.convertListOfOffsets(List(
+            Unary(Offset(), Number(0x10)),
+            Unary(Offset(), Number(0x10)),
+            Unary(Offset(), Number(0x10))), 1)
+        convertedExpr must be(List(
+            Unary(OffsetFrom(0x1000), Number(0x10)),
+            Unary(OffsetFrom(0x1001), Number(0x10)),
+            Unary(OffsetFrom(0x1002), Number(0x10))))
+    }
+
+    @Test
+    def listOfOffsetWordsGetIncreasingDollar(): Unit = {
+        val inmodel = new AssemblyModel(true)
+        inmodel.setDollarSilently(0x1000)
+
+        val localCodeGen = new CodeGenerator(true, inmodel)
+        val convertedExpr = localCodeGen.convertListOfOffsets(List(
+            Unary(Offset(), Number(0x10)),
+            Unary(Offset(), Number(0x10)),
+            Unary(Offset(), Number(0x10))), 2)
+        convertedExpr must be(List(
+            Unary(OffsetFrom(0x1000), Number(0x10)),
+            Unary(OffsetFrom(0x1002), Number(0x10)),
+            Unary(OffsetFrom(0x1004), Number(0x10))))
+    }
+
+    @Test
+    def listOfOffsetDoubleWordsGetIncreasingDollar(): Unit = {
+        val inmodel = new AssemblyModel(true)
+        inmodel.setDollarSilently(0x1000)
+
+        val localCodeGen = new CodeGenerator(true, inmodel)
+        val convertedExpr = localCodeGen.convertListOfOffsets(List(
+            Unary(Offset(), Number(0x10)),
+            Unary(Offset(), Number(0x10)),
+            Unary(Offset(), Number(0x10))), 4)
+        convertedExpr must be(List(
+            Unary(OffsetFrom(0x1000), Number(0x10)),
+            Unary(OffsetFrom(0x1004), Number(0x10)),
+            Unary(OffsetFrom(0x1008), Number(0x10))))
     }
 
     @Test
@@ -1604,6 +1667,59 @@ class TestCodeGenerator extends AssertionsForJUnit with MustMatchers {
         val line6ValueAssignment = singleAssignmentValue(line6Storages) // L1, see above for label test
         line6ValueAssignment.data must be(0x1104)
     }
+
+    @Test
+    def offsetsInDataSequencesAreRelativeToTheirPosition(): Unit = {
+        val lines = List(
+            Line(1, "\t.TRANSPUTER", None, Some(Processor("TRANSPUTER"))),
+            Line(2, "\tORG 0x1000", None, Some(Org(Number(0x1000)))),
+            Line(3, "\tDD OFFSET X, OFFSET X, OFFSET X", None, Some(DD(List(                                    // 3,2,1
+                Unary(Offset(), SymbolArg("X")),
+                Unary(Offset(), SymbolArg("X")),
+                Unary(Offset(), SymbolArg("X")))))),
+            Line(4, "\tX: DD OFFSET X", Some(new Label("X")), Some(DD(List(Unary(Offset(), SymbolArg("X")))))), // 0
+            Line(5, "\tDD OFFSET X, OFFSET X, OFFSET X", None, Some(DD(List(                                    // -1,-2,-3
+                Unary(Offset(), SymbolArg("X")),
+                Unary(Offset(), SymbolArg("X")),
+                Unary(Offset(), SymbolArg("X")))))),
+        )
+        val model = generateFromLines(lines)
+        model.convergeMode must be(false)
+        showListing(model)
+
+        model.getDollar must be(0x101C)
+
+        model.getLabel(CasedSymbolName("X")) must be(0x100C)
+
+        // Positive offsets from X
+        val line3SVs = model.getSourcedValuesForLineNumber(3)
+        line3SVs must have size 1
+        val line3Storage = singleStorage(line3SVs)
+        line3Storage.address must be(0x1000)
+        line3Storage.cellWidth must be(4)
+        line3Storage.data.toList must be(List(3 * 4, 2 * 4, 1 * 4)) // *4's here illustrate these are DDs
+
+        // X: DD OFFSET X has no offset!
+        val line4SVs = model.getSourcedValuesForLineNumber(4)
+        line4SVs must have size 2
+        val line4Storage = singleStorage(line4SVs)
+        line4Storage.address must be(0x100C)
+        line4Storage.cellWidth must be(4)
+        line4Storage.data.toList must be(List(0 * 4))
+        val line4AssignmentValue = singleAssignmentValue(line4SVs)
+        line4AssignmentValue.data must be(0x100C)
+
+        // Positive offsets from X
+        val line5SVs = model.getSourcedValuesForLineNumber(5)
+        line5SVs must have size 1
+        val line5Storage = singleStorage(line5SVs)
+        line5Storage.address must be(0x1010)
+        line5Storage.cellWidth must be(4)
+        line5Storage.data.toList must be(List(-1 * 4, -2 * 4, -3 * 4))
+    }
+
+    // TODO
+    // will need same as offsetsInDataSequencesAreRelativeToTheirPosition, but for Duplicated data constructors
 
     private def showListing(model: AssemblyModel): Unit = {
         val listingFile: File = File.createTempFile("out.", ".lst", new File(System.getProperty("java.io.tmpdir")))

@@ -345,12 +345,12 @@ class CodeGenerator(debugCodegen: Boolean, model: AssemblyModel) {
             case MacroBody(_) =>      // by the rest of the AST statement handlers, here..
             case MacroEnd() =>        // So, do nothing...
             case MacroInvocation(_, _) => // Non-macro statements would follow after an invocation, unless it's an empty macro.
-            case DB(exprs) => model.allocateStorageForLine(line, 1, exprs map convertOffsets)
-            case DW(exprs) => model.allocateStorageForLine(line, 2, exprs map convertOffsets)
-            case DD(exprs) => model.allocateStorageForLine(line, 4, exprs map convertOffsets)
-            case DBDup(count, repeatedExpr) => model.allocateStorageForLine(line, 1, convertOffsets(count), convertOffsets(repeatedExpr))
-            case DWDup(count, repeatedExpr) => model.allocateStorageForLine(line, 2, convertOffsets(count), convertOffsets(repeatedExpr))
-            case DDDup(count, repeatedExpr) => model.allocateStorageForLine(line, 4, convertOffsets(count), convertOffsets(repeatedExpr))
+            case DB(exprs) => model.allocateStorageForLine(line, 1, convertListOfOffsets(exprs, 1))
+            case DW(exprs) => model.allocateStorageForLine(line, 2, convertListOfOffsets(exprs, 2))
+            case DD(exprs) => model.allocateStorageForLine(line, 4, convertListOfOffsets(exprs, 4))
+            case DBDup(count, repeatedExpr) => model.allocateStorageForLine(line, 1, convertRepeatedOffsets(line, count, repeatedExpr, 1))
+            case DWDup(count, repeatedExpr) => model.allocateStorageForLine(line, 2, convertRepeatedOffsets(line, count, repeatedExpr, 2))
+            case DDDup(count, repeatedExpr) => model.allocateStorageForLine(line, 4, convertRepeatedOffsets(line, count, repeatedExpr, 4))
             case If1() => processIf1()
             case Else() => processElse(line)
             case Endif() => processEndif(line)
@@ -360,11 +360,35 @@ class CodeGenerator(debugCodegen: Boolean, model: AssemblyModel) {
         }
     }
 
-    private[codegen] def convertOffsets(expr: Expression): Expression = {
+    private[codegen] def convertRepeatedOffsets(line: Line, count: Expression, repeatedExpr: Expression, cellWidth: Int): List[Expression] = {
+        model.evaluateExpression(convertOffsets(count)) match {
+            case Left(undefineds) =>
+                throw new CodeGenerationException(line.number, "Count of '" + count + "' is undefined on line " + line.number)
+            case Right(evaluatedCount) => {
+                val convertedRepeatedExpr = convertOffsets(repeatedExpr)
+                val exprs = mutable.ArrayBuffer[Expression]()
+                for (_ <- 0 until evaluatedCount) {
+                    exprs += convertedRepeatedExpr // TODO this does not increment offset
+                }
+                exprs.toList
+            }
+        }
+    }
+
+    private[codegen] def convertListOfOffsets(exprs: List[Expression], cellWidth: Int): List[Expression] = {
+        def relativeDollar(pair: (Expression, Int)): Expression = {
+            val relativeDollarValue = model.getDollar + (cellWidth * pair._2)
+            convertOffsets(pair._1, relativeDollarValue)
+        }
+
+        exprs.zipWithIndex.map(relativeDollar)
+    }
+
+    private[codegen] def convertOffsets(expr: Expression, dollar: Int = model.getDollar): Expression = {
         expr match {
             case Unary(op, uExpr) => {
                 op match {
-                    case Offset() => Unary(OffsetFrom(model.getDollar), uExpr)
+                    case Offset() => Unary(OffsetFrom(dollar), uExpr)
                     case _ => expr
                 }
             }

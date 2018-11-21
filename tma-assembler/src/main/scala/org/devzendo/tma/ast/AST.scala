@@ -34,7 +34,9 @@ case class Add() extends Operator("+")
 case class Sub() extends Operator("-")
 case class Negate() extends Operator("-")
 case class Offset() extends Operator("OFFSET")
-case class OffsetFrom(address: Int) extends Operator("OFFSET") // Offset is replaced by this in the CodeGenerator
+case class OffsetFrom(address: Int) extends Operator("OFFSETFROM") { // Offset is replaced by this in the CodeGenerator
+    override def toString: Label = s"OFFSETFROM($address)"
+}
 case class Mult() extends Operator("*")
 case class Div() extends Operator("/")
 case class ShiftLeft() extends Operator("<<")

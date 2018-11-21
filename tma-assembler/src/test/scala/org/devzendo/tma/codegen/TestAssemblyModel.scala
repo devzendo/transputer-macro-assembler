@@ -929,54 +929,6 @@ class TestAssemblyModel extends AssertionsForJUnit with MustMatchers {
     }
 
     @Test
-    def undefinedCountExpressionInDupFails(): Unit = {
-        thrown.expect(classOf[AssemblyModelException])
-        thrown.expectMessage("Count of 'SymbolArg(FNORD)' is undefined on line 3")
-
-        model.allocateStorageForLine(Line(3, "irrelevant", None, Some(DBDup(fnordSymbolArg, Number(5)))), 1, fnordSymbolArg, Number(5))
-    }
-
-    @Test
-    def storageOfDbDup(): Unit = {
-        val address = 69
-        model.setDollar(address, genDummyLine(0))
-        val line = Line(3, "irrelevant", None, Some(DBDup(Number(5), Number(69))))
-        val storage = model.allocateStorageForLine(line, 1, Number(5), Number(69))
-        storage.data must be(Array(69, 69, 69, 69, 69))
-        storage.cellWidth must be(1)
-        storage.address must be(address)
-        storage.line must be(line)
-    }
-
-    @Test
-    def storageOfDbDupIncrementsAddress(): Unit = {
-        val address = 69
-        model.setDollar(address, genDummyLine(0))
-        val count = 5
-        val cellWidth = 1
-        val line = Line(3, "irrelevant", None, Some(DBDup(Number(count), Number(69))))
-        model.allocateStorageForLine(line, 1, Number(count), Number(69))
-        model.getDollar must be (address + (count * cellWidth))
-    }
-
-    @Test
-    def storageOfDbDupWithForwardReferenceIsRecordedForLaterFixup(): Unit = {
-        val line = Line(3, "irrelevant", None, Some(DBDup(Number(5), fnordSymbolArg)))
-        val storage = model.allocateStorageForLine(line, 1, Number(5), fnordSymbolArg)
-        model.storageForwardReferences(fnord) must be (Set(storage))
-    }
-
-    @Test
-    def storageOfDbDupWithForwardReferenceIsFixedUpAndForwardReferenceRemovedOnVariableDefinition(): Unit = {
-        val line = Line(3, "irrelevant", None, Some(DBDup(Number(5), fnordSymbolArg)))
-        val storage = model.allocateStorageForLine(line, 1, Number(5), fnordSymbolArg)
-        model.setVariable(fnord, 73, genDummyLine(4))
-
-        storage.data must be(Array[Int](73, 73, 73, 73, 73))
-        model.storageForwardReferences(fnord) must be (Set.empty)
-    }
-
-    @Test
     def dbBounds(): Unit = {
         val exprs = List(Number(0), Number(255))
         val line = Line(3, "irrelevant", None, Some(DB(exprs)))
@@ -1072,8 +1024,8 @@ class TestAssemblyModel extends AssertionsForJUnit with MustMatchers {
         val line1 = Line(1, "irrelevant", None, Some(DB(List(SymbolArg("aardvark"), SymbolArg("zygote")))))
         model.allocateStorageForLine(line1, 1, List(SymbolArg("aardvark"), SymbolArg("zygote")))
 
-        val line3 = Line(3, "irrelevant", None, Some(DBDup(Number(5), fnordSymbolArg)))
-        model.allocateStorageForLine(line3, 1, Number(5), fnordSymbolArg)
+        val line3 = Line(3, "irrelevant", None, Some(DB(List(fnordSymbolArg))))
+        model.allocateStorageForLine(line3, 1, List(fnordSymbolArg))
 
         val line4 = Line(4, "irrelevant", None, Some(DB(List(fnordSymbolArg))))
         model.allocateStorageForLine(line4, 1, List(fnordSymbolArg))
@@ -1086,8 +1038,8 @@ class TestAssemblyModel extends AssertionsForJUnit with MustMatchers {
 
     @Test
     def noForwardReferencesAtEndOfFirstPassIsGood(): Unit = {
-        val line = Line(3, "irrelevant", None, Some(DBDup(Number(5), fnordSymbolArg)))
-        model.allocateStorageForLine(line, 1, Number(5), fnordSymbolArg)
+        val line = Line(3, "irrelevant", None, Some(DB(List(fnordSymbolArg))))
+        model.allocateStorageForLine(line, 1, List(fnordSymbolArg))
         model.setVariable(fnord, 34, genDummyLine(9))
 
         model.checkUnresolvedForwardReferences()

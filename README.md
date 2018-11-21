@@ -33,9 +33,6 @@ The assembler has built a binary of eForth without any parsing/code gen errors (
 to MASM! I can't generate a binary with MASM - linking fails - but the listing is sufficient for verification.
 
 Current work:
-  * Bugfix: Offsets are generated relative to the start of the instruction, so a sequence of DDs:
-    DD OFFSET X, OFFSET X, OFFSET X
-    should yield three distinct values. Currently it yields three copies of the offset of the first DD from X.
   * Correct offset generation for j, cj, call direct instructions - so you don't have to specify OFFSET to a symbolic
     argument, it's implied.
    
@@ -61,6 +58,9 @@ Remaining work:
 Release Notes
 -------------
 0.01 (ongoing work for the first release)
+* Bugfix: Offsets are generated relative to the start of the instruction, so a sequence of DDs:
+  DD OFFSET X, OFFSET X, OFFSET X
+  now yields three distinct values, rather than three copies of the offset of the first DD from X.
 * Bugfix: Negative Constant/Variable definition in listing only shows 16-bit versions of values? eg for 0x80000070 -
   now correctly shows 0x80000070.
 * Added an OFFSET operator, to compute offsets of its argument from $.

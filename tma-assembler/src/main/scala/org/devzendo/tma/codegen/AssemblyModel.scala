@@ -529,17 +529,6 @@ class AssemblyModel(debugCodegen: Boolean) {
         sourcedValuesForLineNumbers.remove(lineNumber)
     }
 
-    def allocateStorageForLine(line: Line, cellWidth: Int, count: Expression, repeatedExpr: Expression): Storage = {
-        if (containsUndefineds(count)) {
-            throw new AssemblyModelException("Count of '" + count + "' is undefined on line " + line.number)
-        }
-        val exprs = mutable.ArrayBuffer[Expression]()
-        for (_ <- 0 until evaluateExpressionWithNoUndefineds(count)) {
-            exprs += repeatedExpr
-        }
-        allocateStorageForLine(line, cellWidth, exprs.toList)
-    }
-
     def allocateInstructionStorageForLine(line: Line, opbytes: List[Int]): Storage = {
         val lineNumber = line.number
         val sourcedValues = sourcedValuesForLineNumber(lineNumber)
