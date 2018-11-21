@@ -355,8 +355,8 @@ class CodeGenerator(debugCodegen: Boolean, model: AssemblyModel) {
             case Else() => processElse(line)
             case Endif() => processEndif(line)
             case DirectInstruction(_, opbyte, expr) => processDirectInstruction(line, lineIndex, stmt.asInstanceOf[DirectInstruction], opbyte, convertOffsets(expr))
-            case DirectEncodedInstruction(opcode, opbytes) => processDirectEncodedInstruction(line, opcode, opbytes)
-            case IndirectInstruction(opcode, opbytes) => processIndirectInstruction(line, opcode, opbytes)
+            case DirectEncodedInstruction(opcode, opbytes) => model.allocateInstructionStorageForLine(line, opbytes)
+            case IndirectInstruction(opcode, opbytes) => model.allocateInstructionStorageForLine(line, opbytes)
         }
     }
 
@@ -557,13 +557,5 @@ class CodeGenerator(debugCodegen: Boolean, model: AssemblyModel) {
                 directInstructionByLineIndex.put(lineIndex, DirectInstructionState(di, 1))
                 model.incrementDollar(1)
         }
-    }
-
-    private def processDirectEncodedInstruction(line: Line, opcode: Opcode, opbytes: List[Int]): Unit = {
-        model.allocateInstructionStorageForLine(line, opbytes)
-    }
-
-    private def processIndirectInstruction(line: Line, opcode: Opcode, opbytes: List[Int]): Unit = {
-        model.allocateInstructionStorageForLine(line, opbytes)
     }
 }
