@@ -376,12 +376,7 @@ class CodeGenerator(debugCodegen: Boolean, model: AssemblyModel) {
     }
 
     private[codegen] def convertListOfOffsets(exprs: List[Expression], cellWidth: Int): List[Expression] = {
-        def relativeDollar(pair: (Expression, Int)): Expression = {
-            val relativeDollarValue = model.getDollar + (cellWidth * pair._2)
-            convertOffsets(pair._1, relativeDollarValue)
-        }
-
-        exprs.zipWithIndex.map(relativeDollar)
+        exprs.zipWithIndex.map((pair: (Expression, Int)) => convertOffsets(pair._1, model.getDollar + (cellWidth * pair._2)) )
     }
 
     private[codegen] def convertOffsets(expr: Expression, dollar: Int = model.getDollar): Expression = {
