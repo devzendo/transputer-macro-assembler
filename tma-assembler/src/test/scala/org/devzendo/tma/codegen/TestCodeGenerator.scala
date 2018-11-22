@@ -19,7 +19,7 @@ package org.devzendo.tma.codegen
 import java.io.File
 
 import org.devzendo.tma.ast.AST.{Label, MacroArgument, MacroName, SymbolName}
-import org.devzendo.tma.ast.{ConstantAssignment, Line, VariableAssignment, _}
+import org.devzendo.tma.ast.{ConstantAssignment, Line, Unary, VariableAssignment, _}
 import org.devzendo.tma.output.ListingWriter
 import org.junit.rules.ExpectedException
 import org.junit.{Rule, Test}
@@ -288,10 +288,19 @@ class TestCodeGenerator extends AssertionsForJUnit with MustMatchers {
     def offsetInDB(): Unit = {
         val model = generateFromStatements(List(
             Org(Number(4)),
-            DB(List(Unary(Offset(), Number(12)))) // 12 - 4
+            DB(List(
+                Unary(Offset(), Number(12)),
+                Unary(Offset(), Number(12)),
+                Unary(Offset(), Number(12)),
+            ))
         ))
+        val cellWidth = 1
         model.getSourcedValuesForLineNumber(2).head match {
-            case Storage(4, _, data, _, _) => data must be(Array[Int](8))
+            case Storage(4, _, data, _, _) => data must be(Array[Int](
+                12 - (4 + (0*cellWidth)),
+                12 - (4 + (1*cellWidth)),
+                12 - (4 + (2*cellWidth))
+            ))
             case _ => fail("Did not return a Storage")
         }
     }
@@ -300,10 +309,19 @@ class TestCodeGenerator extends AssertionsForJUnit with MustMatchers {
     def offsetInDW(): Unit = {
         val model = generateFromStatements(List(
             Org(Number(4)),
-            DW(List(Unary(Offset(), Number(12)))) // 12 - 4
+            DW(List(
+                Unary(Offset(), Number(12)),
+                Unary(Offset(), Number(12)),
+                Unary(Offset(), Number(12))
+            ))
         ))
+        val cellWidth = 2
         model.getSourcedValuesForLineNumber(2).head match {
-            case Storage(4, _, data, _, _) => data must be(Array[Int](8))
+            case Storage(4, _, data, _, _) => data must be(Array[Int](
+                12 - (4 + (0*cellWidth)),
+                12 - (4 + (1*cellWidth)),
+                12 - (4 + (2*cellWidth))
+            ))
             case _ => fail("Did not return a Storage")
         }
     }
@@ -312,10 +330,19 @@ class TestCodeGenerator extends AssertionsForJUnit with MustMatchers {
     def offsetInDD(): Unit = {
         val model = generateFromStatements(List(
             Org(Number(4)),
-            DD(List(Unary(Offset(), Number(12)))) // 12 - 4
+            DD(List(
+                Unary(Offset(), Number(12)),
+                Unary(Offset(), Number(12)),
+                Unary(Offset(), Number(12))
+            ))
         ))
+        val cellWidth = 4
         model.getSourcedValuesForLineNumber(2).head match {
-            case Storage(4, _, data, _, _) => data must be(Array[Int](8))
+            case Storage(4, _, data, _, _) => data must be(Array[Int](
+                12 - (4 + (0*cellWidth)),
+                12 - (4 + (1*cellWidth)),
+                12 - (4 + (2*cellWidth))
+            ))
             case _ => fail("Did not return a Storage")
         }
     }
@@ -336,10 +363,15 @@ class TestCodeGenerator extends AssertionsForJUnit with MustMatchers {
     def offsetInDBDupRepeatedExpression(): Unit = {
         val model = generateFromStatements(List(
             Org(Number(4)),
-            DBDup(Number(3), Unary(Offset(), Number(12))) // 12 - 4
+            DBDup(Number(3), Unary(Offset(), Number(12)))
         ))
+        val cellWidth = 1
         model.getSourcedValuesForLineNumber(2).head match {
-            case Storage(4, _, data, _, _) => data must be(Array[Int](8, 8, 8))
+            case Storage(4, _, data, _, _) => data must be(Array[Int](
+                12 - (4 + (0*cellWidth)),
+                12 - (4 + (1*cellWidth)),
+                12 - (4 + (2*cellWidth))
+            ))
             case _ => fail("Did not return a Storage")
         }
     }
@@ -360,10 +392,15 @@ class TestCodeGenerator extends AssertionsForJUnit with MustMatchers {
     def offsetInDWDupRepeatedExpression(): Unit = {
         val model = generateFromStatements(List(
             Org(Number(4)),
-            DWDup(Number(3), Unary(Offset(), Number(12))) // 12 - 4
+            DWDup(Number(3), Unary(Offset(), Number(12)))
         ))
+        val cellWidth = 2
         model.getSourcedValuesForLineNumber(2).head match {
-            case Storage(4, _, data, _, _) => data must be(Array[Int](8, 8, 8))
+            case Storage(4, _, data, _, _) => data must be(Array[Int](
+                12 - (4 + (0*cellWidth)),
+                12 - (4 + (1*cellWidth)),
+                12 - (4 + (2*cellWidth))
+            ))
             case _ => fail("Did not return a Storage")
         }
     }
@@ -386,8 +423,13 @@ class TestCodeGenerator extends AssertionsForJUnit with MustMatchers {
             Org(Number(4)),
             DDDup(Number(3), Unary(Offset(), Number(12))) // 12 - 4
         ))
+        val cellWidth = 4
         model.getSourcedValuesForLineNumber(2).head match {
-            case Storage(4, _, data, _, _) => data must be(Array[Int](8, 8, 8))
+            case Storage(4, _, data, _, _) => data must be(Array[Int](
+                12 - (4 + (0*cellWidth)),
+                12 - (4 + (1*cellWidth)),
+                12 - (4 + (2*cellWidth))
+            ))
             case _ => fail("Did not return a Storage")
         }
     }
