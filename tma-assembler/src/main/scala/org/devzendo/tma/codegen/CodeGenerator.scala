@@ -374,34 +374,51 @@ class CodeGenerator(debugCodegen: Boolean, model: AssemblyModel) {
         }
     }
 
-    // Convert a single expression that's to be repeated several times into a list of expressions that have an increased $ mapped across them.
-    private[codegen] def convertRepeatedOffsets(line: Line, count: Expression, repeatedExpr: Expression, cellWidth: Int): List[Expression] = {
-        model.evaluateExpression(convertOffsets(count)) match {
-            case Left(undefineds) =>
-                throw new CodeGenerationException(line.number, "Count of '" + count + "' is undefined on line " + line.number)
-            case Right(evaluatedCount) => {
-                val copiesOfRepeatedExpr = List.fill(evaluatedCount)(repeatedExpr)
-                convertListOfOffsets(copiesOfRepeatedExpr, cellWidth)
+    object OffsetTransformer {
+        // Convert a single expression that's to be repeated several times into a list of expressions that have an increased $ mapped across them.
+        def convertRepeatedOffsets(line: Line, count: Expression, repeatedExpr: Expression, cellWidth: Int): List[Expression] = {
+            model.evaluateExpression(convertOffsets(count)) match {
+                case Left(undefineds) =>
+                    throw new CodeGenerationException(line.number, "Count of '" + count + "' is undefined on line " + line.number)
+                case Right(evaluatedCount) => {
+                    val copiesOfRepeatedExpr = List.fill(evaluatedCount)(repeatedExpr)
+                    convertListOfOffsets(copiesOfRepeatedExpr, cellWidth)
+                }
             }
         }
+
+        // Apply an increasing $ across a list of expressions.
+        def convertListOfOffsets(exprs: List[Expression], cellWidth: Int): List[Expression] = {
+            exprs.zipWithIndex.map((pair: (Expression, Int)) => convertOffsets(pair._1, model.getDollar + (cellWidth * pair._2)) )
+        }
+
+        // If an expression contains an Offset, convert it to an OffsetFrom with a given (defaulted) $.
+        def convertOffsets(expr: Expression, dollar: Int = model.getDollar): Expression = {
+            expr match {
+                case Unary(op, uExpr) => {
+                    op match {
+                        case Offset() => Unary(OffsetFrom(dollar), uExpr)
+                        case _ => expr
+                    }
+                }
+                case _ => expr
+            }
+        }
+    }
+
+    // Convert a single expression that's to be repeated several times into a list of expressions that have an increased $ mapped across them.
+    private[codegen] def convertRepeatedOffsets(line: Line, count: Expression, repeatedExpr: Expression, cellWidth: Int): List[Expression] = {
+        OffsetTransformer.convertRepeatedOffsets(line, count, repeatedExpr, cellWidth)
     }
 
     // Apply an increasing $ across a list of expressions.
     private[codegen] def convertListOfOffsets(exprs: List[Expression], cellWidth: Int): List[Expression] = {
-        exprs.zipWithIndex.map((pair: (Expression, Int)) => convertOffsets(pair._1, model.getDollar + (cellWidth * pair._2)) )
+        OffsetTransformer.convertListOfOffsets(exprs, cellWidth)
     }
 
     // If an expression contains an Offset, convert it to an OffsetFrom with a given (defaulted) $.
     private[codegen] def convertOffsets(expr: Expression, dollar: Int = model.getDollar): Expression = {
-        expr match {
-            case Unary(op, uExpr) => {
-                op match {
-                    case Offset() => Unary(OffsetFrom(dollar), uExpr)
-                    case _ => expr
-                }
-            }
-            case _ => expr
-        }
+        OffsetTransformer.convertOffsets(expr, dollar)
     }
 
     private def processAlign(line: Line, alignment: Int): Unit = {
