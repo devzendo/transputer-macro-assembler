@@ -28,6 +28,7 @@ import org.scalatest.junit.AssertionsForJUnit
 import org.scalatest.{DiagrammedAssertions, MustMatchers}
 import org.scalatest.DiagrammedAssertions.diagrammedAssertionsHelper
 
+import scala.collection.mutable.ArrayBuffer
 import scala.io.Source
 
 class TestCodeGenerator extends AssertionsForJUnit with MustMatchers {
@@ -1760,8 +1761,38 @@ class TestCodeGenerator extends AssertionsForJUnit with MustMatchers {
         line5Storage.data.toList must be(List(-1 * 4, -2 * 4, -3 * 4))
     }
 
-    // TODO
-    // will need same as offsetsInDataSequencesAreRelativeToTheirPosition, but for Duplicated data constructors
+    @Test
+    def statementTransformersAreInvokedInOrder(): Unit = {
+        val titles = ArrayBuffer[String]()
+
+        def changeTitle(st: Statement): Statement = {
+            st match {
+                case Title(text) =>
+                    titles += text
+                    logger.debug("Changing title to 'changed'")
+                    Title("changed")
+                case _ =>
+                    st
+            }
+        }
+        codegen.addStatementTransformer(changeTitle)
+
+        def uppercaseTitle(st: Statement): Statement = {
+            st match {
+                case Title(text) =>
+                    titles += text
+                    logger.debug("Changing title to 'UPPER'")
+                    Title("UPPER")
+                case _ =>
+                    st
+            }
+        }
+        codegen.addStatementTransformer(uppercaseTitle)
+
+        generateFromStatement(Title("custom title")).title must be("UPPER")
+
+        titles.toList must be(List("custom title", "changed"))
+    }
 
     private def showListing(model: AssemblyModel): Unit = {
         val listingFile: File = File.createTempFile("out.", ".lst", new File(System.getProperty("java.io.tmpdir")))

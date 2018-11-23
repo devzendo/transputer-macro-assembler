@@ -22,6 +22,7 @@ import org.devzendo.tma.ast._
 import org.log4s.Logger
 
 import scala.collection.mutable
+import scala.collection.mutable.ArrayBuffer
 
 class CodeGenerator(debugCodegen: Boolean, model: AssemblyModel) {
     val logger: Logger = org.log4s.getLogger
@@ -83,6 +84,14 @@ class CodeGenerator(debugCodegen: Boolean, model: AssemblyModel) {
     // End of converge mode state
 
     private val codeGenerationErrors = mutable.ArrayBuffer[CodeGenerationException]()
+
+    // Chain of statement transformers
+    type StatementTransformer = (Statement) => Statement
+    private val statementTransformers = ArrayBuffer[StatementTransformer]()
+
+    def addStatementTransformer(st: StatementTransformer): Unit = {
+        statementTransformers += st
+    }
 
 
     def createModel(lines: List[Line]): AssemblyModel = {
@@ -308,16 +317,21 @@ class CodeGenerator(debugCodegen: Boolean, model: AssemblyModel) {
         )
     }
 
-    private def processStatement(line: Line, lineIndex: Int, stmt: Statement): Unit = {
+    private def processStatement(line: Line, lineIndex: Int, initialStmt: Statement): Unit = {
         val lineNumber = line.number
         if (debugCodegen) {
-            logger.info("Line " + lineNumber + " Statement: " + stmt)
+            logger.info("Line " + lineNumber + " Statement: " + initialStmt)
         }
 
         // Pass 2 fixups run after pass 1 (duh!), and require processing of statements after this check would have
         // triggered in pass 1.
         if (model.hasEndBeenSeen && passNumber == 1) {
             throw new CodeGenerationException(lineNumber, "No statements allowed after End statement")
+        }
+
+        // Apply all statement transformers to the statement...
+        val stmt = statementTransformers.foldLeft(initialStmt) {
+            (prevStmt: Statement, transformer: StatementTransformer) => transformer(prevStmt)
         }
 
         stmt match {
