@@ -111,5 +111,18 @@ class TestOffsetTransformer extends AssertionsForJUnit with MustMatchers {
             Unary(OffsetFrom(0x1008), Number(0x10))))
     }
 
-    // TODO need an offset, a constant, an offset - to see if the second offset address takes into account the constant
+    @Test
+    def listOfOffsetsInterspersedWithConstantsGetIncreasingDollar(): Unit = {
+        val inmodel = new AssemblyModel(true)
+        inmodel.setDollarSilently(0x1000)
+
+        val convertedExpr = new OffsetTransformer(inmodel).convertListOfOffsets(List(
+            Unary(Offset(), Number(0x10)),
+            Number(0x10),
+            Unary(Offset(), Number(0x10))), 4)
+        convertedExpr must be(List(
+            Unary(OffsetFrom(0x1000), Number(0x10)),
+            Number(0x10),
+            Unary(OffsetFrom(0x1008), Number(0x10))))
+    }
 }
