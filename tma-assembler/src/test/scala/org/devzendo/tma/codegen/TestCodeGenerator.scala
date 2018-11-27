@@ -172,90 +172,13 @@ class TestCodeGenerator extends AssertionsForJUnit with MustMatchers {
     }
 
     @Test
-    def convertRepeatedOffsetsCountUndefined(): Unit = {
+    def statementTransformationExceptionsRethrownAsCodeGenerationExceptions(): Unit = {
         thrown.expect(classOf[CodeGenerationException])
-        thrown.expectMessage("1: Count of 'SymbolArg(FNORD)' is undefined on line 1")
+        thrown.expectMessage("1: Count of 'SymbolArg(FNORD)' is undefined")
 
-        val count = SymbolArg(fnord)
-        val repeatedExpr = Number(7)
-        val line = Line(1, "DB fnord DUP(7)", None, Some(DBDup(count, repeatedExpr)))
-        val inmodel = new AssemblyModel(true)
-        val localCodeGen = new CodeGenerator(true, inmodel)
-        localCodeGen.convertRepeatedOffsets(line, count, repeatedExpr, 1)
+        generateFromLine(Line(1, "DB fnord DUP(7)", None, Some(DBDup(SymbolArg(fnord), Number(7)))))
     }
 
-    @Test
-    def offsetConversionToOffsetFrom(): Unit = {
-        val inmodel = new AssemblyModel(true)
-        inmodel.setDollarSilently(0x1000)
-        val localCodeGen = new CodeGenerator(true, inmodel)
-        val convertedExpr = localCodeGen.convertOffsets(Unary(Offset(), Number(0x10)))
-        convertedExpr must be(Unary(OffsetFrom(0x1000), Number(0x10)))
-    }
-
-    @Test
-    def nonOffsetExpressionInUnaryDoesNotGetConverted(): Unit = {
-        val inmodel = new AssemblyModel(true)
-        val localCodeGen = new CodeGenerator(true, inmodel)
-        val convertedExpr = localCodeGen.convertOffsets(Unary(Negate(), Number(0x10)))
-        convertedExpr must be(Unary(Negate(), Number(0x10)))
-    }
-
-    @Test
-    def nonOffsetExpressionInNonUnaryDoesNotGetConverted(): Unit = {
-        val inmodel = new AssemblyModel(true)
-        val localCodeGen = new CodeGenerator(true, inmodel)
-        val convertedExpr = localCodeGen.convertOffsets(Characters("foo"))
-        convertedExpr must be(Characters("foo"))
-    }
-
-    @Test
-    def listOfOffsetBytesGetIncreasingDollar(): Unit = {
-        val inmodel = new AssemblyModel(true)
-        inmodel.setDollarSilently(0x1000)
-
-        val localCodeGen = new CodeGenerator(true, inmodel)
-        val convertedExpr = localCodeGen.convertListOfOffsets(List(
-            Unary(Offset(), Number(0x10)),
-            Unary(Offset(), Number(0x10)),
-            Unary(Offset(), Number(0x10))), 1)
-        convertedExpr must be(List(
-            Unary(OffsetFrom(0x1000), Number(0x10)),
-            Unary(OffsetFrom(0x1001), Number(0x10)),
-            Unary(OffsetFrom(0x1002), Number(0x10))))
-    }
-
-    @Test
-    def listOfOffsetWordsGetIncreasingDollar(): Unit = {
-        val inmodel = new AssemblyModel(true)
-        inmodel.setDollarSilently(0x1000)
-
-        val localCodeGen = new CodeGenerator(true, inmodel)
-        val convertedExpr = localCodeGen.convertListOfOffsets(List(
-            Unary(Offset(), Number(0x10)),
-            Unary(Offset(), Number(0x10)),
-            Unary(Offset(), Number(0x10))), 2)
-        convertedExpr must be(List(
-            Unary(OffsetFrom(0x1000), Number(0x10)),
-            Unary(OffsetFrom(0x1002), Number(0x10)),
-            Unary(OffsetFrom(0x1004), Number(0x10))))
-    }
-
-    @Test
-    def listOfOffsetDoubleWordsGetIncreasingDollar(): Unit = {
-        val inmodel = new AssemblyModel(true)
-        inmodel.setDollarSilently(0x1000)
-
-        val localCodeGen = new CodeGenerator(true, inmodel)
-        val convertedExpr = localCodeGen.convertListOfOffsets(List(
-            Unary(Offset(), Number(0x10)),
-            Unary(Offset(), Number(0x10)),
-            Unary(Offset(), Number(0x10))), 4)
-        convertedExpr must be(List(
-            Unary(OffsetFrom(0x1000), Number(0x10)),
-            Unary(OffsetFrom(0x1004), Number(0x10)),
-            Unary(OffsetFrom(0x1008), Number(0x10))))
-    }
 
     @Test
     def offsetInOrg(): Unit = {

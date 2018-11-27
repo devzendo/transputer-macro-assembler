@@ -17,7 +17,7 @@
 package org.devzendo.tma.codegen
 
 import org.devzendo.commoncode.string.HexDump
-import org.devzendo.tma.ast.AST.{Label, Opcode, SymbolName}
+import org.devzendo.tma.ast.AST.{Label, SymbolName}
 import org.devzendo.tma.ast._
 import org.log4s.Logger
 
@@ -86,8 +86,12 @@ class CodeGenerator(debugCodegen: Boolean, model: AssemblyModel) {
     private val codeGenerationErrors = mutable.ArrayBuffer[CodeGenerationException]()
 
     // Chain of statement transformers
-    type StatementTransformer = (Statement) => Statement
+    type StatementTransformer = Statement => Statement
     private val statementTransformers = ArrayBuffer[StatementTransformer]()
+
+    // Constructor
+    addStatementTransformer(new OffsetTransformer(model).transform)
+    // End of Constructor
 
     def addStatementTransformer(st: StatementTransformer): Unit = {
         statementTransformers += st
@@ -139,11 +143,7 @@ class CodeGenerator(debugCodegen: Boolean, model: AssemblyModel) {
 
     private[codegen] def lineContainsDirectInstructionWithUndefinedSymbols(line: Line): Set[CasedSymbolName] = {
         line.stmt match {
-            case Some(DirectInstruction(_, _, expr)) =>
-                model.evaluateExpression(convertOffsets(expr)) match {
-                    case Left(undefineds) => undefineds
-                    case Right(_) => Set.empty
-                }
+            case Some(DirectInstruction(_, _, expr)) => model.findUndefineds(expr)
             case Some(_) => Set.empty
             case None => Set.empty
         }
@@ -248,7 +248,7 @@ class CodeGenerator(debugCodegen: Boolean, model: AssemblyModel) {
                         if (debugCodegen) {
                             logger.info("Current size for direct instruction: " + currentSize)
                         }
-                        model.evaluateExpression(convertOffsets(di.expr)) match {
+                        model.evaluateExpression(di.expr) match {
 
                             case Right(value) =>
                                 if (debugCodegen) {
@@ -330,95 +330,52 @@ class CodeGenerator(debugCodegen: Boolean, model: AssemblyModel) {
         }
 
         // Apply all statement transformers to the statement...
-        val stmt = statementTransformers.foldLeft(initialStmt) {
-            (prevStmt: Statement, transformer: StatementTransformer) => transformer(prevStmt)
-        }
-
-        stmt match {
-            case Title(text) =>
-                model.title = text
-                logger.debug("Title is '" + text + "'")
-            case Page(rows, columns) =>
-                model.rows = rows
-                model.columns = columns
-                logger.debug("Rows: " + rows + " Columns: " + columns)
-            case Processor(name) =>
-                model.processor = Some(name)
-                logger.debug("Processor is '" + name + "'")
-                model.endianness = name match {
-                    case "386" => Endianness.Little
-                    case "TRANSPUTER" => Endianness.Little
-                }
-            case Align(n) => processAlign(line, n)
-            case Org(expr) => processOrg(line, convertOffsets(expr))
-            case End(expr) => processEnd(line, expr)
-            case ConstantAssignment(name, expr) => processConstantAssignment(line, name, convertOffsets(expr))
-            case VariableAssignment(name, expr) => processVariableAssignment(line, name, convertOffsets(expr))
-            case Ignored() => // Do nothing
-            case MacroStart(_, _) =>  // All macro AST statements are handled by the parser; the expansions are handled
-            case MacroBody(_) =>      // by the rest of the AST statement handlers, here..
-            case MacroEnd() =>        // So, do nothing...
-            case MacroInvocation(_, _) => // Non-macro statements would follow after an invocation, unless it's an empty macro.
-            case DB(exprs) => model.allocateStorageForLine(line, 1, convertListOfOffsets(exprs, 1))
-            case DW(exprs) => model.allocateStorageForLine(line, 2, convertListOfOffsets(exprs, 2))
-            case DD(exprs) => model.allocateStorageForLine(line, 4, convertListOfOffsets(exprs, 4))
-            case DBDup(count, repeatedExpr) => model.allocateStorageForLine(line, 1, convertRepeatedOffsets(line, count, repeatedExpr, 1))
-            case DWDup(count, repeatedExpr) => model.allocateStorageForLine(line, 2, convertRepeatedOffsets(line, count, repeatedExpr, 2))
-            case DDDup(count, repeatedExpr) => model.allocateStorageForLine(line, 4, convertRepeatedOffsets(line, count, repeatedExpr, 4))
-            case If1() => processIf1()
-            case Else() => processElse(line)
-            case Endif() => processEndif(line)
-            case DirectInstruction(_, opbyte, expr) => processDirectInstruction(line, lineIndex, stmt.asInstanceOf[DirectInstruction], opbyte, convertOffsets(expr))
-            case DirectEncodedInstruction(_, opbytes) => model.allocateInstructionStorageForLine(line, opbytes)
-            case IndirectInstruction(_, opbytes) => model.allocateInstructionStorageForLine(line, opbytes)
-        }
-    }
-
-    object OffsetTransformer {
-        // Convert a single expression that's to be repeated several times into a list of expressions that have an increased $ mapped across them.
-        def convertRepeatedOffsets(line: Line, count: Expression, repeatedExpr: Expression, cellWidth: Int): List[Expression] = {
-            model.evaluateExpression(convertOffsets(count)) match {
-                case Left(undefineds) =>
-                    throw new CodeGenerationException(line.number, "Count of '" + count + "' is undefined on line " + line.number)
-                case Right(evaluatedCount) => {
-                    val copiesOfRepeatedExpr = List.fill(evaluatedCount)(repeatedExpr)
-                    convertListOfOffsets(copiesOfRepeatedExpr, cellWidth)
-                }
+        try {
+            val stmt = statementTransformers.foldLeft(initialStmt) {
+                (prevStmt: Statement, transformer: StatementTransformer) => transformer(prevStmt)
             }
-        }
 
-        // Apply an increasing $ across a list of expressions.
-        def convertListOfOffsets(exprs: List[Expression], cellWidth: Int): List[Expression] = {
-            exprs.zipWithIndex.map((pair: (Expression, Int)) => convertOffsets(pair._1, model.getDollar + (cellWidth * pair._2)) )
-        }
-
-        // If an expression contains an Offset, convert it to an OffsetFrom with a given (defaulted) $.
-        def convertOffsets(expr: Expression, dollar: Int = model.getDollar): Expression = {
-            expr match {
-                case Unary(op, uExpr) => {
-                    op match {
-                        case Offset() => Unary(OffsetFrom(dollar), uExpr)
-                        case _ => expr
+            stmt match {
+                case Title(text) =>
+                    model.title = text
+                    logger.debug("Title is '" + text + "'")
+                case Page(rows, columns) =>
+                    model.rows = rows
+                    model.columns = columns
+                    logger.debug("Rows: " + rows + " Columns: " + columns)
+                case Processor(name) =>
+                    model.processor = Some(name)
+                    logger.debug("Processor is '" + name + "'")
+                    model.endianness = name match {
+                        case "386" => Endianness.Little
+                        case "TRANSPUTER" => Endianness.Little
                     }
-                }
-                case _ => expr
+                case Align(n) => processAlign(line, n)
+                case Org(expr) => processOrg(line, expr)
+                case End(expr) => processEnd(line, expr)
+                case ConstantAssignment(name, expr) => processConstantAssignment(line, name, expr)
+                case VariableAssignment(name, expr) => processVariableAssignment(line, name, expr)
+                case Ignored() => // Do nothing
+                case MacroStart(_, _) =>  // All macro AST statements are handled by the parser; the expansions are handled
+                case MacroBody(_) =>      // by the rest of the AST statement handlers, here..
+                case MacroEnd() =>        // So, do nothing...
+                case MacroInvocation(_, _) => // Non-macro statements would follow after an invocation, unless it's an empty macro.
+                case DB(exprs) => model.allocateStorageForLine(line, 1, exprs)
+                case DW(exprs) => model.allocateStorageForLine(line, 2, exprs)
+                case DD(exprs) => model.allocateStorageForLine(line, 4, exprs)
+                case DBDup(_, _) => // Will have been transformed into DB by OffsetTransformer
+                case DWDup(_, _) => // Will have been transformed into DW by OffsetTransformer
+                case DDDup(_, _) => // Will have been transformed into DD by OffsetTransformer
+                case If1() => processIf1()
+                case Else() => processElse(line)
+                case Endif() => processEndif(line)
+                case DirectInstruction(_, opbyte, expr) => processDirectInstruction(line, lineIndex, stmt.asInstanceOf[DirectInstruction], opbyte, expr)
+                case DirectEncodedInstruction(_, opbytes) => model.allocateInstructionStorageForLine(line, opbytes)
+                case IndirectInstruction(_, opbytes) => model.allocateInstructionStorageForLine(line, opbytes)
             }
+        } catch {
+            case ste: StatementTransformationException => throw new CodeGenerationException(line.number, ste.getMessage)
         }
-    }
-
-    // Convert a single expression that's to be repeated several times into a list of expressions that have an increased $ mapped across them.
-    private[codegen] def convertRepeatedOffsets(line: Line, count: Expression, repeatedExpr: Expression, cellWidth: Int): List[Expression] = {
-        OffsetTransformer.convertRepeatedOffsets(line, count, repeatedExpr, cellWidth)
-    }
-
-    // Apply an increasing $ across a list of expressions.
-    private[codegen] def convertListOfOffsets(exprs: List[Expression], cellWidth: Int): List[Expression] = {
-        OffsetTransformer.convertListOfOffsets(exprs, cellWidth)
-    }
-
-    // If an expression contains an Offset, convert it to an OffsetFrom with a given (defaulted) $.
-    private[codegen] def convertOffsets(expr: Expression, dollar: Int = model.getDollar): Expression = {
-        OffsetTransformer.convertOffsets(expr, dollar)
     }
 
     private def processAlign(line: Line, alignment: Int): Unit = {
@@ -440,7 +397,8 @@ class CodeGenerator(debugCodegen: Boolean, model: AssemblyModel) {
         }
         val either = model.evaluateExpression(expr)
         either match {
-            case Left(undefineds) => throw new CodeGenerationException(lineNumber, "Undefined symbol(s) '" + undefineds.mkString(",") + "'")
+            case Left(undefinedSymbols) =>
+                throw new CodeGenerationException(lineNumber, "Undefined symbol(s) '" + undefinedSymbols.mkString(",") + "'")
             case Right(org) =>
                 if (debugCodegen) {
                     logger.info("Org: " + HexDump.int2hex(org))
@@ -461,11 +419,11 @@ class CodeGenerator(debugCodegen: Boolean, model: AssemblyModel) {
         }
         val either = model.evaluateExpression(expr)
         either match {
-            case Left(undefineds) =>
+            case Left(undefinedSymbols) =>
                 if (debugCodegen) {
-                    logger.info("Cannot set constant " + casedName + " to expression " + expr + " due to undefined symbols " + undefineds + " on line number " + lineNumber)
+                    logger.info("Cannot set constant " + casedName + " to expression " + expr + " due to undefined symbols " + undefinedSymbols + " on line number " + lineNumber)
                 }
-                model.recordSymbolForwardReferences(undefineds, casedName, expr, line, SymbolType.Constant)
+                model.recordSymbolForwardReferences(undefinedSymbols, casedName, expr, line, SymbolType.Constant)
             case Right(value) =>
                 model.setConstant(casedName, value, line)
                 resolveConvergeSetSymbol(casedName)
