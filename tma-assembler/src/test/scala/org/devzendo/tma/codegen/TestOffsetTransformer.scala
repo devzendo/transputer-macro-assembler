@@ -19,7 +19,7 @@ package org.devzendo.tma.codegen
 import org.devzendo.tma.ast.AST.{Label, SymbolName}
 import org.devzendo.tma.ast._
 import org.junit.rules.ExpectedException
-import org.junit.{Rule, Test}
+import org.junit.{Before, Rule, Test}
 import org.log4s.Logger
 import org.scalatest.MustMatchers
 import org.scalatest.junit.AssertionsForJUnit
@@ -32,6 +32,11 @@ class TestOffsetTransformer extends CodeGeneratorFixture with AssertionsForJUnit
     @Rule
     def thrown: ExpectedException = _thrown
     var _thrown: ExpectedException = ExpectedException.none
+
+    @Before
+    def addOffsetTransformer(): Unit = {
+        codegen.addStatementTransformer(new OffsetTransformer(model).transform)
+    }
 
     @Test
     def convertRepeatedOffsetsCountUndefined(): Unit = {

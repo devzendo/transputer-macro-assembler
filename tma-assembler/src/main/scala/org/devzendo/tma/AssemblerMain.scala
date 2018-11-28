@@ -18,7 +18,7 @@ package org.devzendo.tma
 
 import java.io.File
 
-import org.devzendo.tma.codegen.{AssemblyModel, CodeGenerationException, CodeGenerator, CasedSymbolName}
+import org.devzendo.tma.codegen.{AssemblyModel, CodeGenerationException, CodeGenerator, CasedSymbolName, OffsetTransformer}
 import org.devzendo.tma.parser.{AssemblyParser, AssemblyParserException, MacroManager}
 
 class AssemblerMain(val argList: List[String]) {
@@ -105,6 +105,7 @@ class AssemblerMain(val argList: List[String]) {
         val parser = new AssemblyParser(debugParser, showParserOutput, macroManager)
         val inmodel = new AssemblyModel(debugCodegen)
         val codegen = new CodeGenerator(debugCodegen, inmodel)
+        codegen.addStatementTransformer(new OffsetTransformer(inmodel).transform)
         val controller = new AssemblerController(macroManager, parser, codegen)
         val asm = asmFile.get
 

@@ -89,14 +89,9 @@ class CodeGenerator(debugCodegen: Boolean, model: AssemblyModel) {
     type StatementTransformer = Statement => Statement
     private val statementTransformers = ArrayBuffer[StatementTransformer]()
 
-    // Constructor
-    addStatementTransformer(new OffsetTransformer(model).transform)
-    // End of Constructor
-
     def addStatementTransformer(st: StatementTransformer): Unit = {
         statementTransformers += st
     }
-
 
     def createModel(lines: List[Line]): AssemblyModel = {
         // Store the lines in a mutable, random accessible form, to aid the DirectInstructionOffsetEncoder
