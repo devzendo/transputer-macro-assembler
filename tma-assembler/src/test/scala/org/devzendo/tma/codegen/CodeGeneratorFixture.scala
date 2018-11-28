@@ -16,9 +16,16 @@
 
 package org.devzendo.tma.codegen
 
+import java.io.File
+
 import org.devzendo.tma.ast.{Line, Statement}
+import org.devzendo.tma.output.ListingWriter
+import org.log4s.Logger
+
+import scala.io.Source
 
 abstract class CodeGeneratorFixture {
+    val logger: Logger
 
     val model = new AssemblyModel(true)
     val codegen = new CodeGenerator(true, model)
@@ -58,5 +65,20 @@ abstract class CodeGeneratorFixture {
 
     def lastAssignmentValue(sourcedValues: List[SourcedValue]): AssignmentValue = {
         sourcedValues.filter(_.isInstanceOf[AssignmentValue]).reverse.head.asInstanceOf[AssignmentValue]
+    }
+
+    def showListing(model: AssemblyModel): Unit = {
+        val listingFile: File = File.createTempFile("out.", ".lst", new File(System.getProperty("java.io.tmpdir")))
+        try {
+            val writer: ListingWriter = new ListingWriter(listingFile)
+            writer.encode(model)
+            val lines: Array[String] = Source.fromFile(listingFile).getLines().toArray
+            logger.info("")
+            logger.info("-" * 80)
+            lines.foreach(line => logger.info(line))
+            logger.info("-" * 80)
+        } finally {
+            listingFile.delete()
+        }
     }
 }
