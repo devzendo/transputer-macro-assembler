@@ -174,9 +174,14 @@ class TestCodeGenerator extends AssertionsForJUnit with MustMatchers {
     @Test
     def statementTransformationExceptionsRethrownAsCodeGenerationExceptions(): Unit = {
         thrown.expect(classOf[CodeGenerationException])
-        thrown.expectMessage("1: Count of 'SymbolArg(FNORD)' is undefined")
+        thrown.expectMessage("1: Boom!")
 
-        generateFromLine(Line(1, "DB fnord DUP(7)", None, Some(DBDup(SymbolArg(fnord), Number(7)))))
+        def explode(st: Statement): Statement = {
+            throw new StatementTransformationException("Boom!")
+        }
+        codegen.addStatementTransformer(explode)
+
+        generateFromLine(Line(1, "", None, Some(Ignored())))
     }
 
 
