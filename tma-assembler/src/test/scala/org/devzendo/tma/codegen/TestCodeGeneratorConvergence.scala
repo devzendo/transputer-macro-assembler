@@ -27,13 +27,19 @@ import org.scalatest.junit.AssertionsForJUnit
 class TestCodeGeneratorConvergence extends CodeGeneratorFixture with AssertionsForJUnit with MustMatchers {
     val logger: Logger = org.log4s.getLogger
 
+    // Since DB c DUP v is translated by the OffsetTransformer, and this class doesn't have that bound into the
+    // statement transformer chain, make this by hand...
+    private def padding255BytesLong(): DB = {
+        DB(List.fill(255)(Number(10)))
+    }
+
     @Test
     def convergeModeExample1(): Unit = {
         val lines = List(
             Line(1, "\t.TRANSPUTER", None, Some(Processor("TRANSPUTER"))),
             Line(2, "\tLDC L1", None, Some(DirectInstruction("LDC", 0x40, SymbolArg("L1")))),
             Line(3, "\tLDPI", None, Some(IndirectInstruction("LDPI", List(0x21, 0xfb)))),
-            Line(4, "\tDB\t255 DUP 10", None, Some(DBDup(Number(255), Number(10)))), // pad the LDC out to 3 bytes
+            Line(4, "\tDB\t255 DUP 10", None, Some(padding255BytesLong())), // pad the LDC out to 3 bytes
             Line(5, "L1:\tDB\t'hello world'", Some("L1"), Some(DB(List(Characters("hello world")))))
         )
         val model = generateFromLines(lines)
@@ -142,7 +148,7 @@ class TestCodeGeneratorConvergence extends CodeGeneratorFixture with AssertionsF
             Line(3, "\tDD L1", None, Some(DD(List(SymbolArg("L1"))))), // Is this storage updated when L1 is known?
             Line(4, "\tLDC L1", None, Some(DirectInstruction("LDC", 0x40, SymbolArg("L1")))),
             Line(5, "\tLDPI", None, Some(IndirectInstruction("LDPI", List(0x21, 0xfb)))),
-            Line(6, "\tDB\t255 DUP 10", None, Some(DBDup(Number(255), Number(10)))), // pad the LDC out to 3 bytes
+            Line(6, "\tDB\t255 DUP 10", None, Some(padding255BytesLong())), // pad the LDC out to 3 bytes
             Line(7, "L1:\tDB\t'hello world'", Some("L1"), Some(DB(List(Characters("hello world")))))
         )
         val model = generateFromLines(lines)
@@ -171,7 +177,7 @@ class TestCodeGeneratorConvergence extends CodeGeneratorFixture with AssertionsF
             Line(3, "\tDD C1", None, Some(DD(List(SymbolArg("C1"))))), // Is this storage updated when C1 is known?
             Line(4, "\tLDC C1", None, Some(DirectInstruction("LDC", 0x40, SymbolArg("C1")))),
             Line(5, "\tLDPI", None, Some(IndirectInstruction("LDPI", List(0x21, 0xfb)))),
-            Line(6, "\tDB\t255 DUP 10", None, Some(DBDup(Number(255), Number(10)))), // pad the LDC out to 3 bytes
+            Line(6, "\tDB\t255 DUP 10", None, Some(padding255BytesLong())), // pad the LDC out to 3 bytes
             Line(7, "C1\tEQU\t$", None, Some(ConstantAssignment(new SymbolName("C1"), SymbolArg("$"))))
         )
         val model = generateFromLines(lines)
@@ -200,7 +206,7 @@ class TestCodeGeneratorConvergence extends CodeGeneratorFixture with AssertionsF
             Line(3, "\tDD V1", None, Some(DD(List(SymbolArg("V1"))))), // Is this storage updated when V1 is known?
             Line(4, "\tLDC V1", None, Some(DirectInstruction("LDC", 0x40, SymbolArg("V1")))),
             Line(5, "\tLDPI", None, Some(IndirectInstruction("LDPI", List(0x21, 0xfb)))),
-            Line(6, "\tDB\t255 DUP 10", None, Some(DBDup(Number(255), Number(10)))), // pad the LDC out to 3 bytes
+            Line(6, "\tDB\t255 DUP 10", None, Some(padding255BytesLong())), // pad the LDC out to 3 bytes
             Line(7, "V1\t=\t$", None, Some(ConstantAssignment(new SymbolName("V1"), SymbolArg("$"))))
         )
         val model = generateFromLines(lines)
@@ -229,7 +235,7 @@ class TestCodeGeneratorConvergence extends CodeGeneratorFixture with AssertionsF
             Line(3, "\tL1COPY EQU L1", None, Some(ConstantAssignment("L1COPY", SymbolArg("L1")))), // Is this constant updated when L1 is known?
             Line(4, "\tLDC L1", None, Some(DirectInstruction("LDC", 0x40, SymbolArg("L1")))),
             Line(5, "\tLDPI", None, Some(IndirectInstruction("LDPI", List(0x21, 0xfb)))),
-            Line(6, "\tDB\t255 DUP 10", None, Some(DBDup(Number(255), Number(10)))), // pad the LDC out to 3 bytes
+            Line(6, "\tDB\t255 DUP 10", None, Some(padding255BytesLong())), // pad the LDC out to 3 bytes
             Line(7, "L1:\tDB\t'hello world'", Some("L1"), Some(DB(List(Characters("hello world"))))),
             Line(8, "\tDD\tL1COPY", None, Some(DD(List(SymbolArg("L1COPY")))))
         )
@@ -267,7 +273,7 @@ class TestCodeGeneratorConvergence extends CodeGeneratorFixture with AssertionsF
             Line(3, "\tL1COPY = L1", None, Some(VariableAssignment("L1COPY", SymbolArg("L1")))), // Is this variable updated when L1 is known?
             Line(4, "\tLDC L1", None, Some(DirectInstruction("LDC", 0x40, SymbolArg("L1")))),
             Line(5, "\tLDPI", None, Some(IndirectInstruction("LDPI", List(0x21, 0xfb)))),
-            Line(6, "\tDB\t255 DUP 10", None, Some(DBDup(Number(255), Number(10)))), // pad the LDC out to 3 bytes
+            Line(6, "\tDB\t255 DUP 10", None, Some(padding255BytesLong())), // pad the LDC out to 3 bytes
             Line(7, "L1:\tDB\t'hello world'", Some("L1"), Some(DB(List(Characters("hello world")))))
         )
         val model = generateFromLines(lines)
@@ -298,7 +304,7 @@ class TestCodeGeneratorConvergence extends CodeGeneratorFixture with AssertionsF
             Line(3, "\tL1COPY = L1", None, Some(VariableAssignment("L1COPY", SymbolArg("L1")))),
             Line(4, "\tLDC L1", None, Some(DirectInstruction("LDC", 0x40, SymbolArg("L1")))),
             Line(5, "\tLDPI", None, Some(IndirectInstruction("LDPI", List(0x21, 0xfb)))),
-            Line(6, "\tDB\t255 DUP 10", None, Some(DBDup(Number(255), Number(10)))), // pad the LDC out to 3 bytes
+            Line(6, "\tDB\t255 DUP 10", None, Some(padding255BytesLong())), // pad the LDC out to 3 bytes
             Line(7, "L1:\tDB\t'hello world'", Some("L1"), Some(DB(List(Characters("hello world"))))),
             Line(8, "\tDD L1COPY", None, Some(DD(List(SymbolArg("L1COPY"))))) // Is this storage updated when L1COPY is known? (after L1 is known?)
         )
