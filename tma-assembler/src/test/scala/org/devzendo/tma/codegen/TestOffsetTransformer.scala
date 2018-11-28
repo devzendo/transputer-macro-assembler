@@ -22,7 +22,7 @@ import org.junit.{Rule, Test}
 import org.scalatest.MustMatchers
 import org.scalatest.junit.AssertionsForJUnit
 
-class TestOffsetTransformer extends AssertionsForJUnit with MustMatchers {
+class TestOffsetTransformer extends CodeGeneratorFixture with AssertionsForJUnit with MustMatchers {
 
     val fnord = "FNORD"
 

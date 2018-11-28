@@ -374,7 +374,10 @@ class CodeGenerator(debugCodegen: Boolean, model: AssemblyModel) {
                 case IndirectInstruction(_, opbytes) => model.allocateInstructionStorageForLine(line, opbytes)
             }
         } catch {
-            case ste: StatementTransformationException => throw new CodeGenerationException(line.number, ste.getMessage)
+            case ste: StatementTransformationException => {
+                logger.debug(s"Rethowing ${ste.getMessage}")
+                throw new CodeGenerationException(line.number, ste.getMessage)
+            }
         }
     }
 

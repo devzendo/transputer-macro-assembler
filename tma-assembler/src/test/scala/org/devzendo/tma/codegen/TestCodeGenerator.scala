@@ -31,7 +31,7 @@ import org.scalatest.DiagrammedAssertions.diagrammedAssertionsHelper
 import scala.collection.mutable.ArrayBuffer
 import scala.io.Source
 
-class TestCodeGenerator extends AssertionsForJUnit with MustMatchers {
+class TestCodeGenerator extends CodeGeneratorFixture with AssertionsForJUnit with MustMatchers {
     val logger: Logger = org.log4s.getLogger
     val dollar = "$"
     val fnord = "FNORD"
@@ -41,9 +41,6 @@ class TestCodeGenerator extends AssertionsForJUnit with MustMatchers {
     @Rule
     def thrown: ExpectedException = _thrown
     var _thrown: ExpectedException = ExpectedException.none
-
-    val model = new AssemblyModel(true)
-    val codegen = new CodeGenerator(true, model)
 
     @Test
     def initialConditions(): Unit = {
@@ -57,43 +54,6 @@ class TestCodeGenerator extends AssertionsForJUnit with MustMatchers {
         model.getVariable(CasedSymbolName(dollar)) must be (0)
         model.hasEndBeenSeen must be (true) // cannot sense it being false initially after model created
         codegen.getLastLineNumber must be(1)
-    }
-
-    private def generateFromStatements(stmts: List[Statement]): AssemblyModel = {
-        val stmts2Lines = stmts.zipWithIndex.map((p: (Statement, Int)) => Line(p._2 + 1, p._1.toString, None, Some(p._1)))
-        generateFromLines(stmts2Lines)
-    }
-
-    private def generateFromStatement(stmt: Statement): AssemblyModel = {
-        generateFromLine(Line(1, "", None, Some(stmt)))
-    }
-
-    private def generateFromLine(line: Line): AssemblyModel = {
-        generateFromLines(List(line))
-    }
-
-    private def generateFromLines(lines: List[Line]): AssemblyModel = {
-        val model = codegen.createModel(lines)
-        // In this test class, we want to catch/sense the first exception. When used in the main assembler code,
-        // all exceptions are caught and logged so we can see the full error list, not just the first.
-        val exceptions = codegen.getCodeGenerationExceptions
-        if (exceptions.nonEmpty) {
-            throw exceptions.head
-        } else {
-            model
-        }
-    }
-
-    private def singleStorage(sourcedValues: List[SourcedValue]): Storage = {
-        sourcedValues.filter(_.isInstanceOf[Storage]).head.asInstanceOf[Storage]
-    }
-
-    private def singleAssignmentValue(sourcedValues: List[SourcedValue]): AssignmentValue = {
-        sourcedValues.filter(_.isInstanceOf[AssignmentValue]).head.asInstanceOf[AssignmentValue]
-    }
-
-    private def lastAssignmentValue(sourcedValues: List[SourcedValue]): AssignmentValue = {
-        sourcedValues.filter(_.isInstanceOf[AssignmentValue]).reverse.head.asInstanceOf[AssignmentValue]
     }
 
     @Test
