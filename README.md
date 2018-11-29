@@ -33,9 +33,6 @@ The assembler has built a binary of eForth without any parsing/code gen errors (
 to MASM! I can't generate a binary with MASM - linking fails - but the listing is sufficient for verification.
 
 Current work:
-  * Extracting tests that test offset transformation out of TestCodeGenerator into TestOffsetTransformer. Any that
-    rely on offset transformation as a side effect should be changed so they test the thing more directly. Add a test
-    for correct wiring in of the offset transformer.
   * Correct offset generation for j, cj, call direct instructions - so you don't have to specify OFFSET to a symbolic
     argument, it's implied.
    
