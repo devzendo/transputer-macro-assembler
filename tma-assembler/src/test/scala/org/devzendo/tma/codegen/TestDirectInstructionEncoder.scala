@@ -40,6 +40,21 @@ class TestDirectInstructionEncoder extends AssertionsForJUnit with MustMatchers 
     }
 
     @Test
+    def positiveNybbleMaxSingleByteInstructionSequence(): Unit = {
+        ldc(0x0f) must be (List(0x4f))
+    }
+
+    @Test
+    def positiveNybbleFirstDoubleByteInstructionSequence(): Unit = {
+        ldc(0x10) must be (List(0x21, 0x40))
+    }
+
+    @Test
+    def positiveNybbleSecondDoubleByteInstructionSequence(): Unit = {
+        ldc(0x11) must be (List(0x21, 0x41))
+    }
+
+    @Test
     def positiveByte(): Unit = {
         ldc(0x28) must be (List(0x22, 0x48))
     }
@@ -57,6 +72,16 @@ class TestDirectInstructionEncoder extends AssertionsForJUnit with MustMatchers 
     @Test
     def positiveMaxDWord(): Unit = {
         ldc(0x7FFFFFFF) must be (List(0x27, 0x2f, 0x2f, 0x2f, 0x2f, 0x2f, 0x2f, 0x4f))
+    }
+
+    @Test
+    def negativeNybbleMinusTwo(): Unit = {
+        ldc(-2) must be (List(0x60, 0x4e))
+    }
+
+    @Test
+    def negativeNybbleMinusOne(): Unit = {
+        ldc(-1) must be (List(0x60, 0x4f))
     }
 
     @Test
