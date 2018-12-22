@@ -16,9 +16,12 @@
 
 package org.devzendo.tma.codegen
 
+import org.log4s.Logger
+
 import scala.collection.mutable.ListBuffer
 
 object DirectInstructionEncoder {
+    val logger: Logger = org.log4s.getLogger
 
     private val PFIX: Int = 0x20
     private val NFIX: Int = 0x60
@@ -42,6 +45,26 @@ object DirectInstructionEncoder {
         val oparg = op | (arg & 0x0f)
         prefixed += oparg
         prefixed.toList
+    }
+
+    def lengthOfEncodedOffsetFromOpcodeInstruction(offset: Int): Int = {
+        val irrelevantOpByte = 0
+        var instructionLength = 0
+        var previousInstructionLength = 0
+        do {
+            previousInstructionLength = instructionLength
+            logger.debug("iterateEncodedExpressionValue - calculating length of instruction encoding " + offset)
+            val prefixedBytes = DirectInstructionEncoder.apply(irrelevantOpByte, offset)
+            logger.debug("iterateEncodedExpressionValue - recalculating length of instruction encoding " + (offset - prefixedBytes.length))
+            instructionLength = DirectInstructionEncoder.apply(irrelevantOpByte, offset - prefixedBytes.length).length
+            logger.debug("iterateEncodedExpressionValue - length of instruction encoding " + instructionLength)
+            if (instructionLength == previousInstructionLength) {
+                logger.debug("iterateEncodedExpressionValue: instruction length has converged")
+            } else {
+                logger.debug("iterateEncodedExpressionValue: instruction length has not yet converged")
+            }
+        } while (instructionLength != previousInstructionLength)
+        instructionLength
     }
 
     private def encodeStep(arg: Int, negative: Boolean): ListBuffer[Int] = {

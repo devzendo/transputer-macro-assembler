@@ -391,7 +391,7 @@ class AssemblyModel(debugCodegen: Boolean) {
             case Not() => ~ value
             case OffsetFrom(storedDollar) => {
                 val ret = value - storedDollar
-                logger.debug("Offset of value=" + value + " and stored $=" + storedDollar + ": " + ret)
+                logger.debug("Offset of value=%d (0x%x) and stored $=%d (0x%x): %d (0x%x)".format(value, value, storedDollar, storedDollar, ret, ret))
                 ret
             }
             case Offset() =>
@@ -465,7 +465,6 @@ class AssemblyModel(debugCodegen: Boolean) {
     def allocateStorageForLine(line: Line, cellWidth: Int, exprs: List[Expression]): Storage = {
         val lineNumber = line.number
         val sourcedValues = sourcedValuesForLineNumber(lineNumber)
-
         // The incoming exprs will need evaluating to numbers that are stored in the Storage's data field. Most
         // expressions are evaluated to a single number, but Characters are evaluated to multiple. So expand all
         // elements of a Characters expression to an individual Number.

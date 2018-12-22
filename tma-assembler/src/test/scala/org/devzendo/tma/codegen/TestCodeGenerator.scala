@@ -1023,4 +1023,31 @@ class TestCodeGenerator extends CodeGeneratorFixture with AssertionsForJUnit wit
 
         titles.toList must be(List("custom title", "changed"))
     }
+
+    @Test
+    def transformedStatementsAreReplacedInTheLinesForConvergence(): Unit = {
+        def changeTitle(st: Statement): Statement = {
+            st match {
+                case Title(text) =>
+                    Title("changed")
+                case _ =>
+                    st
+            }
+        }
+        codegen.addStatementTransformer(changeTitle)
+
+        generateFromStatement(Title("original title")) // should mutate stored inputLines
+
+        val line = codegen.inputLines(0)
+        val stmt = line.stmt
+        stmt match {
+            case Some(Title(title)) => {
+                title match {
+                    case "original title" => fail("Title was not changed in Statement in Line")
+                    case "changed" => logger.info("Correctly changed statement in line: " + line)
+                }
+            }
+            case _ => fail("Unexpected statement " + stmt)
+        }
+    }
 }

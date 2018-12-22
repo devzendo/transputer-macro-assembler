@@ -40,7 +40,7 @@ class CodeGenerator(debugCodegen: Boolean, model: AssemblyModel) {
 
     def getLastLineNumber: Int = lastLineNumber
 
-    private var inputLines = mutable.ArrayBuffer[Line]()
+    private[codegen] var inputLines = mutable.ArrayBuffer[Line]()
 
     /* State maintained during converge mode - when building optimal encodings for direct instruction offsets of
      * forward-referenced symbols. Also see the AssemblyModel's converge mode flag that relaxes whether symbols can be
@@ -94,7 +94,7 @@ class CodeGenerator(debugCodegen: Boolean, model: AssemblyModel) {
     }
 
     def createModel(lines: List[Line]): AssemblyModel = {
-        // Store the lines in a mutable, random accessible form, to aid the DirectInstructionOffsetEncoder
+        // Store the lines in a mutable, random accessible form, as convergence needs them
         inputLines.clear()
         inputLines ++= lines
 
@@ -145,6 +145,10 @@ class CodeGenerator(debugCodegen: Boolean, model: AssemblyModel) {
     }
 
     private def processLine(line: Line, lineIndex: Int): Unit = {
+        if (debugCodegen) {
+            logger.info("Line " + line.number + ": " + line.toString)
+        }
+
         if (line.number > lastLineNumber) {
             lastLineNumber = line.number
         }
@@ -156,6 +160,8 @@ class CodeGenerator(debugCodegen: Boolean, model: AssemblyModel) {
                 }
                 currentP2Structure.addPass2Line((line, lineIndex))
             } else {
+                createLabel(line)
+
                 val directUndefineds = lineContainsDirectInstructionWithUndefinedSymbols(line)
                 if (directUndefineds.nonEmpty) {
                     if (!convergeMode) {
@@ -163,26 +169,45 @@ class CodeGenerator(debugCodegen: Boolean, model: AssemblyModel) {
                         startConvergeDollar = model.getDollar
                         directInstructionByLineIndex.clear()
                         startConvergeLineIndex = lineIndex
-                        logger.debug("Start of convergable lines at line index " + lineIndex + " line number " + line.number + " $ " + HexDump.int2hex(startConvergeDollar))
+                        logger.debug("Start of convergable lines at line index " + lineIndex + " line number " + line.number + " $=" + HexDump.int2hex(startConvergeDollar))
                     }
                     logger.debug("Adding " + directUndefineds + " to converge symbol set")
                     symbolsToConverge ++= directUndefineds
                 }
 
-                createLabel(line)
-                processLineStatement(line, lineIndex)
+                model.addLine(line) // model.foreachLineSourcedValues returns the original source line, which
+                // can have its statement transformed, below..
+                // TODO does it really need the original line?
 
-                line.label.foreach((label: Label) => {
+                val (modifiedLine, maybeStatement) = applyStatementTransformers(line)
+
+                // Convergence replays Lines - so if the Statement has been transformed, it must be replaced in its
+                // Line in the input..
+                // TODO this is an appalling code smell. too much mutable state...
+                inputLines(lineIndex) = modifiedLine
+
+
+                maybeStatement.foreach {
+                    (stmt: Statement) => processStatement(modifiedLine, lineIndex, stmt)
+                }
+
+                // Has convergence ended?
+                modifiedLine.label.foreach((label: Label) => {
                     resolveConvergeSetSymbol(CasedSymbolName(label))
                 })
 
                 if (convergeMode && symbolsToConverge.isEmpty) {
                     endConvergeLineIndex = lineIndex
-                    logger.debug("End of convergable lines on line index " + lineIndex + " line number " + line.number)
+                    logger.debug("End of convergable lines on line index " + lineIndex + " line number " + modifiedLine.number)
                     converge()
                     convergeMode = false
                 }
             }
+
+            if (debugCodegen) {
+                logger.debug("")
+            }
+
         } catch {
             case ame: AssemblyModelException => throw new CodeGenerationException(line.number, ame.getMessage)
         }
@@ -233,7 +258,7 @@ class CodeGenerator(debugCodegen: Boolean, model: AssemblyModel) {
             for (lineIndex <- startConvergeLineIndex to endConvergeLineIndex) {
                 val line = inputLines(lineIndex)
                 if (debugCodegen) {
-                    logger.debug("Converging line index " + lineIndex + ": " + line)
+                    logger.info("Converging line index " + lineIndex + ": " + line)
                 }
 
                 createLabel(line) // update any label with current $
@@ -241,21 +266,35 @@ class CodeGenerator(debugCodegen: Boolean, model: AssemblyModel) {
                 maybeElement match {
                     case Some(DirectInstructionState(di: DirectInstruction, currentSize: Int)) =>
                         if (debugCodegen) {
-                            logger.info("Current size for direct instruction: " + currentSize)
+                            logger.debug("Current size for direct instruction: " + currentSize)
                         }
                         model.evaluateExpression(di.expr) match {
 
                             case Right(value) =>
                                 if (debugCodegen) {
-                                    logger.info("Encoding value " + value)
+                                    logger.debug("Defined: Encoding value " + value)
                                 }
-                                val encoded = DirectInstructionEncoder.apply(di.opbyte, value)
+
+                                // This evaluation needs to take the encoded instruction length into account, when a
+                                // Unary(OffsetFrom(x)) is in the expression. Here and in non-convergent evaluation.
+                                // TODO remove duplication
+                                val valueToEncode = di.expr match {
+                                    case Unary(op, uExpr) =>
+                                        op match {
+                                            case OffsetFrom(_) => value - DirectInstructionEncoder.lengthOfEncodedOffsetFromOpcodeInstruction(value)
+                                            case _ => value
+                                        }
+                                    case _ => value
+                                }
+
+                                val encoded = DirectInstructionEncoder.apply(di.opbyte, valueToEncode)
                                 if (debugCodegen) {
-                                    logger.info("New encoded size for direct instruction: " + encoded.size)
+                                    logger.debug(s"Defined: Encoding direct instruction (convergence); original value to encode $value; after length adjustment $valueToEncode")
+                                    logger.debug("Defined: New encoded size for direct instruction: " + encoded.size)
                                 }
                                 if (encoded.size > currentSize) {
                                     if (debugCodegen) {
-                                        logger.info("Defined: Another byte of storage required")
+                                        logger.debug("Defined: Another byte of storage required")
                                     }
                                     // requires more size
                                     directInstructionByLineIndex.put(lineIndex, DirectInstructionState(di, currentSize + 1))
@@ -263,21 +302,21 @@ class CodeGenerator(debugCodegen: Boolean, model: AssemblyModel) {
                                     again = true
                                 } else {
                                     if (debugCodegen) {
-                                        logger.info("Defined: Storage size ok; allocating")
+                                        logger.debug("Defined: Storage size ok; allocating")
                                     }
                                     model.allocateStorageForLine(line, 1, encoded map Number) // silently increments $
                                 }
 
                             case Left(undefineds) =>
                                 if (debugCodegen) {
-                                    logger.info("Undefined: Storage size static: Symbol(s) (" + undefineds + ") are not yet defined; allocating 1 byte")
+                                    logger.debug("Undefined: Storage size static: Symbol(s) (" + undefineds + ") are not yet defined; allocating 1 byte")
                                 }
                                 model.incrementDollar(currentSize)
                         }
 
                     case None =>
                         if (debugCodegen) {
-                            logger.info("Processing non-direct-instruction")
+                            logger.debug("Processing non-direct-instruction")
                         }
                         // NB Not processLineStatement as that adds the Line to the model, and it's already been added once.
                         line.stmt.foreach((stmt: Statement) =>
@@ -305,18 +344,38 @@ class CodeGenerator(debugCodegen: Boolean, model: AssemblyModel) {
         )
     }
 
-    private def processLineStatement(line: Line, lineIndex: Int): Unit = {
-        model.addLine(line)
-        line.stmt.foreach((stmt: Statement) =>
-            processStatement(line, lineIndex, stmt)
-        )
+    private def applyStatementTransformers(line: Line): (Line, Option[Statement]) = {
+        line.stmt match {
+            case Some(initialStmt) =>
+                // Apply all statement transformers to the statement...
+                try {
+
+                    val stmt = statementTransformers.foldLeft(initialStmt) {
+                        (prevStmt: Statement, transformer: StatementTransformer) => transformer(prevStmt)
+                    }
+
+                    if (stmt != initialStmt) {
+                        if (debugCodegen) {
+                            logger.debug("Line " + line.number + " (Transformed): " + stmt)
+                        }
+                        val replacedLine = line.copy(stmt = Some(stmt))
+                        (replacedLine, Some(stmt))
+                    } else {
+                        (line, Some(stmt))
+                    }
+
+                } catch {
+                    case ste: StatementTransformationException =>
+                        logger.debug(s"Rethowing ${ste.getMessage}")
+                        throw new CodeGenerationException(line.number, ste.getMessage)
+                }
+            case None =>
+                (line, None)
+        }
     }
 
-    private def processStatement(line: Line, lineIndex: Int, initialStmt: Statement): Unit = {
+    private def processStatement(line: Line, lineIndex: Int, stmt: Statement): Unit = {
         val lineNumber = line.number
-        if (debugCodegen) {
-            logger.info("Line " + lineNumber + " Statement: " + initialStmt)
-        }
 
         // Pass 2 fixups run after pass 1 (duh!), and require processing of statements after this check would have
         // triggered in pass 1.
@@ -324,54 +383,43 @@ class CodeGenerator(debugCodegen: Boolean, model: AssemblyModel) {
             throw new CodeGenerationException(lineNumber, "No statements allowed after End statement")
         }
 
-        // Apply all statement transformers to the statement...
-        try {
-            val stmt = statementTransformers.foldLeft(initialStmt) {
-                (prevStmt: Statement, transformer: StatementTransformer) => transformer(prevStmt)
-            }
-
-            stmt match {
-                case Title(text) =>
-                    model.title = text
-                    logger.debug("Title is '" + text + "'")
-                case Page(rows, columns) =>
-                    model.rows = rows
-                    model.columns = columns
-                    logger.debug("Rows: " + rows + " Columns: " + columns)
-                case Processor(name) =>
-                    model.processor = Some(name)
-                    logger.debug("Processor is '" + name + "'")
-                    model.endianness = name match {
-                        case "386" => Endianness.Little
-                        case "TRANSPUTER" => Endianness.Little
-                    }
-                case Align(n) => processAlign(line, n)
-                case Org(expr) => processOrg(line, expr)
-                case End(expr) => processEnd(line, expr)
-                case ConstantAssignment(name, expr) => processConstantAssignment(line, name, expr)
-                case VariableAssignment(name, expr) => processVariableAssignment(line, name, expr)
-                case Ignored() => // Do nothing
-                case MacroStart(_, _) =>  // All macro AST statements are handled by the parser; the expansions are handled
-                case MacroBody(_) =>      // by the rest of the AST statement handlers, here..
-                case MacroEnd() =>        // So, do nothing...
-                case MacroInvocation(_, _) => // Non-macro statements would follow after an invocation, unless it's an empty macro.
-                case DB(exprs) => model.allocateStorageForLine(line, 1, exprs)
-                case DW(exprs) => model.allocateStorageForLine(line, 2, exprs)
-                case DD(exprs) => model.allocateStorageForLine(line, 4, exprs)
-                case DBDup(_, _) => // Will have been transformed into DB by OffsetTransformer
-                case DWDup(_, _) => // Will have been transformed into DW by OffsetTransformer
-                case DDDup(_, _) => // Will have been transformed into DD by OffsetTransformer
-                case If1() => processIf1()
-                case Else() => processElse(line)
-                case Endif() => processEndif(line)
-                case DirectInstruction(_, opbyte, expr) => processDirectInstruction(line, lineIndex, stmt.asInstanceOf[DirectInstruction], opbyte, expr)
-                case DirectEncodedInstruction(_, opbytes) => model.allocateInstructionStorageForLine(line, opbytes)
-                case IndirectInstruction(_, opbytes) => model.allocateInstructionStorageForLine(line, opbytes)
-            }
-        } catch {
-            case ste: StatementTransformationException =>
-                logger.debug(s"Rethowing ${ste.getMessage}")
-                throw new CodeGenerationException(line.number, ste.getMessage)
+        stmt match {
+            case Title(text) =>
+                model.title = text
+                logger.debug("Title is '" + text + "'")
+            case Page(rows, columns) =>
+                model.rows = rows
+                model.columns = columns
+                logger.debug("Rows: " + rows + " Columns: " + columns)
+            case Processor(name) =>
+                model.processor = Some(name)
+                logger.debug("Processor is '" + name + "'")
+                model.endianness = name match {
+                    case "386" => Endianness.Little
+                    case "TRANSPUTER" => Endianness.Little
+                }
+            case Align(n) => processAlign(line, n)
+            case Org(expr) => processOrg(line, expr)
+            case End(expr) => processEnd(line, expr)
+            case ConstantAssignment(name, expr) => processConstantAssignment(line, name, expr)
+            case VariableAssignment(name, expr) => processVariableAssignment(line, name, expr)
+            case Ignored() => // Do nothing
+            case MacroStart(_, _) =>  // All macro AST statements are handled by the parser; the expansions are handled
+            case MacroBody(_) =>      // by the rest of the AST statement handlers, here..
+            case MacroEnd() =>        // So, do nothing...
+            case MacroInvocation(_, _) => // Non-macro statements would follow after an invocation, unless it's an empty macro.
+            case DB(exprs) => model.allocateStorageForLine(line, 1, exprs)
+            case DW(exprs) => model.allocateStorageForLine(line, 2, exprs)
+            case DD(exprs) => model.allocateStorageForLine(line, 4, exprs)
+            case DBDup(_, _) => // Will have been transformed into DB by OffsetTransformer
+            case DWDup(_, _) => // Will have been transformed into DW by OffsetTransformer
+            case DDDup(_, _) => // Will have been transformed into DD by OffsetTransformer
+            case If1() => processIf1()
+            case Else() => processElse(line)
+            case Endif() => processEndif(line)
+            case DirectInstruction(_, opbyte, expr) => processDirectInstruction(line, lineIndex, stmt.asInstanceOf[DirectInstruction], opbyte, expr)
+            case DirectEncodedInstruction(_, opbytes) => model.allocateInstructionStorageForLine(line, opbytes)
+            case IndirectInstruction(_, opbytes) => model.allocateInstructionStorageForLine(line, opbytes)
         }
     }
 
@@ -527,12 +575,26 @@ class CodeGenerator(debugCodegen: Boolean, model: AssemblyModel) {
         val evaluation = model.evaluateExpression(expr)
         evaluation match {
             case Right(value) =>
-                val prefixedBytes = DirectInstructionEncoder.apply(opbyte, value)
+
+                // This evaluation needs to take the encoded instruction length into account, when a
+                // Unary(OffsetFrom(x)) is in the expression. Here and in convergent evaluation.
+                // TODO remove duplication
+                val valueToEncode = expr match {
+                    case Unary(op, uExpr) =>
+                        op match {
+                            case OffsetFrom(_) => value - DirectInstructionEncoder.lengthOfEncodedOffsetFromOpcodeInstruction(value)
+                            case _ => value
+                        }
+                    case _ => value
+                }
+
+                logger.debug(s"Encoding direct instruction (non-convergence); original value to encode $value; after length adjustment $valueToEncode")
+                val prefixedBytes = DirectInstructionEncoder.apply(opbyte, valueToEncode)
                 model.allocateInstructionStorageForLine(line, prefixedBytes)
             case Left(undefineds) =>
                 if (debugCodegen) {
                     logger.info("Symbol(s) (" + undefineds + ") are not yet defined on line " + lineNumber)
-                    logger.info("Storing undefined direct instruction on line index " + lineIndex)
+                    logger.info("Storing undefined direct instruction " + di + " on line index " + lineIndex)
                 }
                 directInstructionByLineIndex.put(lineIndex, DirectInstructionState(di, 1))
                 model.incrementDollar(1)

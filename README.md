@@ -33,9 +33,10 @@ The assembler has built a binary of eForth without any parsing/code gen errors (
 to MASM! I can't generate a binary with MASM - linking fails - but the listing is sufficient for verification.
 
 Current work:
-  * Correct offset generation for j, cj, call direct instructions - so you don't have to specify OFFSET to a symbolic
-    argument, it's implied.
-   
+  * Bugfix: why does the LDC storage in TestOffsetTransformer.convergeOffset not appear in the listing, despite being
+    allegedly generated during convergence?
+  * Remove duplication between normal and convergence code.
+       
 Remaining work:
   * Escape codes do not work in DB strings? \12 ? \n ? \r ?
   * local labels
@@ -69,6 +70,8 @@ Release Notes
 * Added the T801/T805 instructions from "Support for debugging/breakpointing in transputers" (INMOS
   Technical Note 61).
 * Added the Parachute Transputer Emulator's nonstandard instructions.
+* Correct offset generation for j, cj, call direct instructions - so you don't have to specify OFFSET to a symbolic
+  argument, it's implied.
 
 Rationale
 ---------

@@ -17,6 +17,8 @@
 package org.devzendo.tma.codegen
 
 import org.devzendo.tma.ast._
+import org.devzendo.tma.TransputerDirectInstructions
+import org.log4s.Logger
 
 /**
   * Transforms Statements by converting embedded Offsets in expressions (which have no address state) to OffsetFroms
@@ -27,7 +29,8 @@ import org.devzendo.tma.ast._
   *
   * @param model the current AssemblyModel from which $ will be retrieved.
   */
-class OffsetTransformer(model: AssemblyModel) {
+class OffsetTransformer(model: AssemblyModel) extends TransputerDirectInstructions {
+    val logger: Logger = org.log4s.getLogger
 
     def transform(stmt: Statement): Statement = {
         stmt match {
@@ -40,9 +43,38 @@ class OffsetTransformer(model: AssemblyModel) {
             case DBDup(count, repeatedExpr) => DB(convertRepeatedOffsets(count, repeatedExpr, 1))
             case DWDup(count, repeatedExpr) => DW(convertRepeatedOffsets(count, repeatedExpr, 2))
             case DDDup(count, repeatedExpr) => DD(convertRepeatedOffsets(count, repeatedExpr, 4))
-            case DirectInstruction(opcode, opbyte, expr) => DirectInstruction(opcode, opbyte, convertOffsets(expr))
+            case DirectInstruction(opcode, opbyte, expr) => {
+                opbyte match {
+                    case OP_J | OP_CJ | OP_CALL =>
+                        DirectInstruction(opcode, opbyte, convertSymbolArgToOffset(expr))
+                    case _ =>
+                        DirectInstruction(opcode, opbyte, convertOffsets(expr))
+                }
+            }
 
             case _ => stmt
+        }
+    }
+
+    // If an expression contains just a symbol, replace it with an offset to the symbol, but note that in a direct
+    // instruction, IPtr will have been incremented after the decode (which may have been preceeded by PFIX/NFIXes,
+    // so the dollar used in the offset is the start of the instruction.
+    // $ is the start of the variable length - potentially 8 byte - instruction. However when the direct instruction
+    // is executed, IPtr will be the address after the 'real' opcode (J, CJ, LDC etc.).
+    // 1000: ldc 0x1234abcd => 0x21, 0x22, 0x23, 0x24, 0x2a, 0x2b, 0x2c, 0x4d
+    // $ would be 1000 but after execution when an offset is needed, IPtr now being 1007.
+    def convertSymbolArgToOffset(expr: Expression, dollar: Int = model.getDollar): Expression = {
+        logger.debug("convertSymbolArgToOffset(" + expr + ") $=" + dollar)
+        expr match {
+            case SymbolArg(name) => {
+                Unary(OffsetFrom(dollar), expr)
+            }
+            case Unary(op, uExpr) =>
+                op match {
+                    case Offset() => Unary(OffsetFrom(dollar), uExpr)
+                    case _ => expr
+                }
+            case _ => expr
         }
     }
 

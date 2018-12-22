@@ -16,6 +16,7 @@
 
 package org.devzendo.tma.codegen
 
+import org.devzendo.tma.{AssemblerFixture, TransputerDirectInstructions}
 import org.devzendo.tma.ast.AST.{Label, SymbolName}
 import org.devzendo.tma.ast._
 import org.junit.rules.ExpectedException
@@ -24,10 +25,14 @@ import org.log4s.Logger
 import org.scalatest.MustMatchers
 import org.scalatest.junit.AssertionsForJUnit
 
-class TestOffsetTransformer extends CodeGeneratorFixture with AssertionsForJUnit with MustMatchers {
+import scala.collection.mutable.ArrayBuffer
+
+class TestOffsetTransformer extends CodeGeneratorFixture with AssemblerFixture with TransputerDirectInstructions with AssertionsForJUnit with MustMatchers {
     val logger: Logger = org.log4s.getLogger
 
     val fnord = "FNORD"
+
+    val transform = new OffsetTransformer(model).transform _
 
     @Rule
     def thrown: ExpectedException = _thrown
@@ -35,7 +40,7 @@ class TestOffsetTransformer extends CodeGeneratorFixture with AssertionsForJUnit
 
     @Before
     def addOffsetTransformer(): Unit = {
-        codegen.addStatementTransformer(new OffsetTransformer(model).transform)
+        codegen.addStatementTransformer(transform)
     }
 
     @Test
@@ -229,10 +234,10 @@ class TestOffsetTransformer extends CodeGeneratorFixture with AssertionsForJUnit
     def offsetInDirectInstructionExpression(): Unit = {
         val model = generateFromStatements(List(
             Org(Number(4)),
-            DirectInstruction("LDC", 0x40, Unary(Offset(), Number(12))) // 12 - 4
+            DirectInstruction("LDC", 0x40, Unary(Offset(), Number(12))) // 12 - 4 (but the end of instruction is 5)
         ))
         model.getSourcedValuesForLineNumber(2).head match {
-            case Storage(4, _, data, _, _) => data must be(Array[Int](0x48))
+            case Storage(4, _, data, _, _) => data must be(Array[Int](0x47)) // 12 - 5
             case _ => fail("Did not return a Storage")
         }
     }
@@ -338,7 +343,7 @@ class TestOffsetTransformer extends CodeGeneratorFixture with AssertionsForJUnit
         storage.address must be(0)
         storage.cellWidth must be(1)
         storage.data.toList must be(List(69, 69, 69, 69, 69))
-        storage.line must be(line)
+        storage.line must be(Line(1, "", None, Some(DB(List(Number(69), Number(69), Number(69), Number(69), Number(69))))))
         model.getDollar must be(0 + (cellWidth * count))
     }
 
@@ -357,7 +362,7 @@ class TestOffsetTransformer extends CodeGeneratorFixture with AssertionsForJUnit
         storage.address must be(0)
         storage.cellWidth must be(1)
         storage.data.toList must be(List.empty)
-        storage.line must be(line)
+        storage.line must be(Line(1, "", None, Some(DB(List()))))
         model.getDollar must be(0)
     }
 
@@ -413,14 +418,14 @@ class TestOffsetTransformer extends CodeGeneratorFixture with AssertionsForJUnit
 
         model.getLabel(CasedSymbolName("L1")) must be(0x1104)
 
-        // The LDC is encoded with the right size for the offest of L1 - there have been iterations to increase its
+        // The LDC is encoded with the right size for the offset of L1 - there have been iterations to increase its
         // size from its initial length of 1 byte.
         val line3Storages = model.getSourcedValuesForLineNumber(3)
         line3Storages must have size 1
         val line3Storage = singleStorage(line3Storages)
         line3Storage.address must be(0x1000)
         line3Storage.cellWidth must be(1)
-        line3Storage.data.toList must be(List(0x21, 0x20, 0x44))
+        line3Storage.data.toList must be(List(0x21, 0x20, 0x41))
 
         // Statements that are not DirectInstructions (here's an IndirectInstruction, the LDPI)
         val line4Storages = model.getSourcedValuesForLineNumber(4)
@@ -490,5 +495,206 @@ class TestOffsetTransformer extends CodeGeneratorFixture with AssertionsForJUnit
         line5Storage.address must be(0x1010)
         line5Storage.cellWidth must be(4)
         line5Storage.data.toList must be(List(-1 * 4, -2 * 4, -3 * 4))
+    }
+
+    private def dataForAssembledBranch(lines: String*): List[Int] = {
+        val linesToParse = new ArrayBuffer[String]()
+        linesToParse ++= List(
+            ".TRANSPUTER",
+            "ORG 0x1000",
+            "BEFORE:"
+        )
+        linesToParse ++= lines
+        linesToParse ++= List(
+            "AFTER:"
+        )
+
+        // Find the branch in the passed lines..
+        val branchLineIndex = lines.indexWhere(_.contains("J"))
+        if (branchLineIndex == -1) {
+            fail("No branch")
+        } else {
+            val model = assemble(linesToParse.toList)
+            showListing(model)
+
+            val branchLineSourcedValues = model.getSourcedValuesForLineNumber(4 + branchLineIndex)
+            logger.debug("branchLineSourcedValues: " + branchLineSourcedValues)
+            val branchLineStorage = singleStorage(branchLineSourcedValues)
+            branchLineStorage.cellWidth must be(1)
+
+            branchLineStorage.data.toList
+        }
+    }
+
+    @Test
+    def branchOffsetMinus3(): Unit = {
+        dataForAssembledBranch(
+            // BEFORE is 1000
+            /* 1000: */ "DB 0",
+            /* 1001: */ "J BEFORE" // IPtr is 1003 and will have Oreg added to it.
+        ) must be(List(0x60, 0x0D))
+    }
+
+    @Test
+    def branchOffsetMinus2(): Unit = {
+        dataForAssembledBranch(
+            // BEFORE is 1000
+            /* 1000: */ "J BEFORE" // IPtr is 1002 and will have Oreg added to it.
+        ) must be(List(0x60, 0x0E))
+    }
+
+    // ...
+
+    @Test
+    def branchOffsetHere(): Unit = {
+        dataForAssembledBranch(
+            /* 1000: */ "HERE: J HERE" // IPtr is 1002 and will have Oreg added to it.
+        ) must be(List(0x60, 0x0E))
+    }
+
+    // ...
+
+    @Test
+    def branchOffset0(): Unit = {
+        dataForAssembledBranch(
+            /* 1000: */ "J AFTER" // IPtr is 1001 and will have Oreg added to it.
+            /* 1001: AFTER: */
+        ) must be(List(0x00))
+    }
+
+    // ...
+
+    @Test
+    def branchOffset1(): Unit = {
+        dataForAssembledBranch(
+            /* 1000: */ "J AFTER", // IPtr is 1001; += Oreg
+            /* 1001: */ "DB 0"
+            /* 1002: AFTER: */
+        ) must be(List(0x01))
+    }
+
+    @Test
+    def branchOffset2(): Unit = {
+        dataForAssembledBranch(
+            "J AFTER",
+            "DB 2 DUP(0)"
+            // 1003: AFTER:
+        ) must be(List(0x02))
+    }
+
+    @Test
+    def branchOffset2NotDuped(): Unit = {
+        dataForAssembledBranch(
+            "J AFTER",
+            "DB 0, 0"
+        ) must be(List(0x02))
+    }
+
+    @Test
+    def branchOffset3(): Unit = {
+        dataForAssembledBranch(
+            "J AFTER",
+            "DB 3 DUP(0)"
+        ) must be(List(0x03))
+    }
+
+    // ...
+
+    @Test
+    def branchOffset14(): Unit = {
+        dataForAssembledBranch(
+            "J AFTER",
+            "DB 14 DUP(0)"
+        ) must be(List(0x0E))
+    }
+
+    @Test
+    def branchOffset15(): Unit = { // maximum single byte instruction sequence
+        dataForAssembledBranch(
+            "J AFTER",
+            "DB 15 DUP(0)"
+        ) must be(List(0x0F))
+    }
+
+    // ...
+
+    @Test
+    def branchOffsetTwoByteInstructionSequence(): Unit = {
+        dataForAssembledBranch(
+            "J AFTER",
+            "DB 16 DUP(0)"
+        ) must be(List(0x21, 0x00))
+    }
+
+
+    @Test
+    def transformJSymbolArgIntoOffset(): Unit = {
+        model.setDollarSilently(0x1000)
+        val j = DirectInstruction("J", 0x00, SymbolArg("LABEL"))
+        transform(j) must be (DirectInstruction("J", 0x00, Unary(OffsetFrom(0x1000), SymbolArg("LABEL"))))
+    }
+
+    @Test
+    def transformCJSymbolArgIntoOffset(): Unit = {
+        model.setDollarSilently(0x1000)
+        val cj = DirectInstruction("CJ", 0xA0, SymbolArg("LABEL"))
+        transform(cj) must be (DirectInstruction("CJ", 0xA0, Unary(OffsetFrom(0x1000), SymbolArg("LABEL"))))
+    }
+
+    @Test
+    def transformCALLSymbolArgIntoOffset(): Unit = {
+        model.setDollarSilently(0x1000)
+        val call = DirectInstruction("CALL", 0x90, SymbolArg("LABEL"))
+        transform(call) must be (DirectInstruction("CALL", 0x90, Unary(OffsetFrom(0x1000), SymbolArg("LABEL"))))
+    }
+
+    val nonTranslatedDirectInstructionOpCodes = Seq(OP_LDLP, OP_PFIX, OP_LDNL, OP_LDC, OP_LDNLP, OP_NFIX, OP_LDL, OP_ADC, OP_AJW, OP_EQC, OP_STL, OP_STNL, OP_OPR)
+
+    // Only J, CJ and CALL have symbolic arguments converted automatically into OffsetFrom...
+    @Test
+    def transformOtherSymbolArgNotConverted(): Unit = {
+        for (op <- nonTranslatedDirectInstructionOpCodes) {
+            val di = DirectInstruction("irrelevant", op, SymbolArg("LABEL"))
+            transform(di) must be(DirectInstruction("irrelevant", op, SymbolArg("LABEL")))
+        }
+    }
+
+    // You can explicitly use OFFSET SymbolArg in a non-{J, CJ, CALL}.
+    @Test
+    def transformOtherOffsetSymbolArgConverted(): Unit = {
+        model.setDollarSilently(0x1000)
+        for (op <- nonTranslatedDirectInstructionOpCodes) {
+            val di = DirectInstruction("irrelevant", op, Unary(Offset(), SymbolArg("LABEL")))
+            transform(di) must be(DirectInstruction("irrelevant", op, Unary(OffsetFrom(0x1000), SymbolArg("LABEL"))))
+        }
+    }
+
+    @Test
+    def transformJNonSymbolArgNotConverted(): Unit = {
+        model.setDollarSilently(0x1000)
+        val j = DirectInstruction("J", 0x00, Number(5))
+        transform(j) must be (DirectInstruction("J", 0x00, Number(5)))
+    }
+
+    @Test
+    def transformCJNonSymbolArgNotConverted(): Unit = {
+        model.setDollarSilently(0x1000)
+        val cj = DirectInstruction("CJ", 0xA0, Number(5))
+        transform(cj) must be (DirectInstruction("CJ", 0xA0, Number(5)))
+    }
+
+    @Test
+    def transformCALLNonSymbolArgNotConverted(): Unit = {
+        model.setDollarSilently(0x1000)
+        val call = DirectInstruction("CALL", 0x90, Number(5))
+        transform(call) must be (DirectInstruction("CALL", 0x90, Number(5)))
+    }
+
+    @Test
+    def transformOtherNonSymbolArgNotConverted(): Unit = {
+        for (op <- nonTranslatedDirectInstructionOpCodes) {
+            val di = DirectInstruction("irrelevant", op, Number(5))
+            transform(di) must be(DirectInstruction("irrelevant", op, Number(5)))
+        }
     }
 }
