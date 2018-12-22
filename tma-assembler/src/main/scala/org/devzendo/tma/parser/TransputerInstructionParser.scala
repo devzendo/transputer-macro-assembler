@@ -16,8 +16,9 @@
 
 package org.devzendo.tma.parser
 import org.devzendo.tma.ast._
+import org.devzendo.tma.TransputerDirectInstructions
 
-trait TransputerInstructionParser extends ExpressionParser with DiagnosableParser {
+trait TransputerInstructionParser extends ExpressionParser with DiagnosableParser with TransputerDirectInstructions {
 
     @throws(classOf[AssemblyParserException])
     def parse(line: String): Statement = {
@@ -50,23 +51,6 @@ trait TransputerInstructionParser extends ExpressionParser with DiagnosableParse
             if (debugParser) logger.debug("in directInstruction, opcode: " + opcode + " expr:" + expression)
             DirectInstruction(opcode._1, opcode._2, expression)
     }
-
-    private val OP_J = 0x00
-    private val OP_LDLP = 0x10
-    private val OP_PFIX = 0x20
-    private val OP_LDNL = 0x30
-    private val OP_LDC = 0x40
-    private val OP_LDNLP = 0x50
-    private val OP_NFIX = 0x60
-    private val OP_LDL = 0x70
-    private val OP_ADC = 0x80
-    private val OP_CALL = 0x90
-    private val OP_CJ = 0xa0
-    private val OP_AJW = 0xb0
-    private val OP_EQC = 0xc0
-    private val OP_STL = 0xd0
-    private val OP_STNL = 0xe0
-    private val OP_OPR = 0xf0
 
     // in numeric order, but need to move ldnlp before ldnl so longest length parses first
     private def directOpcode: Parser[(String, Int)] = j | ldlp | pfix | ldnlp | ldnl | ldc | nfix | ldl | adc | call | cj | ajw | eqc | stl | stnl | opr
