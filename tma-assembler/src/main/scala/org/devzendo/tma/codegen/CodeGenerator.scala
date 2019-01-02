@@ -186,9 +186,8 @@ class CodeGenerator(debugCodegen: Boolean, model: AssemblyModel) {
                 // TODO this is an appalling code smell. too much mutable state...
                 inputLines(lineIndex) = modifiedLine
 
-
                 maybeStatement.foreach {
-                    (stmt: Statement) => processStatement(modifiedLine, lineIndex, stmt)
+                    stmt: Statement => processStatement(modifiedLine, lineIndex, stmt)
                 }
 
                 // Has convergence ended?
@@ -277,15 +276,7 @@ class CodeGenerator(debugCodegen: Boolean, model: AssemblyModel) {
 
                                 // This evaluation needs to take the encoded instruction length into account, when a
                                 // Unary(OffsetFrom(x)) is in the expression. Here and in non-convergent evaluation.
-                                // TODO remove duplication
-                                val valueToEncode = di.expr match {
-                                    case Unary(op, uExpr) =>
-                                        op match {
-                                            case OffsetFrom(_) => value - DirectInstructionEncoder.lengthOfEncodedOffsetFromOpcodeInstruction(value)
-                                            case _ => value
-                                        }
-                                    case _ => value
-                                }
+                                val valueToEncode = encodeOffsetValue(di, value)
 
                                 val encoded = DirectInstructionEncoder.apply(di.opbyte, valueToEncode)
                                 if (debugCodegen) {
@@ -329,6 +320,17 @@ class CodeGenerator(debugCodegen: Boolean, model: AssemblyModel) {
             logger.info("Convergence complete after " + iteration + " iteration(s)")
         }
         model.setConvergeMode(false)
+    }
+
+    private def encodeOffsetValue(di: DirectInstruction, value: Int) = {
+        di.expr match {
+            case Unary(op, _) =>
+                op match {
+                    case OffsetFrom(_) => value - DirectInstructionEncoder.lengthOfEncodedOffsetFromOpcodeInstruction(value)
+                    case _ => value
+                }
+            case _ => value
+        }
     }
 
     private def notEndif(line: Line): Boolean = {
@@ -578,15 +580,7 @@ class CodeGenerator(debugCodegen: Boolean, model: AssemblyModel) {
 
                 // This evaluation needs to take the encoded instruction length into account, when a
                 // Unary(OffsetFrom(x)) is in the expression. Here and in convergent evaluation.
-                // TODO remove duplication
-                val valueToEncode = expr match {
-                    case Unary(op, uExpr) =>
-                        op match {
-                            case OffsetFrom(_) => value - DirectInstructionEncoder.lengthOfEncodedOffsetFromOpcodeInstruction(value)
-                            case _ => value
-                        }
-                    case _ => value
-                }
+                val valueToEncode = encodeOffsetValue(di, value)
 
                 logger.debug(s"Encoding direct instruction (non-convergence); original value to encode $value; after length adjustment $valueToEncode")
                 val prefixedBytes = DirectInstructionEncoder.apply(opbyte, valueToEncode)

@@ -23,7 +23,7 @@ Status
 Project started 19 April 2018.
 Successful eForth assembly verified 25 June 2018.
  
-In active development; unfinished; not yet at its first release (as of November 2018).
+In active development; unfinished; not yet at its first release (as of January 2019).
 
 Parser, macro expansion, code generation and output of binary file and listing are done. Optimally encodes direct
 instructions into pfix/nfix sequences - especially for forward references where location might not yet be known.
@@ -35,7 +35,6 @@ to MASM! I can't generate a binary with MASM - linking fails - but the listing i
 Current work:
   * Bugfix: why does the LDC storage in TestOffsetTransformer.convergeOffset not appear in the listing, despite being
     allegedly generated during convergence?
-  * Remove duplication between normal and convergence code.
        
 Remaining work:
   * Escape codes do not work in DB strings? \12 ? \n ? \r ?
@@ -55,6 +54,7 @@ Remaining work:
   * There's duplication in the storage of references to storage contents/symbols so that if embedded constants/labels
     change during convergence, the storage/expressions are re-evaluated; should unify this and use closures to
     process fixups.  
+  * Removal of multiple stores of input lines.
 
 Release Notes
 -------------
