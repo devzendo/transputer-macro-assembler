@@ -281,7 +281,7 @@ class AssemblyModel(debugCodegen: Boolean) {
 
     private def storeSymbolInternal(n: Int, line: Line, casedSymbolName: CasedSymbolName, symbolType: SymbolType.Value): Unit = {
         symbols.put(casedSymbolName, Value(n, symbolType, line.number))
-        sourcedValuesForLineNumber(line.number) += AssignmentValue(n, line, symbolType)
+        sourcedValuesArrayBufferForLineNumber(line.number) += AssignmentValue(n, line, symbolType)
         if (debugCodegen) {
             logger.info(symbolType + " " + casedSymbolName + " = " + n)
         }
@@ -434,6 +434,10 @@ class AssemblyModel(debugCodegen: Boolean) {
         sourcedValuesForLineNumbers.getOrElse(lineNumber, ArrayBuffer[SourcedValue]()).toList
     }
 
+    private def sourcedValuesArrayBufferForLineNumber(lineNumber: Int) = {
+        sourcedValuesForLineNumbers.getOrElseUpdate(lineNumber, mutable.ArrayBuffer[SourcedValue]())
+    }
+
     private def getUnsignedInt(x: Int): Long = x & 0x00000000ffffffffL
 
     private def validateDataSizes(lineNumber: Int, data: Array[Int], cellWidth: Int): Unit = {
@@ -464,14 +468,14 @@ class AssemblyModel(debugCodegen: Boolean) {
 
     def allocateStorageForLine(line: Line, cellWidth: Int, exprs: List[Expression]): Storage = {
         val lineNumber = line.number
-        val sourcedValues = sourcedValuesForLineNumber(lineNumber)
+        val existingSourcedValues = sourcedValuesArrayBufferForLineNumber(lineNumber)
         // The incoming exprs will need evaluating to numbers that are stored in the Storage's data field. Most
         // expressions are evaluated to a single number, but Characters are evaluated to multiple. So expand all
         // elements of a Characters expression to an individual Number.
         val characterExpandedExprs = expandCharacterExpressions(exprs)
 
         val storage = Storage(getDollar, cellWidth, Array.ofDim[Int](characterExpandedExprs.size), line, characterExpandedExprs)
-        sourcedValues += storage
+        existingSourcedValues += storage
 
         // Evaluate expressions, storing, or record forward references if symbols are undefined at the moment.
         characterExpandedExprs.zipWithIndex.foreach((tuple: (Expression, Int)) => {
@@ -517,10 +521,6 @@ class AssemblyModel(debugCodegen: Boolean) {
         }
     }
 
-    private def sourcedValuesForLineNumber(lineNumber: Int) = {
-        sourcedValuesForLineNumbers.getOrElseUpdate(lineNumber, mutable.ArrayBuffer[SourcedValue]())
-    }
-
     def clearSourcedValuesForLineNumber(lineNumber: Int): Unit = {
         if (debugCodegen) {
             logger.debug("Clearing sourced values for line number " + lineNumber)
@@ -530,10 +530,10 @@ class AssemblyModel(debugCodegen: Boolean) {
 
     def allocateInstructionStorageForLine(line: Line, opbytes: List[Int]): Storage = {
         val lineNumber = line.number
-        val sourcedValues = sourcedValuesForLineNumber(lineNumber)
+        val existingSourcedValues = sourcedValuesArrayBufferForLineNumber(lineNumber)
 
         val storage = Storage(getDollar, 1, opbytes.toArray, line, opbytes map { Number })
-        sourcedValues += storage
+        existingSourcedValues += storage
 
         validateDataSizes(lineNumber, storage.data, 1) // they should be instruction bytes, so this shouldn't fail
         dumpStorage(storage)
@@ -549,7 +549,7 @@ class AssemblyModel(debugCodegen: Boolean) {
     def foreachLineSourcedValues(op: (Line, List[SourcedValue]) => Unit): Unit = {
         for (line <- lines) { // can have many macro expanded lines' storages for this line number
             val lineNumber = line.number
-            val sourcedValues = sourcedValuesForLineNumbers.getOrElse(lineNumber, mutable.ArrayBuffer[SourcedValue]()).toList
+            val sourcedValues = getSourcedValuesForLineNumber(lineNumber)
             val sourcedValuesForThisLine = sourcedValues.filter((s: SourcedValue) => {s.line == line}) // NB: don't compare on line number!
 
             op(line, sourcedValuesForThisLine)
@@ -564,7 +564,7 @@ class AssemblyModel(debugCodegen: Boolean) {
     def foreachSourcedValue(op: (Int, List[SourcedValue]) => Unit): Unit = {
         val lineNumbers = sourcedValuesForLineNumbers.keySet.toList.sorted
         lineNumbers.foreach(num => {
-            val sourcedValues = sourcedValuesForLineNumbers(num).toList
+            val sourcedValues = getSourcedValuesForLineNumber(num)
 
             op(num, sourcedValues)
         })
