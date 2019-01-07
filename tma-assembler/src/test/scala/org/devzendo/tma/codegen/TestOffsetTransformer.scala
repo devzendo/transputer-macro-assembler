@@ -16,18 +16,17 @@
 
 package org.devzendo.tma.codegen
 
-import org.devzendo.tma.{AssemblerFixture, TransputerDirectInstructions}
 import org.devzendo.tma.ast.AST.{Label, SymbolName}
 import org.devzendo.tma.ast._
+import org.devzendo.tma.output.ShowListingFixture
+import org.devzendo.tma.{AssemblerFixture, TransputerDirectInstructions}
 import org.junit.rules.ExpectedException
 import org.junit.{Before, Rule, Test}
 import org.log4s.Logger
 import org.scalatest.MustMatchers
 import org.scalatest.junit.AssertionsForJUnit
 
-import scala.collection.mutable.ArrayBuffer
-
-class TestOffsetTransformer extends CodeGeneratorFixture with AssemblerFixture with TransputerDirectInstructions with AssertionsForJUnit with MustMatchers {
+class TestOffsetTransformer extends CodeGeneratorFixture with AssemblerFixture with SourcedValuesFixture with ShowListingFixture with TransputerDirectInstructions with AssertionsForJUnit with MustMatchers {
     val logger: Logger = org.log4s.getLogger
 
     val fnord = "FNORD"
@@ -496,136 +495,6 @@ class TestOffsetTransformer extends CodeGeneratorFixture with AssemblerFixture w
         line5Storage.cellWidth must be(4)
         line5Storage.data.toList must be(List(-1 * 4, -2 * 4, -3 * 4))
     }
-
-    private def dataForAssembledBranch(lines: String*): List[Int] = {
-        val linesToParse = new ArrayBuffer[String]()
-        linesToParse ++= List(
-            ".TRANSPUTER",
-            "ORG 0x1000",
-            "BEFORE:"
-        )
-        linesToParse ++= lines
-        linesToParse ++= List(
-            "AFTER:"
-        )
-
-        // Find the branch in the passed lines..
-        val branchLineIndex = lines.indexWhere(_.contains("J"))
-        if (branchLineIndex == -1) {
-            fail("No branch")
-        } else {
-            val model = assemble(linesToParse.toList)
-            showListing(model)
-
-            val branchLineSourcedValues = model.getSourcedValuesForLineNumber(4 + branchLineIndex)
-            logger.debug("branchLineSourcedValues: " + branchLineSourcedValues)
-            val branchLineStorage = singleStorage(branchLineSourcedValues)
-            branchLineStorage.cellWidth must be(1)
-
-            branchLineStorage.data.toList
-        }
-    }
-
-    @Test
-    def branchOffsetMinus3(): Unit = {
-        dataForAssembledBranch(
-            // BEFORE is 1000
-            /* 1000: */ "DB 0",
-            /* 1001: */ "J BEFORE" // IPtr is 1003 and will have Oreg added to it.
-        ) must be(List(0x60, 0x0D))
-    }
-
-    @Test
-    def branchOffsetMinus2(): Unit = {
-        dataForAssembledBranch(
-            // BEFORE is 1000
-            /* 1000: */ "J BEFORE" // IPtr is 1002 and will have Oreg added to it.
-        ) must be(List(0x60, 0x0E))
-    }
-
-    // ...
-
-    @Test
-    def branchOffsetHere(): Unit = {
-        dataForAssembledBranch(
-            /* 1000: */ "HERE: J HERE" // IPtr is 1002 and will have Oreg added to it.
-        ) must be(List(0x60, 0x0E))
-    }
-
-    // ...
-
-    @Test
-    def branchOffset0(): Unit = {
-        dataForAssembledBranch(
-            /* 1000: */ "J AFTER" // IPtr is 1001 and will have Oreg added to it.
-            /* 1001: AFTER: */
-        ) must be(List(0x00))
-    }
-
-    // ...
-
-    @Test
-    def branchOffset1(): Unit = {
-        dataForAssembledBranch(
-            /* 1000: */ "J AFTER", // IPtr is 1001; += Oreg
-            /* 1001: */ "DB 0"
-            /* 1002: AFTER: */
-        ) must be(List(0x01))
-    }
-
-    @Test
-    def branchOffset2(): Unit = {
-        dataForAssembledBranch(
-            "J AFTER",
-            "DB 2 DUP(0)"
-            // 1003: AFTER:
-        ) must be(List(0x02))
-    }
-
-    @Test
-    def branchOffset2NotDuped(): Unit = {
-        dataForAssembledBranch(
-            "J AFTER",
-            "DB 0, 0"
-        ) must be(List(0x02))
-    }
-
-    @Test
-    def branchOffset3(): Unit = {
-        dataForAssembledBranch(
-            "J AFTER",
-            "DB 3 DUP(0)"
-        ) must be(List(0x03))
-    }
-
-    // ...
-
-    @Test
-    def branchOffset14(): Unit = {
-        dataForAssembledBranch(
-            "J AFTER",
-            "DB 14 DUP(0)"
-        ) must be(List(0x0E))
-    }
-
-    @Test
-    def branchOffset15(): Unit = { // maximum single byte instruction sequence
-        dataForAssembledBranch(
-            "J AFTER",
-            "DB 15 DUP(0)"
-        ) must be(List(0x0F))
-    }
-
-    // ...
-
-    @Test
-    def branchOffsetTwoByteInstructionSequence(): Unit = {
-        dataForAssembledBranch(
-            "J AFTER",
-            "DB 16 DUP(0)"
-        ) must be(List(0x21, 0x00))
-    }
-
 
     @Test
     def transformJSymbolArgIntoOffset(): Unit = {

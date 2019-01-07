@@ -16,22 +16,18 @@
 
 package org.devzendo.tma.codegen
 
-import java.io.File
-
 import org.devzendo.tma.ast.AST.{Label, MacroArgument, MacroName, SymbolName}
-import org.devzendo.tma.ast.{ConstantAssignment, Line, Unary, VariableAssignment, _}
-import org.devzendo.tma.output.ListingWriter
+import org.devzendo.tma.ast.{ConstantAssignment, Line, VariableAssignment, _}
 import org.junit.rules.ExpectedException
 import org.junit.{Rule, Test}
 import org.log4s.Logger
+import org.scalatest.DiagrammedAssertions.diagrammedAssertionsHelper
 import org.scalatest.junit.AssertionsForJUnit
 import org.scalatest.{DiagrammedAssertions, MustMatchers}
-import org.scalatest.DiagrammedAssertions.diagrammedAssertionsHelper
 
 import scala.collection.mutable.ArrayBuffer
-import scala.io.Source
 
-class TestCodeGenerator extends CodeGeneratorFixture with AssertionsForJUnit with MustMatchers {
+class TestCodeGenerator extends CodeGeneratorFixture with SourcedValuesFixture with AssertionsForJUnit with MustMatchers {
     val logger: Logger = org.log4s.getLogger
     val dollar = "$"
     val fnord = "FNORD"

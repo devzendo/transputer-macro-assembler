@@ -18,13 +18,14 @@ package org.devzendo.tma.codegen
 
 import org.devzendo.tma.ast.AST.SymbolName
 import org.devzendo.tma.ast._
+import org.devzendo.tma.output.ShowListingFixture
 import org.junit.Test
 import org.log4s.Logger
 import org.scalatest.MustMatchers
 import org.scalatest.junit.AssertionsForJUnit
 
 // Converge mode processing
-class TestCodeGeneratorConvergence extends CodeGeneratorFixture with AssertionsForJUnit with MustMatchers {
+class TestCodeGeneratorConvergence extends CodeGeneratorFixture with SourcedValuesFixture with ShowListingFixture with AssertionsForJUnit with MustMatchers {
     val logger: Logger = org.log4s.getLogger
 
     // Since DB c DUP v is translated by the OffsetTransformer, and this class doesn't have that bound into the
