@@ -57,7 +57,7 @@ class TestCodeGenerator extends CodeGeneratorFixture with SourcedValuesFixture w
         val originalLine = Line(1, "; text of line", None, None)
         val model = generateFromLine(originalLine)
 
-        // foreachLineSourcedValues is the only way to get original Lines out...
+        // foreachLineSourcedValues is the only way to get original/transformed Lines out...
         var calls = 0
         model.foreachLineSourcedValues((line: Line, sourcedValues: List[SourcedValue]) => {
             calls += 1

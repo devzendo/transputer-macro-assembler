@@ -192,13 +192,15 @@ class AssemblyModel(debugCodegen: Boolean) {
 
     private val symbols = mutable.HashMap[CasedSymbolName, Value]()
 
-    // All incoming Lines (original-in-source and macro expansion lines) are appended here. Recall that macro expansion
-    // lines will have the same line number as original-in-source lines.
+    // All incoming Lines (original-in-source and macro expansion lines) are appended here after they have been
+    // transformed by any StatementTransformers. Recall that macro expansion lines will have the same line number as
+    // original-in-source lines.
     private val lines = mutable.ArrayBuffer[Line]()
     // SourcedValues has a reference to its Line, so when the map of Undefined forward references -> Set[Storage]
     // is scanned at the end of the codegen phase, each Storage can show the Line on which the forward reference is.
     private val sourcedValuesForLineNumbers = mutable.HashMap[Int, mutable.ArrayBuffer[SourcedValue]]() // indexed by line number
     // And it's a map, since it's likely to be sparsely populated (not every line generates Storage)
+    // Recall that macro expansions could lead to multiple entries here for a given line number, hence the ArrayBuffer.
 
     // Forward references are only resolved for Storages and Constants.
 
@@ -389,11 +391,10 @@ class AssemblyModel(debugCodegen: Boolean) {
         op match {
             case Negate() => value * -1
             case Not() => ~ value
-            case OffsetFrom(storedDollar) => {
+            case OffsetFrom(storedDollar) =>
                 val ret = value - storedDollar
                 logger.debug("Offset of value=%d (0x%x) and stored $=%d (0x%x): %d (0x%x)".format(value, value, storedDollar, storedDollar, ret, ret))
                 ret
-            }
             case Offset() =>
                 throw new IllegalStateException("Offset should have been transformed to an OffsetFrom")
             case _ =>
@@ -785,6 +786,7 @@ class AssemblyModel(debugCodegen: Boolean) {
     }
 
     def dump(): Unit = {
+        // Uses lines storage
         foreachLineSourcedValues((line: Line, sourcedValues: List[SourcedValue]) => {
             logger.debug("----------")
             logger.debug(s"line $line")

@@ -17,6 +17,7 @@
 package org.devzendo.tma.codegen
 
 import org.devzendo.tma.AssemblerFixture
+import org.devzendo.tma.ast._
 import org.devzendo.tma.output.ShowListingFixture
 import org.junit.Test
 import org.log4s.Logger
@@ -30,16 +31,7 @@ class TestOffsetTransformerAssembly extends AssemblerFixture with SourcedValuesF
 
 
     private def dataForAssembledBranch(lines: String*): List[Int] = {
-        val linesToParse = new ArrayBuffer[String]()
-        linesToParse ++= List(
-            ".TRANSPUTER",
-            "ORG 0x1000",
-            "BEFORE:"
-        )
-        linesToParse ++= lines
-        linesToParse ++= List(
-            "AFTER:"
-        )
+        val linesToParse: ArrayBuffer[String] = wrapInPrologueAndEpilogue(lines:_*)
 
         // Find the branch in the passed lines..
         val branchLineIndex = lines.indexWhere(_.contains("J"))
@@ -59,6 +51,41 @@ class TestOffsetTransformerAssembly extends AssemblerFixture with SourcedValuesF
             logger.debug("model in the test is " + model)
             dataBytes
         }
+    }
+
+    private def wrapInPrologueAndEpilogue(lines: String*): ArrayBuffer[String] = {
+        val linesToParse = new ArrayBuffer[String]()
+        linesToParse ++= List(
+            ".TRANSPUTER",
+            "ORG 0x1000",
+            "BEFORE:"
+        )
+        linesToParse ++= lines
+        linesToParse ++= List(
+            "AFTER:"
+        )
+        linesToParse
+    }
+
+    @Test
+    def linesInModelReceiveTheTransformedLines(): Unit = {
+        val assembler = wrapInPrologueAndEpilogue(
+            "DB 0",
+            "J BEFORE")
+        val model = assemble(assembler.toList)
+
+        // foreachLineSourcedValues is the only way to get transformed Lines out...
+        var foundTransformed = false
+        model.foreachLineSourcedValues((line: Line, _: List[SourcedValue]) => {
+            logger.info("stmt: " + line.stmt)
+            line.stmt match {
+                case Some(DirectInstruction("J", 0x00, Unary(OffsetFrom(0x1001), SymbolArg("BEFORE")))) =>
+                    logger.info("got it!")
+                    foundTransformed = true
+                case _ =>
+            }
+        })
+        foundTransformed must be(true)
     }
 
     @Test

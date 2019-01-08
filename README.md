@@ -8,7 +8,7 @@ of Microsoft MASM 5.1.
 It also supports the instruction set of the Inmos T414/T800/T801/T805 Transputer,
 when the .TRANSPUTER directive is given.
 
-(C) 2018 Matt J. Gumbley
+(C) 2018-2019 Matt J. Gumbley
 matt.gumbley@devzendo.org
 @mattgumbley @devzendo
 http://devzendo.github.io/parachute
@@ -33,8 +33,6 @@ The assembler has built a binary of eForth without any parsing/code gen errors (
 to MASM! I can't generate a binary with MASM - linking fails - but the listing is sufficient for verification.
 
 Current work:
-  * Bugfix: why does the LDC storage in TestOffsetTransformer.convergeOffset not appear in the listing, despite being
-    allegedly generated during convergence?
        
 Remaining work:
   * Escape codes do not work in DB strings? \12 ? \n ? \r ?
@@ -59,6 +57,8 @@ Remaining work:
 Release Notes
 -------------
 0.01 (ongoing work for the first release)
+* Bugfix: Any offsets to symbols in direct instructions (which required offset transformation) were not
+  appearing in the listing, despite being generated correctly by the StatementTransformers.
 * Bugfix: Offsets are generated relative to the start of the instruction, so a sequence of DDs:
   DD OFFSET X, OFFSET X, OFFSET X
   now yields three distinct values, rather than three copies of the offset of the first DD from X.

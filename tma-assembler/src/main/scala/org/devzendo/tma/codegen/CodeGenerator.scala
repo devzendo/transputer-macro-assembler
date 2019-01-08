@@ -175,11 +175,8 @@ class CodeGenerator(debugCodegen: Boolean, model: AssemblyModel) {
                     symbolsToConverge ++= directUndefineds
                 }
 
-                model.addLine(line) // model.foreachLineSourcedValues returns the original source line, which
-                // can have its statement transformed, below..
-                // TODO does it really need the original line?
-
                 val (modifiedLine, maybeStatement) = applyStatementTransformers(line)
+                model.addLine(modifiedLine)
 
                 // Convergence replays Lines - so if the Statement has been transformed, it must be replaced in its
                 // Line in the input..
@@ -190,7 +187,7 @@ class CodeGenerator(debugCodegen: Boolean, model: AssemblyModel) {
                     stmt: Statement => processStatement(modifiedLine, lineIndex, stmt)
                 }
 
-                // Has convergence ended?
+                // Has convergence ended? Resolve any label on this line.
                 modifiedLine.label.foreach((label: Label) => {
                     resolveConvergeSetSymbol(CasedSymbolName(label))
                 })
