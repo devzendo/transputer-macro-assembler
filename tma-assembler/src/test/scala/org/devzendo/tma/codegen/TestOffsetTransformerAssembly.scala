@@ -74,19 +74,17 @@ class TestOffsetTransformerAssembly extends AssemblerFixture with SourcedValuesF
             "J BEFORE")
         val model = assemble(assembler.toList)
 
-        // foreachLineSourcedValues is the only way to get transformed Lines out...
-        var foundTransformed = false
-        model.foreachLineSourcedValues((line: Line, _: List[SourcedValue]) => {
-            logger.info("stmt: " + line.stmt)
+        def itsACorrectlyTransformedLine(line: Line): Boolean = {
             line.stmt match {
                 case Some(DirectInstruction("J", 0x00, Unary(OffsetFrom(0x1001), SymbolArg("BEFORE")))) =>
-                    logger.info("got it!")
-                    foundTransformed = true
+                    true
                 case _ =>
+                    false
             }
-        })
-        foundTransformed must be(true)
+        }
+        model.allLines().exists(itsACorrectlyTransformedLine)
     }
+
 
     @Test
     def branchOffsetMinus3(): Unit = {

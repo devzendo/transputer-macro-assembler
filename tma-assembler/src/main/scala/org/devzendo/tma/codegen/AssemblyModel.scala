@@ -561,6 +561,10 @@ class AssemblyModel(debugCodegen: Boolean) {
         }
     }
 
+    def allLines(): List[Line] = {
+        lines.toList
+    }
+
     // Note, this does not get you the original-in-source Lines, only those Lines that have had Storage allocated.
     def foreachSourcedValue(op: (Int, List[SourcedValue]) => Unit): Unit = {
         val lineNumbers = sourcedValuesForLineNumbers.keySet.toList.sorted
