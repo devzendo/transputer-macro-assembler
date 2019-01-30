@@ -3,6 +3,9 @@ syntax: glob
 *.iml
 .idea
 .idea/
+**/target/
+**/*.*~
+**/*.swp
 dependency-reduced-pom.xml
 syntax: regexp
 ^target$
