@@ -30,6 +30,10 @@
                     <name>mac os x</name>
                 </os>
             </activation>
+            <properties>
+                <!-- The classifier of the current platform. One of [windows-x86_32, windows-x86_64, linux-x86_32, linux-x86_64, linux-arm_32, mac-x86_64]. -->
+                <cmake.classifier>mac-x86_64</cmake.classifier>
+            </properties>
             <build>
                 <plugins>
                     <!--
@@ -61,6 +65,26 @@
                             </execution>
                         </executions>
                     </plugin>
+
+                    <plugin>
+                        <artifactId>maven-assembly-plugin</artifactId>
+                        <version>3.1.1</version>
+                        <configuration>
+                            <descriptors>
+                                <descriptor>src/main/assembly/macosx-distribution.xml</descriptor>
+                            </descriptors>
+                        </configuration>
+                        <executions>
+                            <execution>
+                                <id>make-assembly</id>
+                                <phase>package</phase>
+                                <goals>
+                                    <goal>single</goal>
+                                </goals>
+                            </execution>
+                        </executions>
+                    </plugin>
+
                 </plugins>
             </build>
 
@@ -83,4 +107,5 @@
             </exclusions>
         </dependency>
     </dependencies>
+
 </project>
