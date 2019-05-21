@@ -5,9 +5,9 @@
     <groupId>org.devzendo</groupId>
     <artifactId>tma-osx</artifactId>
     <version>0.0.1-SNAPSHOT</version>
-    <name>Packaging for OSX</name>
+    <name>Packaging for macOS</name>
     <packaging>pom</packaging>
-    <description>MacOSX launcher for the Transputer Macro Assembler command line utility.
+    <description>macOS launcher for the Transputer Macro Assembler command line utility.
         (Apache License v2) 2018-2019 Matt Gumbley, DevZendo.org
     </description>
 
@@ -30,10 +30,6 @@
                     <name>mac os x</name>
                 </os>
             </activation>
-            <properties>
-                <!-- The classifier of the current platform. One of [windows-x86_32, windows-x86_64, linux-x86_32, linux-x86_64, linux-arm_32, mac-x86_64]. -->
-                <cmake.classifier>mac-x86_64</cmake.classifier>
-            </properties>
             <build>
                 <plugins>
                     <!--

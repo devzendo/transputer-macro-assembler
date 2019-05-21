@@ -23,7 +23,7 @@ Status
 Project started 19 April 2018.
 Successful eForth assembly verified 25 June 2018.
  
-In active development; unfinished; not yet at its first release (as of January 2019).
+In active development; unfinished; not yet at its first release (as of May 2019).
 
 Parser, macro expansion, code generation and output of binary file and listing are done. Optimally encodes direct
 instructions into pfix/nfix sequences - especially for forward references where location might not yet be known.
@@ -39,7 +39,6 @@ Remaining work:
   * local labels
   * global and extern symbols
   * INCLUDE, in lieu of building linkable object files
-  * Add builds/install scripts for Linux and Windows
 
 * later....
   * ELF writing (or other object format: TCOFF?)  
@@ -72,6 +71,7 @@ Release Notes
 * Added the Parachute Transputer Emulator's nonstandard instructions.
 * Correct offset generation for j, cj, call direct instructions - so you don't have to specify OFFSET to a symbolic
   argument, it's implied.
+* Builds on macOS, Windows 10 and Linux (Various).
 
 Rationale
 ---------

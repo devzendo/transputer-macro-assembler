@@ -3,11 +3,11 @@
          xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
     <modelVersion>4.0.0</modelVersion>
     <groupId>org.devzendo</groupId>
-    <artifactId>tma-windows</artifactId>
+    <artifactId>tma-linux</artifactId>
     <version>0.0.1-SNAPSHOT</version>
-    <name>Packaging for Windows</name>
+    <name>Packaging for Linux</name>
     <packaging>pom</packaging>
-    <description>Windows launcher for the Transputer Macro Assembler command line utility.
+    <description>Linux launcher for the Transputer Macro Assembler command line utility.
         (Apache License v2) 2018-2019 Matt Gumbley, DevZendo.org
     </description>
 
@@ -24,24 +24,24 @@
 
     <profiles>
         <profile>
-            <id>windows</id>
+            <id>linux</id>
             <activation>
                 <os>
-                    <family>windows</family>
+                    <name>linux</name>
                 </os>
             </activation>
             <build>
                 <plugins>
                     <!--
-                      Create the Windows command launcher structure under
-                      target/windows.
+                      Create the Linux Shell command launcher structure under
+                      target/linux.
                     -->
                     <plugin>
                         <groupId>org.devzendo</groupId>
                         <artifactId>cross-platform-launcher-plugin</artifactId>
                         <version>1.1.3</version>
                         <configuration>
-                            <os>Windows</os>
+                            <os>Linux</os>
                             <launcherType>Console</launcherType>
                             <applicationName>${appName}</applicationName>
                             <mainClassName>org.devzendo.tma.AssemblerMain
@@ -63,7 +63,7 @@
                         <version>3.1.1</version>
                         <configuration>
                             <descriptors>
-                                <descriptor>src/main/assembly/windows-distribution.xml</descriptor>
+                                <descriptor>src/main/assembly/linux-distribution.xml</descriptor>
                             </descriptors>
                         </configuration>
                         <executions>
@@ -81,7 +81,7 @@
             </build>
 
         </profile>
-        <!--  windows -->
+        <!-- linux -->
     </profiles>
 
     <dependencies>
@@ -99,4 +99,5 @@
             </exclusions>
         </dependency>
     </dependencies>
+
 </project>
