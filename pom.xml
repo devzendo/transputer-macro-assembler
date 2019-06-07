@@ -60,6 +60,10 @@ the Transputer instruction set. Generates binary output or ELF object files.
         <module>tma-windows</module>
     </modules>
 
+    <properties>
+        <cross.platform.launcher.plugin.version>1.2.1-SNAPSHOT</cross.platform.launcher.plugin.version>
+    </properties>
+
     <build>
         <plugins>
 
