@@ -22,71 +22,59 @@
         <appName>tmasm</appName>
     </properties>
 
-    <profiles>
-        <profile>
-            <id>mac os x</id>
-            <activation>
-                <os>
-                    <name>mac os x</name>
-                </os>
-            </activation>
-            <build>
-                <plugins>
+    <build>
+        <plugins>
+            <!--
+              Create the Mac OS X Shell command launcher structure under
+              target/macosx.
+            -->
+            <plugin>
+                <groupId>org.devzendo</groupId>
+                <artifactId>cross-platform-launcher-plugin</artifactId>
+                <version>${cross.platform.launcher.plugin.version}</version>
+                <configuration>
+                    <os>MacOSX</os>
+                    <launcherType>Console</launcherType>
+                    <applicationName>${appName}</applicationName>
+                    <mainClassName>org.devzendo.tma.AssemblerMain
+                    </mainClassName>
                     <!--
-                      Create the Mac OS X Shell command launcher structure under
-                      target/macosx.
+                      I don't have an assigned creator code
+                      <bundleSignature>BM</bundleSignature>
                     -->
-                    <plugin>
-                        <groupId>org.devzendo</groupId>
-                        <artifactId>cross-platform-launcher-plugin</artifactId>
-                        <version>${cross.platform.launcher.plugin.version}</version>
-                        <configuration>
-                            <os>MacOSX</os>
-                            <launcherType>Console</launcherType>
-                            <applicationName>${appName}</applicationName>
-                            <mainClassName>org.devzendo.tma.AssemblerMain
-                            </mainClassName>
-                            <!--
-                              I don't have an assigned creator code
-                              <bundleSignature>BM</bundleSignature>
-                            -->
-                        </configuration>
-                        <executions>
-                            <execution>
-                                <id>createlauncher</id>
-                                <phase>package</phase>
-                                <goals>
-                                    <goal>createlauncher</goal>
-                                </goals>
-                            </execution>
-                        </executions>
-                    </plugin>
+                </configuration>
+                <executions>
+                    <execution>
+                        <id>createlauncher</id>
+                        <phase>package</phase>
+                        <goals>
+                            <goal>createlauncher</goal>
+                        </goals>
+                    </execution>
+                </executions>
+            </plugin>
 
-                    <plugin>
-                        <artifactId>maven-assembly-plugin</artifactId>
-                        <version>3.1.1</version>
-                        <configuration>
-                            <descriptors>
-                                <descriptor>src/main/assembly/macosx-distribution.xml</descriptor>
-                            </descriptors>
-                        </configuration>
-                        <executions>
-                            <execution>
-                                <id>make-assembly</id>
-                                <phase>package</phase>
-                                <goals>
-                                    <goal>single</goal>
-                                </goals>
-                            </execution>
-                        </executions>
-                    </plugin>
+            <plugin>
+                <artifactId>maven-assembly-plugin</artifactId>
+                <version>3.1.1</version>
+                <configuration>
+                    <descriptors>
+                        <descriptor>src/main/assembly/macosx-distribution.xml</descriptor>
+                    </descriptors>
+                </configuration>
+                <executions>
+                    <execution>
+                        <id>make-assembly</id>
+                        <phase>package</phase>
+                        <goals>
+                            <goal>single</goal>
+                        </goals>
+                    </execution>
+                </executions>
+            </plugin>
 
-                </plugins>
-            </build>
-
-        </profile>
-        <!--  mac os x -->
-    </profiles>
+        </plugins>
+    </build>
 
     <dependencies>
         <dependency>
