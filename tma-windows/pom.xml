@@ -44,8 +44,10 @@
                             <os>Windows</os>
                             <launcherType>Console</launcherType>
                             <applicationName>${appName}</applicationName>
-                            <mainClassName>org.devzendo.tma.AssemblerMain
-                            </mainClassName>
+                            <mainClassName>org.devzendo.tma.AssemblerMain</mainClassName>
+                            <janelDirectory>bin</janelDirectory>
+                            <janelBits>64</janelBits>
+                            <janelVersion>4.2</janelVersion>
                         </configuration>
                         <executions>
                             <execution>

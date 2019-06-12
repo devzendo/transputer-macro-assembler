@@ -22,8 +22,8 @@ Status
 ------
 Project started 19 April 2018.
 Successful eForth assembly verified 25 June 2018.
- 
-In active development; unfinished; not yet at its first release (as of May 2019).
+In active development.
+First release Midsummer 2019 (12 June 2019).
 
 Parser, macro expansion, code generation and output of binary file and listing are done. Optimally encodes direct
 instructions into pfix/nfix sequences - especially for forward references where location might not yet be known.
@@ -55,7 +55,7 @@ Remaining work:
 
 Release Notes
 -------------
-0.01 (ongoing work for the first release)
+0.0.1 First release
 * Bugfix: Any offsets to symbols in direct instructions (which required offset transformation) were not
   appearing in the listing, despite being generated correctly by the StatementTransformers.
 * Bugfix: Offsets are generated relative to the start of the instruction, so a sequence of DDs:
@@ -230,7 +230,7 @@ Just requires Java 8 and Maven 3.2.x.
 License
 -------
 This code is released under the Apache 2.0 License: http://www.apache.org/licenses/LICENSE-2.0.html.
-(C) 2018 Matt Gumbley, DevZendo.org
+(C) 2018-2019 Matt Gumbley, DevZendo.org
 
 
 Acknowledgements
