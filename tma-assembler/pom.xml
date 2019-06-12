@@ -2,7 +2,7 @@
     <modelVersion>4.0.0</modelVersion>
     <groupId>org.devzendo</groupId>
     <artifactId>tma-assembler</artifactId>
-    <version>0.0.1</version>
+    <version>0.0.2-SNAPSHOT</version>
     <name>Transputer Macro Assembler Code</name>
     <packaging>jar</packaging>
     <description>The Transputer Macro Asesmbler Code
@@ -221,8 +221,4 @@
             </build>
         </profile>
     </profiles>
-
-  <scm>
-    <tag>transputer-macro-assembler-parent-0.0.1</tag>
-  </scm>
 </project>

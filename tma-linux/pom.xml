@@ -2,7 +2,7 @@
     <modelVersion>4.0.0</modelVersion>
     <groupId>org.devzendo</groupId>
     <artifactId>tma-linux</artifactId>
-    <version>0.0.1</version>
+    <version>0.0.2-SNAPSHOT</version>
     <name>Packaging for Linux</name>
     <packaging>pom</packaging>
     <description>Linux launcher for the Transputer Macro Assembler command line utility.
@@ -12,7 +12,7 @@
     <parent>
         <groupId>org.devzendo</groupId>
         <artifactId>transputer-macro-assembler-parent</artifactId>
-        <version>0.0.1</version>
+        <version>0.0.2-SNAPSHOT</version>
         <relativePath>..</relativePath>
     </parent>
 
@@ -76,7 +76,7 @@
              that out. -->
             <groupId>org.devzendo</groupId>
             <artifactId>tma-assembler</artifactId>
-            <version>0.0.1</version>
+            <version>0.0.2-SNAPSHOT</version>
             <exclusions>
                 <exclusion>
                     <groupId>org.scala-lang</groupId>
