@@ -20,10 +20,14 @@ Project](https://devzendo.github.io/parachute) and its future languages.
 
 Status
 ------
+First release 0.0.1 Midsummer 2019 (12 June 2019) as part of Parachute.
+
 Project started 19 April 2018.
+
 Successful eForth assembly verified 25 June 2018.
+
 In active development.
-First release Midsummer 2019 (12 June 2019).
+
 
 Parser, macro expansion, code generation and output of binary file and listing are done. Optimally encodes direct
 instructions into pfix/nfix sequences - especially for forward references where location might not yet be known.
