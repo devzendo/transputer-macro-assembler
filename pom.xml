@@ -1,12 +1,10 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<project xmlns="http://maven.apache.org/POM/4.0.0"
-         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
     <modelVersion>4.0.0</modelVersion>
 
     <groupId>org.devzendo</groupId>
     <artifactId>transputer-macro-assembler-parent</artifactId>
-    <version>0.0.1-SNAPSHOT</version>
+    <version>0.0.2-SNAPSHOT</version>
     <packaging>pom</packaging>
     <name>Transputer Macro Assembler - Top level project</name>
     <description>A simple Macro Assembler, using a subset of MASM syntax, for
@@ -32,7 +30,8 @@ the Transputer instruction set. Generates binary output or ELF object files.
         <url>https://bitbucket.org/devzendo/transputer-macro-assembler/</url>
         <connection>scm:hg:https://bitbucket.org/devzendo/transputer-macro-assembler/</connection>
         <developerConnection>scm:hg:https://bitbucket.org/devzendo/transputer-macro-assembler/</developerConnection>
-    </scm>
+      <tag>HEAD</tag>
+  </scm>
 
     <developers>
         <developer>
