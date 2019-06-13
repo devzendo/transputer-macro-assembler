@@ -20,7 +20,7 @@ Project](https://devzendo.github.io/parachute) and its future languages.
 
 Status
 ------
-First release 0.0.1 Midsummer 2019 (12 June 2019) as part of Parachute.
+First release 0.0.1 Midsummer 2019 (12 June 2019) as part of Parachute 0.0.1.
 
 Project started 19 April 2018.
 
