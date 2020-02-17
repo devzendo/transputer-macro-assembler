@@ -187,7 +187,7 @@
                     <plugin>
                         <groupId>org.owasp</groupId>
                         <artifactId>dependency-check-maven</artifactId>
-                        <version>3.2.1</version>
+                        <version>5.3.0</version>
                         <executions>
                             <execution>
                                 <goals>
@@ -197,6 +197,7 @@
                         </executions>
                         <configuration>
                             <format>xml</format>
+                            <skipSystemScope>true</skipSystemScope>
                         </configuration>
                     </plugin>
                     <plugin>
