@@ -27,9 +27,9 @@ the Transputer instruction set. Generates binary output or ELF object files.
     </licenses>
 
     <scm>
-        <url>https://bitbucket.org/devzendo/transputer-macro-assembler/</url>
-        <connection>scm:hg:https://bitbucket.org/devzendo/transputer-macro-assembler/</connection>
-        <developerConnection>scm:hg:https://bitbucket.org/devzendo/transputer-macro-assembler/</developerConnection>
+        <url>https://github.com/devzendo/transputer-macro-assembler/.git</url>
+        <connection>scm:git:https://github.com/devzendo/transputer-macro-assembler/.git</connection>
+        <developerConnection>scm:git:git@github.com:devzendo/transputer-macro-assembler/.git</developerConnection>
       <tag>HEAD</tag>
   </scm>
 
