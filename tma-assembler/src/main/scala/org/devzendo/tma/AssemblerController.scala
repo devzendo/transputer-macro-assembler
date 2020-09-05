@@ -21,13 +21,13 @@ import java.io.File
 import org.devzendo.tma.ast.Line
 import org.devzendo.tma.codegen.{AssemblyModel, CodeGenerationException, CodeGenerator}
 import org.devzendo.tma.output.{BinaryWriter, ELFWriter, ListingWriter}
-import org.devzendo.tma.parser.{AssemblyParser, AssemblyParserException, MacroManager}
+import org.devzendo.tma.parser.{AssemblyParser, AssemblyParserException}
 import org.log4s.Logger
 
 import scala.collection.mutable
 import scala.io.Source
 
-class AssemblerController(macroManager: MacroManager, parser: AssemblyParser, codegen: CodeGenerator) {
+class AssemblerController(parser: AssemblyParser, codegen: CodeGenerator) {
     private val logger: Logger = org.log4s.getLogger
 
     // PARSING PHASE ---------------------------------------------------------------------------------------------------

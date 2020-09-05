@@ -34,7 +34,7 @@ class TestAssemblerController extends AssertionsForJUnit with MustMatchers {
     val parser = new AssemblyParser(true, true, macroManager)
     val model = new AssemblyModel(true)
     val codegen = new CodeGenerator(true, model)
-    val controller = new AssemblerController(macroManager, parser, codegen)
+    val controller = new AssemblerController(parser, codegen)
 
     @Test
     def parserErrorsAccumulate(): Unit = {

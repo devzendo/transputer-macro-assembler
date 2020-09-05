@@ -106,7 +106,7 @@ class AssemblerMain(val argList: List[String]) {
         val inmodel = new AssemblyModel(debugCodegen)
         val codegen = new CodeGenerator(debugCodegen, inmodel)
         codegen.addStatementTransformer(new OffsetTransformer(inmodel).transform)
-        val controller = new AssemblerController(macroManager, parser, codegen)
+        val controller = new AssemblerController(parser, codegen)
         val asm = asmFile.get
 
         logger.debug(s"Start of parsing from from ${asm.getName}")
