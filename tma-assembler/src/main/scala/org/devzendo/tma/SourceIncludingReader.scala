@@ -81,7 +81,8 @@ class SourceIncludingReader {
             override def next(): SourceItem = {
                 val lastContext = contexts.last
                 lastContext.lineNumber = lastContext.lineNumber + 1
-                SourceItem(null, lastContext.file.getName, lastContext.lineNumber, lastContext.iterator.next())
+                val nestedFileNames = contexts.map(_.file.getName).toList
+                SourceItem(nestedFileNames, lastContext.file.getName, lastContext.lineNumber, lastContext.iterator.next())
             }
         }
 //        //lineIterator.zipWithIndex.foreach((p: (String, Int)) => parseTextLine(p._2 + 1, p._1))

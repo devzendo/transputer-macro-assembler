@@ -47,13 +47,13 @@ class TestSourceIncludingReader extends TempFolder with AssertionsForJUnit with 
         val iterator = reader.openSourceIterator(sourceFile)
 
         iterator.hasNext must be(true)
-        iterator.next() must be(SourceItem(null, sourceFileName, 1, "one"))
+        iterator.next() must be(SourceItem(List(sourceFileName), sourceFileName, 1, "one"))
 
         iterator.hasNext must be(true)
-        iterator.next() must be(SourceItem(null, sourceFileName, 2, "two"))
+        iterator.next() must be(SourceItem(List(sourceFileName), sourceFileName, 2, "two"))
 
         iterator.hasNext must be(true)
-        iterator.next() must be(SourceItem(null, sourceFileName, 3, "three"))
+        iterator.next() must be(SourceItem(List(sourceFileName), sourceFileName, 3, "three"))
 
         iterator.hasNext must be(false)
     }
@@ -69,29 +69,29 @@ class TestSourceIncludingReader extends TempFolder with AssertionsForJUnit with 
         val iterator = reader.openSourceIterator(sourceFile)
 
         iterator.hasNext must be(true)
-        iterator.next() must be(SourceItem(null, sourceFileName, 1, "one"))
+        iterator.next() must be(SourceItem(List(sourceFileName), sourceFileName, 1, "one"))
 
         iterator.hasNext must be(true)
-        iterator.next() must be(SourceItem(null, sourceFileName, 2, "include includefile"))
+        iterator.next() must be(SourceItem(List(sourceFileName), sourceFileName, 2, "include includefile"))
         // Note that the reader knows nothing of the content of the lines: it doesn't know that's an include directive.
         // The parser would detect this being an include file, and...
         reader.pushIncludeFile(includeFile)
 
         iterator.hasNext must be(true)
-        iterator.next() must be(SourceItem(null, includeFileName, 1, "i.one"))
+        iterator.next() must be(SourceItem(List(sourceFileName, includeFileName), includeFileName, 1, "i.one"))
 
         iterator.hasNext must be(true)
-        iterator.next() must be(SourceItem(null, includeFileName, 2, "i.two"))
+        iterator.next() must be(SourceItem(List(sourceFileName, includeFileName), includeFileName, 2, "i.two"))
 
         iterator.hasNext must be(true)
-        iterator.next() must be(SourceItem(null, includeFileName, 3, "i.three"))
+        iterator.next() must be(SourceItem(List(sourceFileName, includeFileName), includeFileName, 3, "i.three"))
 
         iterator.hasNext must be(true)
-        iterator.next() must be(SourceItem(null, includeFileName, 4, ""))
+        iterator.next() must be(SourceItem(List(sourceFileName, includeFileName), includeFileName, 4, ""))
 
         // The include file is finished, so is 'popped', and back to the main file...
         iterator.hasNext must be(true)
-        iterator.next() must be(SourceItem(null, sourceFileName, 3, "three"))
+        iterator.next() must be(SourceItem(List(sourceFileName), sourceFileName, 3, "three"))
 
         iterator.hasNext must be(false)
     }
