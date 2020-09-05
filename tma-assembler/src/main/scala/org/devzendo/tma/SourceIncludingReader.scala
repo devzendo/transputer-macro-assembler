@@ -18,6 +18,9 @@ package org.devzendo.tma
 
 import java.io.File
 
+import org.log4s.Logger
+
+import scala.collection.mutable
 import scala.io.Source
 
 /**
@@ -39,6 +42,10 @@ import scala.io.Source
 case class SourceItem(nestedFileNames: List[String], fileName: String, lineNumber: Int, line: String)
 
 class SourceIncludingReader {
+    private val logger: Logger = org.log4s.getLogger
+
+    case class SourceContext(file: File, var lineNumber: Int, iterator: Iterator[String])
+    val contexts = new mutable.ArrayBuffer[SourceContext]
 
     /**
      * Open the first input file, and return a Iterator of SourceItems containing its data.
@@ -47,21 +54,43 @@ class SourceIncludingReader {
      * @return The Iterator of SourceItems.
      */
     def openSourceIterator(firstInputFile: File): Iterator[SourceItem] = {
+
+        val firstInputFileName = firstInputFile.getName
+        logger.debug("Starting source iterator with " + firstInputFileName)
         val lineIterator = Source.fromFile(firstInputFile).getLines()
         var lineNumber = 0
-        val firstInputFileName = firstInputFile.getName
+        contexts += SourceContext(firstInputFile, 0, lineIterator)
         new Iterator[SourceItem] {
-            override def hasNext: Boolean = lineIterator.hasNext
+            override def hasNext: Boolean = {
+                while(true) {
+                    if (contexts.isEmpty) {
+                        logger.debug("End of input")
+                        return false
+                    }
+                    val lastContext = contexts.last
+                    val hasNext = lastContext.iterator.hasNext
+                    if (hasNext) {
+                        return true
+                    } else {
+                        logger.debug("Popping include file " + lastContext.file.getName)
+                        contexts.remove(contexts.size - 1)
+                    }
+                }
+                false // will never get here, but compiler can't see that
+            }
             override def next(): SourceItem = {
-                lineNumber = lineNumber + 1
-                SourceItem(null, firstInputFileName, lineNumber, lineIterator.next())
+                val lastContext = contexts.last
+                lastContext.lineNumber = lastContext.lineNumber + 1
+                SourceItem(null, lastContext.file.getName, lastContext.lineNumber, lastContext.iterator.next())
             }
         }
 //        //lineIterator.zipWithIndex.foreach((p: (String, Int)) => parseTextLine(p._2 + 1, p._1))
     }
 
     def pushIncludeFile(includeFile: File): Unit = {
-
+        logger.debug("Pushing include file " + includeFile.getName)
+        val lineIterator = Source.fromFile(includeFile).getLines()
+        contexts += SourceContext(includeFile, 0, lineIterator)
     }
 
 }
