@@ -32,7 +32,7 @@ class TestAssemblerController extends AssertionsForJUnit with MustMatchers {
 
     val includer = new SourceIncludingReader
     val macroManager = new MacroManager(true)
-    val parser = new AssemblyParser(true, true, macroManager)
+    val parser = new AssemblyParser(true, true, macroManager, includer)
     val model = new AssemblyModel(true)
     val codegen = new CodeGenerator(true, model)
     val controller = new AssemblerController(includer, parser, codegen)

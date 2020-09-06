@@ -18,6 +18,7 @@ package org.devzendo.tma.parser
 
 import java.io
 
+import org.devzendo.tma.Includer
 import org.devzendo.tma.ast.AST.{Label, MacroArgument, MacroName, MacroParameterName}
 import org.devzendo.tma.ast._
 import org.log4s.Logger
@@ -25,7 +26,7 @@ import org.log4s.Logger
 import scala.util.matching.Regex
 import scala.util.parsing.combinator._
 
-class AssemblyParser(val debugParser: Boolean, val showParserOutput: Boolean, val macroManager: MacroManager) {
+class AssemblyParser(val debugParser: Boolean, val showParserOutput: Boolean, val macroManager: MacroManager, val includer: Includer) {
 
     val logger: Logger = org.log4s.getLogger
 

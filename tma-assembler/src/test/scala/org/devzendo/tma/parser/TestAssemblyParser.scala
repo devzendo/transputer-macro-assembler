@@ -16,6 +16,7 @@
 
 package org.devzendo.tma.parser
 
+import org.devzendo.tma.SourceIncludingReader
 import org.devzendo.tma.ast.AST._
 import org.devzendo.tma.ast._
 import org.junit.rules.ExpectedException
@@ -30,7 +31,8 @@ class TestAssemblyParser extends AssertionsForJUnit with MustMatchers {
     val logger: Logger = org.log4s.getLogger
 
     val macroManager = new MacroManager(true)
-    val parser = new AssemblyParser(true, true, macroManager)
+    val includer = new SourceIncludingReader
+    val parser = new AssemblyParser(true, true, macroManager, includer)
     var lineNumber = 1
 
     private val parsedLinesSoFar = mutable.ArrayBuffer[Line]()

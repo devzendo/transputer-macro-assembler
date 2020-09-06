@@ -103,7 +103,7 @@ class AssemblerMain(val argList: List[String]) {
     def start(): Unit = {
         val macroManager = new MacroManager(debugExpansion)
         val includer = new SourceIncludingReader
-        val parser = new AssemblyParser(debugParser, showParserOutput, macroManager)
+        val parser = new AssemblyParser(debugParser, showParserOutput, macroManager, includer)
         val inmodel = new AssemblyModel(debugCodegen)
         val codegen = new CodeGenerator(debugCodegen, inmodel)
         codegen.addStatementTransformer(new OffsetTransformer(inmodel).transform)

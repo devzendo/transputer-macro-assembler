@@ -27,7 +27,8 @@ trait AssemblerFixture {
     // Higher-level, not from Lines, but from text input to parse into Lines... do a 'proper' assembly...
     def assemble(linesToParse: List[String]): AssemblyModel = {
         val macroManager = new MacroManager(true)
-        val parser = new AssemblyParser(true, true, macroManager)
+        val includer = new SourceIncludingReader
+        val parser = new AssemblyParser(true, true, macroManager, includer)
         val model = new AssemblyModel(true)
         val codegen = new CodeGenerator(true, model)
         codegen.addStatementTransformer(new OffsetTransformer(model).transform)
