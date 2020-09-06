@@ -50,7 +50,11 @@ case class SourceItem(nestedLocations: List[SourceLocation], fileName: String, l
     }
 }
 
-class SourceIncludingReader {
+trait Includer {
+    def pushIncludeFile(includeFile: File): Unit
+}
+
+class SourceIncludingReader extends Includer {
     private val logger: Logger = org.log4s.getLogger
 
     case class SourceContext(file: File, var lineNumber: Int, iterator: Iterator[String])
@@ -101,5 +105,4 @@ class SourceIncludingReader {
         val lineIterator = Source.fromFile(includeFile).getLines()
         contexts += SourceContext(includeFile, 0, lineIterator)
     }
-
 }

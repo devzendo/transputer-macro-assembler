@@ -19,11 +19,10 @@ package org.devzendo.tma
 import java.io.File
 
 import org.devzendo.tma.util.TempFolder
-import org.junit.{Ignore, Rule, Test}
+import org.junit.{Rule, Test}
 import org.junit.rules.ExpectedException
 import org.scalatest.MustMatchers
 import org.scalatest.junit.AssertionsForJUnit
-import org.log4s.Logger
 
 class TestSourceIncludingReader extends TempFolder with AssertionsForJUnit with MustMatchers {
     val sourceFile: File = File.createTempFile("temp.", ".asm", temporaryDirectory)
