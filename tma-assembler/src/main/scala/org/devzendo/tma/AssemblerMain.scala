@@ -102,11 +102,12 @@ class AssemblerMain(val argList: List[String]) {
 
     def start(): Unit = {
         val macroManager = new MacroManager(debugExpansion)
+        val includer = new SourceIncludingReader
         val parser = new AssemblyParser(debugParser, showParserOutput, macroManager)
         val inmodel = new AssemblyModel(debugCodegen)
         val codegen = new CodeGenerator(debugCodegen, inmodel)
         codegen.addStatementTransformer(new OffsetTransformer(inmodel).transform)
-        val controller = new AssemblerController(parser, codegen)
+        val controller = new AssemblerController(includer, parser, codegen)
         val asm = asmFile.get
 
         logger.debug(s"Start of parsing from from ${asm.getName}")

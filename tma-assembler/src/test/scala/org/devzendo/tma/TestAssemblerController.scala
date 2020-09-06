@@ -30,11 +30,12 @@ class TestAssemblerController extends AssertionsForJUnit with MustMatchers {
     def thrown: ExpectedException = _thrown
     var _thrown: ExpectedException = ExpectedException.none
 
+    val includer = new SourceIncludingReader
     val macroManager = new MacroManager(true)
     val parser = new AssemblyParser(true, true, macroManager)
     val model = new AssemblyModel(true)
     val codegen = new CodeGenerator(true, model)
-    val controller = new AssemblerController(parser, codegen)
+    val controller = new AssemblerController(includer, parser, codegen)
 
     @Test
     def parserErrorsAccumulate(): Unit = {
