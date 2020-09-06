@@ -94,7 +94,6 @@ class SourceIncludingReader {
                 SourceItem(nestedLocations, lastContext.file.getName, lastContext.lineNumber, lastContext.iterator.next())
             }
         }
-//        //lineIterator.zipWithIndex.foreach((p: (String, Int)) => parseTextLine(p._2 + 1, p._1))
     }
 
     def pushIncludeFile(includeFile: File): Unit = {
