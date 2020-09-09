@@ -144,11 +144,15 @@ class CodeGenerator(debugCodegen: Boolean, model: AssemblyModel) {
         }
     }
 
+    // Note the distinction between lineIndex (the monotonically increasing index into inputLines) and line.number
+    // (the human-understandable line number - the location in a source file, which could be nested in the case of
+    // include files, and could be duplicated within a consecutive range of lines in the case of macro expansions).
     private def processLine(line: Line, lineIndex: Int): Unit = {
         if (debugCodegen) {
             logger.info("Line " + line.number + ": " + line.toString)
         }
 
+        // What does this mean, in the context of nested include files that have more than one line number?
         if (line.number > lastLineNumber) {
             lastLineNumber = line.number
         }
@@ -162,6 +166,7 @@ class CodeGenerator(debugCodegen: Boolean, model: AssemblyModel) {
             } else {
                 createLabel(line)
 
+                // Have we found the start of a range of lines that require convergence?
                 val directUndefineds = lineContainsDirectInstructionWithUndefinedSymbols(line)
                 if (directUndefineds.nonEmpty) {
                     if (!convergeMode) {
@@ -229,7 +234,7 @@ class CodeGenerator(debugCodegen: Boolean, model: AssemblyModel) {
         if (debugCodegen) {
             logger.info("Converging line indices [" + startConvergeLineIndex + " .. " + endConvergeLineIndex + "] Start $ " + HexDump.int2hex(startConvergeDollar))
         }
-        model.setConvergeMode(true)
+        model.setConvergeMode(true) // relax symbol redefinitions
         var iteration = 0
         val lineNumbersInConvergence = setOfLineNumbersInConvergence()
         if (debugCodegen) {

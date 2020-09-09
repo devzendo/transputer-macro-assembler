@@ -36,7 +36,7 @@ class AssemblerController(includer: SourceIncludingReader, parser: AssemblyParse
 
     // Input is either read from a text file, and parsed, to form the parsedLines list....
     def parseFile(inputFile: File): Unit = {
-        // line numbers for humans start at 1, hence p._2 + 1
+        // line numbers returned by the includer (for humans) start at 1
         val sourceItems = includer.openSourceIterator(inputFile)
         sourceItems.foreach( (si: SourceItem) => parseTextLine(si.lineNumber, si.line))
     }
