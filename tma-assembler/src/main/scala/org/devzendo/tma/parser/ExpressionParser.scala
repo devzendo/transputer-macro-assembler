@@ -85,7 +85,7 @@ trait ExpressionParser extends JavaTokenParsers with DiagnosableParser {
                         case "OFFSET" =>
                             Unary(Offset(), term)
                         case _ =>
-                            throw new AssemblyParserException(0 /*lineNumber*/, "Unexpected 'unary' operator: '" + x + "'")
+                            throw new AssemblyParserException(location, "Unexpected 'unary' operator: '" + x + "'")
                     }
                 case None => term
             }

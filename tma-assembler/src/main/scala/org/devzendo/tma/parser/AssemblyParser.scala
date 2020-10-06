@@ -67,7 +67,7 @@ class AssemblyParser(val debugParser: Boolean, val showParserOutput: Boolean, va
             logger.info(s"$lineType ${location.lineNumber}|$sanitizedInput|")
         }
         if (location.lineNumber < 1) {
-            throw new AssemblyParserException(location.lineNumber, "Line numbers must be positive")
+            throw new AssemblyParserException(location, "Line numbers must be positive")
         }
 
         if (sanitizedInput.length > 0) {
@@ -90,7 +90,7 @@ class AssemblyParser(val debugParser: Boolean, val showParserOutput: Boolean, va
 
                 case parser.NoSuccess(x, _) =>
                     logger.debug(s"${location.lineNumber}: $sanitizedInput") // mostly a useless, hard to understand error...
-                    throw new AssemblyParserException(location.lineNumber, "Unknown statement '" + sanitizedInput + "'")
+                    throw new AssemblyParserException(location, "Unknown statement '" + sanitizedInput + "'")
             }
         } else {
             val line = Line(location.lineNumber, sanitizedInput, None, None)
@@ -116,7 +116,7 @@ class AssemblyParser(val debugParser: Boolean, val showParserOutput: Boolean, va
         def macroStart: Parser[List[Line]] = (
             ident ~ macroWord ~ repsep(ident, ",")
             ) ^^ {
-                _ => throw new AssemblyParserException(location.lineNumber, "Macro definitions cannot be nested")
+                _ => throw new AssemblyParserException(location, "Macro definitions cannot be nested")
         }
 
         def macroWord: Parser[String] =
@@ -238,7 +238,7 @@ class AssemblyParser(val debugParser: Boolean, val showParserOutput: Boolean, va
                     macroManager.startMacro(macroName, macroParameterNames)
                     MacroStart(macroName, macroParameterNames)
                 } catch {
-                    case i: IllegalStateException => throw new AssemblyParserException(location.lineNumber, i.getMessage)
+                    case i: IllegalStateException => throw new AssemblyParserException(location, i.getMessage)
                 }
         }
 
@@ -301,7 +301,7 @@ class AssemblyParser(val debugParser: Boolean, val showParserOutput: Boolean, va
             exprs =>
                 if (debugParser) logger.debug("in db, exprs:" + exprs)
                 if (exprs.isEmpty) {
-                    throw new AssemblyParserException(location.lineNumber, "DB directive without data")
+                    throw new AssemblyParserException(location, "DB directive without data")
                 }
                 DB(exprs)
         }
@@ -328,7 +328,7 @@ class AssemblyParser(val debugParser: Boolean, val showParserOutput: Boolean, va
             exprs =>
                 if (debugParser) logger.debug("in dw, exprs:" + exprs)
                 if (exprs.isEmpty) {
-                    throw new AssemblyParserException(location.lineNumber, "DW directive without data")
+                    throw new AssemblyParserException(location, "DW directive without data")
                 }
                 DW(exprs)
         }
@@ -347,7 +347,7 @@ class AssemblyParser(val debugParser: Boolean, val showParserOutput: Boolean, va
             exprs =>
                 if (debugParser) logger.debug("in dd, exprs:" + exprs)
                 if (exprs.isEmpty) {
-                    throw new AssemblyParserException(location.lineNumber, "DD directive without data")
+                    throw new AssemblyParserException(location, "DD directive without data")
                 }
                 DD(exprs)
         }
