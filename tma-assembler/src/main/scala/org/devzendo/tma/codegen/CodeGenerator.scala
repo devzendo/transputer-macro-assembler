@@ -35,6 +35,7 @@ class CodeGenerator(debugCodegen: Boolean, model: AssemblyModel) {
     private[codegen] val p2Structures = mutable.ArrayBuffer[Pass2Structure]()
     private[codegen] var currentP2Structure = new Pass2Structure()
 
+    // LINENUMBER
     private var lastLineNumber = 0
     private var passNumber = 1
 
@@ -153,6 +154,7 @@ class CodeGenerator(debugCodegen: Boolean, model: AssemblyModel) {
         }
 
         // What does this mean, in the context of nested include files that have more than one line number?
+        // LINENUMBER
         if (line.number > lastLineNumber) {
             lastLineNumber = line.number
         }
@@ -253,6 +255,7 @@ class CodeGenerator(debugCodegen: Boolean, model: AssemblyModel) {
             // At top of loop, clear down model storage for all lines - macro expansions mean that multiple entries
             // in inputLines could have the same line number. So only clear each line once, before reprocessing them
             // all, below.
+            // LINENUMBER - sourced values need to be referenced by line index, not number
             lineNumbersInConvergence.foreach(lineNumber => model.clearSourcedValuesForLineNumber(lineNumber))
             // Convergence should only occur in pass 1. Pass 2 could add Storages that this would clear.
 

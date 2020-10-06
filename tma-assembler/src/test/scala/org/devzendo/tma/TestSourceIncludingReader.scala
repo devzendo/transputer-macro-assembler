@@ -100,13 +100,13 @@ class TestSourceIncludingReader extends TempFolder with AssertionsForJUnit with 
     @Test
     def sourceItemCurrentSourceLocationSingleFile(): Unit = {
         val si = SourceItem(List(SourceLocation(sourceFileName, 7)), sourceFileName, 7, "LDA 0xC9")
-        si.currentSourceLocation must be(sourceFileName + ":7")
+        si.currentSourceLocationPath must be(sourceFileName + ":7")
     }
 
     @Test
     def sourceItemCurrentSourceLocationMultipleFiles(): Unit = {
         val si = SourceItem(List(SourceLocation(sourceFileName, 3), SourceLocation(includeFileName, 7)), includeFileName, 7, "LDA 0xC9")
-        si.currentSourceLocation must be(sourceFileName + ":3/" + includeFileName + ":7")
+        si.currentSourceLocationPath must be(sourceFileName + ":3/" + includeFileName + ":7")
     }
 
     private def writeLinesToFile(file: File, lines: String*) = {

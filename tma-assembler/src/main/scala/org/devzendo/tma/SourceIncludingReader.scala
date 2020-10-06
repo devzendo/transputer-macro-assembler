@@ -45,7 +45,7 @@ case class SourceLocation(fileName: String, lineNumber: Int)
  * file2, file3]. The locations of each of the nested files are given as part of the SourceLocation.
  */
 case class SourceItem(nestedLocations: List[SourceLocation], fileName: String, lineNumber: Int, line: String) {
-    def currentSourceLocation: String = {
+    def currentSourceLocationPath: String = {
         nestedLocations.map((sc: SourceLocation) => sc.fileName + ":" + sc.lineNumber).mkString("/")
     }
 }
