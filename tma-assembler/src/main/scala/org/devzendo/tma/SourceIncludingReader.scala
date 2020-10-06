@@ -39,12 +39,13 @@ case class SourceLocation(fileName: String, lineNumber: Int)
 
 /**
  * SourceItems are returned in the Iterator from the SourceIncludingReader's openSourceIterator method.
- * Line numbers start from 1, the first line of the file. The current file name is given by fileName, and if there's any
- * inclusion being processed (up to an arbitrary depth), nestedFileNames will give the stack of of files, e.g. if file1
- * includes file2 which includes file3, then when file3 is being read, the list of nested file names will be [file1,
- * file2, file3]. The locations of each of the nested files are given as part of the SourceLocation.
+ * Line numbers start from 1, the first line of the file. The current file name and line number are given by
+ * currentSourceLocation, and if there's any inclusion being processed (up to an arbitrary depth), nestedLocations
+ * will give the stack of of files, e.g. if file1 includes file2 which includes file3, then when file3 is being read,
+ * the list of nested file names will be [file1, file2, file3]. The locations of each of the nested files are given as
+ * part of the SourceLocation.
  */
-case class SourceItem(nestedLocations: List[SourceLocation], fileName: String, lineNumber: Int, line: String) {
+case class SourceItem(nestedLocations: List[SourceLocation], currentSourceLocation: SourceLocation, line: String) {
     def currentSourceLocationPath: String = {
         nestedLocations.map((sc: SourceLocation) => sc.fileName + ":" + sc.lineNumber).mkString("/")
     }
@@ -95,7 +96,7 @@ class SourceIncludingReader extends Includer {
                 val lastContext = contexts.last
                 lastContext.lineNumber = lastContext.lineNumber + 1
                 val nestedLocations = contexts.map( (sc: SourceContext) => { SourceLocation(sc.file.getName, sc.lineNumber) } ).toList
-                SourceItem(nestedLocations, lastContext.file.getName, lastContext.lineNumber, lastContext.iterator.next())
+                SourceItem(nestedLocations, SourceLocation(lastContext.file.getName, lastContext.lineNumber), lastContext.iterator.next())
             }
         }
     }

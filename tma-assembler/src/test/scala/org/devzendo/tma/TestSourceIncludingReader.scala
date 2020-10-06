@@ -50,13 +50,13 @@ class TestSourceIncludingReader extends TempFolder with AssertionsForJUnit with 
         val iterator = reader.openSourceIterator(sourceFile)
 
         iterator.hasNext must be(true)
-        iterator.next() must be(SourceItem(List(SourceLocation(sourceFileName, 1)), sourceFileName, 1, "one"))
+        iterator.next() must be(SourceItem(List(SourceLocation(sourceFileName, 1)), SourceLocation(sourceFileName, 1), "one"))
 
         iterator.hasNext must be(true)
-        iterator.next() must be(SourceItem(List(SourceLocation(sourceFileName, 2)), sourceFileName, 2, "two"))
+        iterator.next() must be(SourceItem(List(SourceLocation(sourceFileName, 2)), SourceLocation(sourceFileName, 2), "two"))
 
         iterator.hasNext must be(true)
-        iterator.next() must be(SourceItem(List(SourceLocation(sourceFileName, 3)), sourceFileName, 3, "three"))
+        iterator.next() must be(SourceItem(List(SourceLocation(sourceFileName, 3)), SourceLocation(sourceFileName, 3), "three"))
 
         iterator.hasNext must be(false)
     }
@@ -70,42 +70,42 @@ class TestSourceIncludingReader extends TempFolder with AssertionsForJUnit with 
         val iterator = reader.openSourceIterator(sourceFile)
 
         iterator.hasNext must be(true)
-        iterator.next() must be(SourceItem(List(SourceLocation(sourceFileName, 1)), sourceFileName, 1, "one"))
+        iterator.next() must be(SourceItem(List(SourceLocation(sourceFileName, 1)), SourceLocation(sourceFileName, 1), "one"))
 
         iterator.hasNext must be(true)
-        iterator.next() must be(SourceItem(List(SourceLocation(sourceFileName, 2)), sourceFileName, 2, "include includefile"))
+        iterator.next() must be(SourceItem(List(SourceLocation(sourceFileName, 2)), SourceLocation(sourceFileName, 2), "include includefile"))
         // Note that the reader knows nothing of the content of the lines: it doesn't know that's an include directive.
         // The parser would detect this being an include file, and...
         reader.pushIncludeFile(includeFile)
 
         iterator.hasNext must be(true)
-        iterator.next() must be(SourceItem(List(SourceLocation(sourceFileName, 2), SourceLocation(includeFileName, 1)), includeFileName, 1, "i.one"))
+        iterator.next() must be(SourceItem(List(SourceLocation(sourceFileName, 2), SourceLocation(includeFileName, 1)), SourceLocation(includeFileName, 1), "i.one"))
 
         iterator.hasNext must be(true)
-        iterator.next() must be(SourceItem(List(SourceLocation(sourceFileName, 2), SourceLocation(includeFileName, 2)), includeFileName, 2, "i.two"))
+        iterator.next() must be(SourceItem(List(SourceLocation(sourceFileName, 2), SourceLocation(includeFileName, 2)), SourceLocation(includeFileName, 2), "i.two"))
 
         iterator.hasNext must be(true)
-        iterator.next() must be(SourceItem(List(SourceLocation(sourceFileName, 2), SourceLocation(includeFileName, 3)), includeFileName, 3, "i.three"))
+        iterator.next() must be(SourceItem(List(SourceLocation(sourceFileName, 2), SourceLocation(includeFileName, 3)), SourceLocation(includeFileName, 3), "i.three"))
 
         iterator.hasNext must be(true)
-        iterator.next() must be(SourceItem(List(SourceLocation(sourceFileName, 2), SourceLocation(includeFileName, 4)), includeFileName, 4, ""))
+        iterator.next() must be(SourceItem(List(SourceLocation(sourceFileName, 2), SourceLocation(includeFileName, 4)), SourceLocation(includeFileName, 4), ""))
 
         // The include file is finished, so is 'popped', and back to the main file...
         iterator.hasNext must be(true)
-        iterator.next() must be(SourceItem(List(SourceLocation(sourceFileName, 3)), sourceFileName, 3, "three"))
+        iterator.next() must be(SourceItem(List(SourceLocation(sourceFileName, 3)), SourceLocation(sourceFileName, 3), "three"))
 
         iterator.hasNext must be(false)
     }
 
     @Test
     def sourceItemCurrentSourceLocationSingleFile(): Unit = {
-        val si = SourceItem(List(SourceLocation(sourceFileName, 7)), sourceFileName, 7, "LDA 0xC9")
+        val si = SourceItem(List(SourceLocation(sourceFileName, 7)), SourceLocation(sourceFileName, 7), "LDA 0xC9")
         si.currentSourceLocationPath must be(sourceFileName + ":7")
     }
 
     @Test
     def sourceItemCurrentSourceLocationMultipleFiles(): Unit = {
-        val si = SourceItem(List(SourceLocation(sourceFileName, 3), SourceLocation(includeFileName, 7)), includeFileName, 7, "LDA 0xC9")
+        val si = SourceItem(List(SourceLocation(sourceFileName, 3), SourceLocation(includeFileName, 7)), SourceLocation(includeFileName, 7), "LDA 0xC9")
         si.currentSourceLocationPath must be(sourceFileName + ":3/" + includeFileName + ":7")
     }
 

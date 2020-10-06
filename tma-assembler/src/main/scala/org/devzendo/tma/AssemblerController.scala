@@ -39,7 +39,7 @@ class AssemblerController(includer: SourceIncludingReader, parser: AssemblyParse
         // line numbers returned by the includer (for humans) start at 1
         val sourceItems = includer.openSourceIterator(inputFile)
         // si.lineNumber is relative to the start of the current file only
-        sourceItems.foreach( (si: SourceItem) => parseTextLine(si.lineNumber, si.line))
+        sourceItems.foreach( (si: SourceItem) => parseTextLine(si.currentSourceLocation.lineNumber, si.line))
     }
 
     def parseTextLine(lineNumber: Int, text: String): Unit = {
