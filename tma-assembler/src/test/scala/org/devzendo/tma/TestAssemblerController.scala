@@ -39,16 +39,17 @@ class TestAssemblerController extends AssertionsForJUnit with MustMatchers {
 
     @Test
     def parserErrorsAccumulate(): Unit = {
-        controller.parseTextLine(SourceLocation("", 1), "blarg") // unknown command
-        controller.parseTextLine(SourceLocation("", 2), "fnord") // unknown command
-        controller.parseTextLine(SourceLocation("", 3), "bigmac macro") // ok
-        controller.parseTextLine(SourceLocation("", 4), "endm") // ok
-        controller.parseTextLine(SourceLocation("", 5), "bigmac macro") // duplicate macro
+        val file = "test.asm"
+        controller.parseTextLine(SourceLocation(file, 1), "blarg") // unknown command
+        controller.parseTextLine(SourceLocation(file, 2), "fnord") // unknown command
+        controller.parseTextLine(SourceLocation(file, 3), "bigmac macro") // ok
+        controller.parseTextLine(SourceLocation(file, 4), "endm") // ok
+        controller.parseTextLine(SourceLocation(file, 5), "bigmac macro") // duplicate macro
         val errors = controller.getParseExceptions.map((e: AssemblyParserException) => e.getMessage )
         errors must be(List(
-            "1: Unknown statement 'blarg'",
-            "2: Unknown statement 'fnord'",
-            "5: Macro 'bigmac' already defined"
+            "test.asm:1: Unknown statement 'blarg'",
+            "test.asm:2: Unknown statement 'fnord'",
+            "test.asm:5: Macro 'bigmac' already defined"
         ))
     }
 

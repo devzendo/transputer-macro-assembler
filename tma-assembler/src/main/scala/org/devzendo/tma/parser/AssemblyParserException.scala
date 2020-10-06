@@ -18,5 +18,5 @@ package org.devzendo.tma.parser
 
 import org.devzendo.tma.SourceLocation
 
-class AssemblyParserException(location: SourceLocation, warning: String) extends Exception(s"${location.lineNumber}: $warning") {
+class AssemblyParserException(location: SourceLocation, warning: String) extends Exception(s"${location.fileName}:${location.lineNumber}: $warning") {
 }
