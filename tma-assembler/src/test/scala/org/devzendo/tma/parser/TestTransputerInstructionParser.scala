@@ -16,6 +16,7 @@
 
 package org.devzendo.tma.parser
 
+import org.devzendo.tma.SourceLocation
 import org.devzendo.tma.ast.{DirectInstruction, IndirectInstruction, Number, SymbolArg}
 import org.junit.rules.ExpectedException
 import org.junit.{Rule, Test}
@@ -33,7 +34,7 @@ class TestTransputerInstructionParser extends AssertionsForJUnit with MustMatche
     }
     val parser = new InstructionParser()
     parser.setDebugParser(true)
-    parser.setLineNumber(1)
+    parser.setSourceLocation(SourceLocation("", 1))
 
     @Rule
     def thrown: ExpectedException = _thrown

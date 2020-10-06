@@ -31,8 +31,8 @@ trait TransputerInstructionParser extends ExpressionParser with DiagnosableParse
                 statement
 
             case NoSuccess(_, _) =>
-                logger.debug(s"$lineNumber: $line") // mostly a useless, hard to understand error...
-                throw new AssemblyParserException(lineNumber, "Unknown statement '" + sanitizedInput + "'")
+                logger.debug(s"${location.lineNumber}: $line") // mostly a useless, hard to understand error...
+                throw new AssemblyParserException(location.lineNumber, "Unknown statement '" + sanitizedInput + "'")
         }
     }
 

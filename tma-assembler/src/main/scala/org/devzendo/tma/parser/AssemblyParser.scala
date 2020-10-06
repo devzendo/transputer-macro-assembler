@@ -18,7 +18,7 @@ package org.devzendo.tma.parser
 
 import java.io
 
-import org.devzendo.tma.Includer
+import org.devzendo.tma.{Includer, SourceLocation}
 import org.devzendo.tma.ast.AST.{Label, MacroArgument, MacroName, MacroParameterName}
 import org.devzendo.tma.ast._
 import org.log4s.Logger
@@ -33,7 +33,7 @@ class AssemblyParser(val debugParser: Boolean, val showParserOutput: Boolean, va
     var processorToParse: Option[Processor] = None
 
     @throws(classOf[AssemblyParserException])
-    def parse(line: String, lineNumber: Int, inMacroExpansion: Boolean = false): List[Line] = {
+    def parse(line: String, location: SourceLocation, inMacroExpansion: Boolean = false): List[Line] = {
 
         def sanitizedInput = nullToEmpty(line).trim()
 
@@ -60,19 +60,19 @@ class AssemblyParser(val debugParser: Boolean, val showParserOutput: Boolean, va
 
 
         if (debugParser) {
-            logger.debug(s"parsing IME $inMacroExpansion $lineNumber|$sanitizedInput|")
+            logger.debug(s"parsing IME $inMacroExpansion ${location.lineNumber}|$sanitizedInput|")
         }
         if (showParserOutput) {
             val lineType = if (inMacroExpansion) "IME" else "TXT"
-            logger.info(s"$lineType $lineNumber|$sanitizedInput|")
+            logger.info(s"$lineType ${location.lineNumber}|$sanitizedInput|")
         }
-        if (lineNumber < 1) {
-            throw new AssemblyParserException(lineNumber, "Line numbers must be positive")
+        if (location.lineNumber < 1) {
+            throw new AssemblyParserException(location.lineNumber, "Line numbers must be positive")
         }
 
         if (sanitizedInput.length > 0) {
             val parser = if (macroManager.isInMacroBody) new MacroBodyCombinatorParser else new StatementCombinatorParser(inMacroExpansion)
-            parser.setLineNumber(lineNumber)
+            parser.setSourceLocation(location)
             parser.setDebugParser(debugParser)
 
             val parserOutput = parser.parseProgram(sanitizedInput)
@@ -89,11 +89,11 @@ class AssemblyParser(val debugParser: Boolean, val showParserOutput: Boolean, va
                     rLines
 
                 case parser.NoSuccess(x, _) =>
-                    logger.debug(s"$lineNumber: $sanitizedInput") // mostly a useless, hard to understand error...
-                    throw new AssemblyParserException(lineNumber, "Unknown statement '" + sanitizedInput + "'")
+                    logger.debug(s"${location.lineNumber}: $sanitizedInput") // mostly a useless, hard to understand error...
+                    throw new AssemblyParserException(location.lineNumber, "Unknown statement '" + sanitizedInput + "'")
             }
         } else {
-            val line = Line(lineNumber, sanitizedInput, None, None)
+            val line = Line(location.lineNumber, sanitizedInput, None, None)
             List(line)
         }
     }
@@ -110,13 +110,13 @@ class AssemblyParser(val debugParser: Boolean, val showParserOutput: Boolean, va
                 _ =>
                     if (debugParser) logger.debug("in endm")
                     macroManager.endMacro()
-                    List(Line(lineNumber, text, None, Some(MacroEnd())))
+                    List(Line(location.lineNumber, text, None, Some(MacroEnd())))
             }
 
         def macroStart: Parser[List[Line]] = (
             ident ~ macroWord ~ repsep(ident, ",")
             ) ^^ {
-                _ => throw new AssemblyParserException(lineNumber, "Macro definitions cannot be nested")
+                _ => throw new AssemblyParserException(location.lineNumber, "Macro definitions cannot be nested")
         }
 
         def macroWord: Parser[String] =
@@ -127,7 +127,7 @@ class AssemblyParser(val debugParser: Boolean, val showParserOutput: Boolean, va
             x: String =>
                 if (debugParser) logger.debug("in macroBody")
                 macroManager.addMacroLine(x)
-                List(Line(lineNumber, text, None, Some(MacroBody(x))))
+                List(Line(location.lineNumber, text, None, Some(MacroBody(x))))
         }
     }
 
@@ -147,7 +147,7 @@ class AssemblyParser(val debugParser: Boolean, val showParserOutput: Boolean, va
                 if (debugParser) logger.debug("in statementLine, inMacroExpansion=" + inMacroExpansion + ", optComment=" + optComment)
                 val returnedText = removeDoubleSemicolonCommentsInMacroExpansion(optComment)
                 if (debugParser) logger.debug("in statementLine after ;;-removal, text=|" + returnedText + "|")
-                List(Line(lineNumber, returnedText, optLabel, optStatement))
+                List(Line(location.lineNumber, returnedText, optLabel, optStatement))
         }
 
         private def removeDoubleSemicolonCommentsInMacroExpansion(optComment: Option[Comment]): String = {
@@ -178,11 +178,11 @@ class AssemblyParser(val debugParser: Boolean, val showParserOutput: Boolean, va
                 // Ensure that any label in the original macro invocation is not passed through to the code generator.
                 // That would cause it to set the label twice (which it can't). Any label will be passed through to
                 // the first expanded parsed line.
-                val macroInvocationLine = Line(lineNumber, text, None, Some(macroInvocation))
+                val macroInvocationLine = Line(location.lineNumber, text, None, Some(macroInvocation))
 
                 val expansion = macroManager.expandMacro(macroInvocation.name, macroInvocation.args)
                 if (debugParser) expansion.foreach( (f: String) => logger.debug("expanded macro: |" + f + "|"))
-                val parsedExpansions = expansion.flatMap((str: String) => AssemblyParser.this.parse(str, lineNumber, inMacroExpansion = true))
+                val parsedExpansions = expansion.flatMap((str: String) => AssemblyParser.this.parse(str, location, inMacroExpansion = true))
                 // Ensure that any label in the macro invocation is set in the first expanded parsed line
                 val parsedExpansionsWithInvocationLabel = replaceFirstLabel(optLabel, parsedExpansions)
                 if (debugParser) parsedExpansionsWithInvocationLabel.foreach( (l: Line) => logger.debug("expanded parsed macro: |" + l + "|"))
@@ -238,7 +238,7 @@ class AssemblyParser(val debugParser: Boolean, val showParserOutput: Boolean, va
                     macroManager.startMacro(macroName, macroParameterNames)
                     MacroStart(macroName, macroParameterNames)
                 } catch {
-                    case i: IllegalStateException => throw new AssemblyParserException(lineNumber, i.getMessage)
+                    case i: IllegalStateException => throw new AssemblyParserException(location.lineNumber, i.getMessage)
                 }
         }
 
@@ -301,7 +301,7 @@ class AssemblyParser(val debugParser: Boolean, val showParserOutput: Boolean, va
             exprs =>
                 if (debugParser) logger.debug("in db, exprs:" + exprs)
                 if (exprs.isEmpty) {
-                    throw new AssemblyParserException(lineNumber, "DB directive without data")
+                    throw new AssemblyParserException(location.lineNumber, "DB directive without data")
                 }
                 DB(exprs)
         }
@@ -328,7 +328,7 @@ class AssemblyParser(val debugParser: Boolean, val showParserOutput: Boolean, va
             exprs =>
                 if (debugParser) logger.debug("in dw, exprs:" + exprs)
                 if (exprs.isEmpty) {
-                    throw new AssemblyParserException(lineNumber, "DW directive without data")
+                    throw new AssemblyParserException(location.lineNumber, "DW directive without data")
                 }
                 DW(exprs)
         }
@@ -347,7 +347,7 @@ class AssemblyParser(val debugParser: Boolean, val showParserOutput: Boolean, va
             exprs =>
                 if (debugParser) logger.debug("in dd, exprs:" + exprs)
                 if (exprs.isEmpty) {
-                    throw new AssemblyParserException(lineNumber, "DD directive without data")
+                    throw new AssemblyParserException(location.lineNumber, "DD directive without data")
                 }
                 DD(exprs)
         }

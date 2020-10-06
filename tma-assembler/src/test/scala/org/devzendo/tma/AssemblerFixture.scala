@@ -35,7 +35,7 @@ trait AssemblerFixture {
 
         val parsedLinesSoFar = mutable.ArrayBuffer[Line]()
         linesToParse.zipWithIndex.foreach((p: (String, Int)) => {
-            parsedLinesSoFar ++= parser.parse(p._1, p._2 + 1)
+            parsedLinesSoFar ++= parser.parse(p._1, SourceLocation("", p._2 + 1))
         })
         codegen.createModel(parsedLinesSoFar.toList)
         codegen.endCheck()

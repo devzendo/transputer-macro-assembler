@@ -16,12 +16,14 @@
 
 package org.devzendo.tma.parser
 
+import org.devzendo.tma.SourceLocation
+
 trait DiagnosableParser {
-    var lineNumber: Int = 0
-    def setLineNumber(lineNumber: Int): Unit = {
-        this.lineNumber = lineNumber
+    var location: SourceLocation = SourceLocation("", 0)
+    def setSourceLocation(location: SourceLocation): Unit = {
+        this.location = location
     }
-    def getLineNumber(): Int = lineNumber
+    def getSourceLocation(): SourceLocation = location
 
     var debugParser: Boolean = false
     def setDebugParser(debugParser: Boolean): Unit = {

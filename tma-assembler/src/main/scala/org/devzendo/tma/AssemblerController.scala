@@ -38,13 +38,13 @@ class AssemblerController(includer: SourceIncludingReader, parser: AssemblyParse
     def parseFile(inputFile: File): Unit = {
         // line numbers returned by the includer (for humans) start at 1
         val sourceItems = includer.openSourceIterator(inputFile)
-        // si.lineNumber is relative to the start of the current file only
+        // si.currentSourceLocation.lineNumber is relative to the start of the current file only
         sourceItems.foreach( (si: SourceItem) => parseTextLine(si.currentSourceLocation, si.line))
     }
 
     def parseTextLine(location: SourceLocation, text: String): Unit = {
         try {
-            val lineList = parser.parse(text, location.lineNumber)
+            val lineList = parser.parse(text, location)
             parsedLinesSoFar ++= lineList
         } catch {
             case ape: AssemblyParserException =>

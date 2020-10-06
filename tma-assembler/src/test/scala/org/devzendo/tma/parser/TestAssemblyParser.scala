@@ -16,7 +16,7 @@
 
 package org.devzendo.tma.parser
 
-import org.devzendo.tma.SourceIncludingReader
+import org.devzendo.tma.{SourceIncludingReader, SourceLocation}
 import org.devzendo.tma.ast.AST._
 import org.devzendo.tma.ast._
 import org.junit.rules.ExpectedException
@@ -42,7 +42,7 @@ class TestAssemblyParser extends AssertionsForJUnit with MustMatchers {
     var _thrown: ExpectedException = ExpectedException.none
 
     private def parseLine(line: String): List[Line] = {
-        val out = parser.parse(line, lineNumber)
+        val out = parser.parse(line, SourceLocation("test", lineNumber))
         lineNumber = lineNumber + 1
         parsedLinesSoFar ++= out
         out
@@ -72,7 +72,7 @@ class TestAssemblyParser extends AssertionsForJUnit with MustMatchers {
     def positiveLineNumber(): Unit = {
         thrown.expect(classOf[AssemblyParserException])
         thrown.expectMessage("0: Line numbers must be positive")
-        parser.parse(null, 0)
+        parser.parse(null, SourceLocation("", 0))
     }
 
     @Test
@@ -413,7 +413,7 @@ class TestAssemblyParser extends AssertionsForJUnit with MustMatchers {
     def dbZero(): Unit = {
         thrown.expect(classOf[AssemblyParserException])
         thrown.expectMessage("1: DB directive without data")
-        parser.parse("DB\t", 1)
+        parser.parse("DB\t", SourceLocation("", 1))
     }
 
     @Test
@@ -476,7 +476,7 @@ class TestAssemblyParser extends AssertionsForJUnit with MustMatchers {
         thrown.expect(classOf[AssemblyParserException])
         thrown.expectMessage("1: Unknown statement 'DB\t'foo' + 3'") // Not the clearest message, but disallowing is clear.
 
-        parser.parse("DB\t'foo' + 3", 1)
+        parser.parse("DB\t'foo' + 3", SourceLocation("", 1))
     }
 
     @Test
@@ -490,7 +490,7 @@ class TestAssemblyParser extends AssertionsForJUnit with MustMatchers {
     def dwZero(): Unit = {
         thrown.expect(classOf[AssemblyParserException])
         thrown.expectMessage("1: DW directive without data")
-        parser.parse("DW\t", 1)
+        parser.parse("DW\t", SourceLocation("", 1))
     }
 
     @Test
@@ -529,7 +529,7 @@ class TestAssemblyParser extends AssertionsForJUnit with MustMatchers {
     def ddZero(): Unit = {
         thrown.expect(classOf[AssemblyParserException])
         thrown.expectMessage("1: DD directive without data")
-        parser.parse("DD\t", 1)
+        parser.parse("DD\t", SourceLocation("", 1))
     }
 
     @Test
@@ -578,7 +578,7 @@ class TestAssemblyParser extends AssertionsForJUnit with MustMatchers {
     def whatTheActual(): Unit = {
         thrown.expect(classOf[AssemblyParserException])
         thrown.expectMessage("1: Unknown statement 'blarf!'")
-        parser.parse("blarf!", 1)
+        parser.parse("blarf!", SourceLocation("", 1))
     }
 
     @Test
@@ -605,7 +605,7 @@ class TestAssemblyParser extends AssertionsForJUnit with MustMatchers {
     def t800InstructionNotRecognisedIfProcessorNotSet(): Unit = {
         thrown.expect(classOf[AssemblyParserException])
         thrown.expectMessage("1: Unknown statement 'ldnlp 5'")
-        parser.parse("ldnlp 5", 1)
+        parser.parse("ldnlp 5", SourceLocation("", 1))
     }
 
     @Test
@@ -740,17 +740,17 @@ class TestAssemblyParser extends AssertionsForJUnit with MustMatchers {
     def nestedMacroDefinitions(): Unit = {
         thrown.expect(classOf[AssemblyParserException])
         thrown.expectMessage("2: Macro definitions cannot be nested")
-        parser.parse("$CODE\tMACRO\tLEX,NAME,LABEL", 1)
-        parser.parse("$COLON\tMACRO\tLEX,NAME,LABEL", 2)
+        parser.parse("$CODE\tMACRO\tLEX,NAME,LABEL", SourceLocation("", 1))
+        parser.parse("$COLON\tMACRO\tLEX,NAME,LABEL", SourceLocation("", 2))
     }
 
     @Test
     def macroCannotBeRedefined(): Unit = {
         thrown.expect(classOf[AssemblyParserException])
         thrown.expectMessage("3: Macro '$CODE' already defined")
-        parser.parse("$CODE\tMACRO\tLEX,NAME,LABEL", 1)
-        parser.parse("\tendm", 2)
-        parser.parse("$CODE\tMACRO\tLEX,NAME,LABEL", 3)
+        parser.parse("$CODE\tMACRO\tLEX,NAME,LABEL", SourceLocation("", 1))
+        parser.parse("\tendm", SourceLocation("", 2))
+        parser.parse("$CODE\tMACRO\tLEX,NAME,LABEL", SourceLocation("", 3))
     }
 
     @Test
