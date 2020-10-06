@@ -25,8 +25,6 @@ object AST {
     type MacroName = String
     type MacroParameterName = String
     type MacroArgument = String
-
-    type LineIdentifier = String
 }
 
 sealed abstract class Operator(op: String) {
