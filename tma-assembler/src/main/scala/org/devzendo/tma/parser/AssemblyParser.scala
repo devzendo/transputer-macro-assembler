@@ -42,7 +42,7 @@ class AssemblyParser(val debugParser: Boolean, val showParserOutput: Boolean, va
             for (rL <- rLines) {
                 val sb = new StringBuilder()
                 sb.append("AST ")
-                sb.append(rL.number)
+                sb.append(rL.location.lineNumber)
                 sb.append("|")
                 for (label <- rL.label) {
                     sb.append("LBL ")
@@ -93,7 +93,7 @@ class AssemblyParser(val debugParser: Boolean, val showParserOutput: Boolean, va
                     throw new AssemblyParserException(location, "Unknown statement '" + sanitizedInput + "'")
             }
         } else {
-            val line = Line(location.lineNumber, sanitizedInput, None, None)
+            val line = Line(location, sanitizedInput, None, None)
             List(line)
         }
     }
@@ -110,7 +110,7 @@ class AssemblyParser(val debugParser: Boolean, val showParserOutput: Boolean, va
                 _ =>
                     if (debugParser) logger.debug("in endm")
                     macroManager.endMacro()
-                    List(Line(location.lineNumber, text, None, Some(MacroEnd())))
+                    List(Line(location, text, None, Some(MacroEnd())))
             }
 
         def macroStart: Parser[List[Line]] = (
@@ -127,7 +127,7 @@ class AssemblyParser(val debugParser: Boolean, val showParserOutput: Boolean, va
             x: String =>
                 if (debugParser) logger.debug("in macroBody")
                 macroManager.addMacroLine(x)
-                List(Line(location.lineNumber, text, None, Some(MacroBody(x))))
+                List(Line(location, text, None, Some(MacroBody(x))))
         }
     }
 
@@ -147,7 +147,7 @@ class AssemblyParser(val debugParser: Boolean, val showParserOutput: Boolean, va
                 if (debugParser) logger.debug("in statementLine, inMacroExpansion=" + inMacroExpansion + ", optComment=" + optComment)
                 val returnedText = removeDoubleSemicolonCommentsInMacroExpansion(optComment)
                 if (debugParser) logger.debug("in statementLine after ;;-removal, text=|" + returnedText + "|")
-                List(Line(location.lineNumber, returnedText, optLabel, optStatement))
+                List(Line(location, returnedText, optLabel, optStatement))
         }
 
         private def removeDoubleSemicolonCommentsInMacroExpansion(optComment: Option[Comment]): String = {
@@ -178,7 +178,7 @@ class AssemblyParser(val debugParser: Boolean, val showParserOutput: Boolean, va
                 // Ensure that any label in the original macro invocation is not passed through to the code generator.
                 // That would cause it to set the label twice (which it can't). Any label will be passed through to
                 // the first expanded parsed line.
-                val macroInvocationLine = Line(location.lineNumber, text, None, Some(macroInvocation))
+                val macroInvocationLine = Line(location, text, None, Some(macroInvocation))
 
                 val expansion = macroManager.expandMacro(macroInvocation.name, macroInvocation.args)
                 if (debugParser) expansion.foreach( (f: String) => logger.debug("expanded macro: |" + f + "|"))

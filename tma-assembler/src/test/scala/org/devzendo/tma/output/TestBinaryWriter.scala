@@ -19,6 +19,7 @@ package org.devzendo.tma.output
 import java.io.{File, RandomAccessFile}
 
 import org.devzendo.commoncode.string.HexDump
+import org.devzendo.tma.SourceLocation
 import org.devzendo.tma.ast._
 import org.devzendo.tma.codegen.{AssemblyModel, Endianness}
 import org.devzendo.tma.util.TempFolder
@@ -64,7 +65,7 @@ class TestBinaryWriter extends TempFolder with AssertionsForJUnit with MustMatch
         }
     }
 
-    private def genDummyLine(lineNumber: Int) = Line(lineNumber, "", None, None)
+    private def genDummyLine(lineNumber: Int) = Line(SourceLocation("", lineNumber), "", None, None)
 
     @Test
     def fileSizeAndContents(): Unit = {
@@ -73,12 +74,12 @@ class TestBinaryWriter extends TempFolder with AssertionsForJUnit with MustMatch
         model.setDollar(0x4000, genDummyLine(1))
 
         val exprs1 = List(Number(1), Number(2))
-        model.allocateStorageForLine(Line(2, "", None, Some(DB(exprs1))), 1, exprs1)
+        model.allocateStorageForLine(Line(SourceLocation("", 2), "", None, Some(DB(exprs1))), 1, exprs1)
 
         model.setDollar(0x4020, genDummyLine(3))
 
         val exprs2 = List(Number(3), Number(4))
-        model.allocateStorageForLine(Line(4, "", None, Some(DB(exprs2))), 1, exprs2)
+        model.allocateStorageForLine(Line(SourceLocation("", 4), "", None, Some(DB(exprs2))), 1, exprs2)
 
         val size = model.highestStorageAddress - model.lowestStorageAddress
         size must be(0x21)
@@ -106,7 +107,7 @@ class TestBinaryWriter extends TempFolder with AssertionsForJUnit with MustMatch
         val model = new AssemblyModel(true)
 
         val exprs1 = List(Number(1), Number(2))
-        model.allocateStorageForLine(Line(2, "", None, Some(DB(exprs1))), 1, exprs1)
+        model.allocateStorageForLine(Line(SourceLocation("", 2), "", None, Some(DB(exprs1))), 1, exprs1)
 
         val size = model.highestStorageAddress - model.lowestStorageAddress
         size must be(0x01)
@@ -130,12 +131,12 @@ class TestBinaryWriter extends TempFolder with AssertionsForJUnit with MustMatch
         model.setDollar(0x4000, genDummyLine(1))
 
         val exprs1 = List(Number(1), Number(2), Number(3), Number(4))
-        model.allocateStorageForLine(Line(2, "", None, Some(DB(exprs1))), 1, exprs1)
+        model.allocateStorageForLine(Line(SourceLocation("", 2), "", None, Some(DB(exprs1))), 1, exprs1)
 
         model.setDollar(0x4001, genDummyLine(3))
 
         val exprs2 = List(Number(5), Number(6))
-        model.allocateStorageForLine(Line(4, "", None, Some(DB(exprs2))), 1, exprs2)
+        model.allocateStorageForLine(Line(SourceLocation("", 4), "", None, Some(DB(exprs2))), 1, exprs2)
 
         val size = model.highestStorageAddress - model.lowestStorageAddress
         size must be(0x03)
@@ -161,7 +162,7 @@ class TestBinaryWriter extends TempFolder with AssertionsForJUnit with MustMatch
         model.endianness = Endianness.Little
 
         val words = List(Number(0x1234), Number(0x5678), Number(0x9ABC))
-        model.allocateStorageForLine(Line(1, "", None, Some(new DW(words))), 2, words)
+        model.allocateStorageForLine(Line(SourceLocation("", 1), "", None, Some(new DW(words))), 2, words)
 
         val size = model.highestStorageAddress - model.lowestStorageAddress
         size must be(0x05)
@@ -191,7 +192,7 @@ class TestBinaryWriter extends TempFolder with AssertionsForJUnit with MustMatch
         model.endianness = Endianness.Big
 
         val words = List(Number(0x1234), Number(0x5678), Number(0x9ABC))
-        model.allocateStorageForLine(Line(1, "", None, Some(new DW(words))), 2, words)
+        model.allocateStorageForLine(Line(SourceLocation("", 1), "", None, Some(new DW(words))), 2, words)
 
         val size = model.highestStorageAddress - model.lowestStorageAddress
         size must be(0x05)
@@ -221,7 +222,7 @@ class TestBinaryWriter extends TempFolder with AssertionsForJUnit with MustMatch
         model.endianness = Endianness.Little
 
         val words = List(Number(0x01234567), Number(0x89ABCDEF))
-        model.allocateStorageForLine(Line(1, "", None, Some(new DD(words))), 4, words)
+        model.allocateStorageForLine(Line(SourceLocation("", 1), "", None, Some(new DD(words))), 4, words)
 
         val size = model.highestStorageAddress - model.lowestStorageAddress
         size must be(0x07)
@@ -252,7 +253,7 @@ class TestBinaryWriter extends TempFolder with AssertionsForJUnit with MustMatch
         model.endianness = Endianness.Big
 
         val words = List(Number(0x01234567), Number(0x89ABCDEF))
-        model.allocateStorageForLine(Line(1, "", None, Some(new DD(words))), 4, words)
+        model.allocateStorageForLine(Line(SourceLocation("", 1), "", None, Some(new DD(words))), 4, words)
 
         val size = model.highestStorageAddress - model.lowestStorageAddress
         size must be(0x07)

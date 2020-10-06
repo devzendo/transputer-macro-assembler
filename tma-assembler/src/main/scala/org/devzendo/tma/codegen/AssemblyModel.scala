@@ -72,7 +72,7 @@ class SymbolForwardReferenceFixups {
             logger.debug(s"Undefined Symbol ${entry._1}; Resolution Count: ${entry._2.resolutionCount}")
             val references = entry._2.unresolvableSymbols
             references.foreach((us: UnresolvableSymbol) => {
-                logger.debug(s"  Unresolvable ${us.symbolType} ${us.casedSymbolName} line number ${us.line.number}")
+                logger.debug(s"  Unresolvable ${us.symbolType} ${us.casedSymbolName} line number ${us.line.location.lineNumber}")
             })
         }
         map.foreach (logEntry)
@@ -282,8 +282,8 @@ class AssemblyModel(debugCodegen: Boolean) {
     }
 
     private def storeSymbolInternal(n: Int, line: Line, casedSymbolName: CasedSymbolName, symbolType: SymbolType.Value): Unit = {
-        symbols.put(casedSymbolName, Value(n, symbolType, line.number))
-        sourcedValuesArrayBufferForLineNumber(line.number) += AssignmentValue(n, line, symbolType)
+        symbols.put(casedSymbolName, Value(n, symbolType, line.location.lineNumber))
+        sourcedValuesArrayBufferForLineNumber(line.location.lineNumber) += AssignmentValue(n, line, symbolType)
         if (debugCodegen) {
             logger.info(symbolType + " " + casedSymbolName + " = " + n)
         }
@@ -468,7 +468,7 @@ class AssemblyModel(debugCodegen: Boolean) {
     }
 
     def allocateStorageForLine(line: Line, cellWidth: Int, exprs: List[Expression]): Storage = {
-        val lineNumber = line.number
+        val lineNumber = line.location.lineNumber
         val existingSourcedValues = sourcedValuesArrayBufferForLineNumber(lineNumber)
         // The incoming exprs will need evaluating to numbers that are stored in the Storage's data field. Most
         // expressions are evaluated to a single number, but Characters are evaluated to multiple. So expand all
@@ -530,7 +530,7 @@ class AssemblyModel(debugCodegen: Boolean) {
     }
 
     def allocateInstructionStorageForLine(line: Line, opbytes: List[Int]): Storage = {
-        val lineNumber = line.number
+        val lineNumber = line.location.lineNumber
         val existingSourcedValues = sourcedValuesArrayBufferForLineNumber(lineNumber)
 
         val storage = Storage(getDollar, 1, opbytes.toArray, line, opbytes map { Number })
@@ -549,7 +549,7 @@ class AssemblyModel(debugCodegen: Boolean) {
     // and a Storage.
     def foreachLineSourcedValues(op: (Line, List[SourcedValue]) => Unit): Unit = {
         for (line <- lines) { // can have many macro expanded lines' storages for this line number
-            val lineNumber = line.number
+            val lineNumber = line.location.lineNumber
             val sourcedValues = getSourcedValuesForLineNumber(lineNumber)
             val sourcedValuesForThisLine = sourcedValues.filter((s: SourcedValue) => {s.line == line}) // NB: don't compare on line number!
 
@@ -631,7 +631,7 @@ class AssemblyModel(debugCodegen: Boolean) {
             }
             for (storage <- storagesWithForwardReferences) {
                 if (debugCodegen) {
-                    logger.info("Resolving on line " + storage.line.number)
+                    logger.info("Resolving on line " + storage.line.location.lineNumber)
                 }
 
                 // Re-evaluate expressions, storing, and removing the forward reference.
@@ -656,7 +656,7 @@ class AssemblyModel(debugCodegen: Boolean) {
             for (unresolvableSymbol <- unresolvableSymbols) {
                 if (debugCodegen) {
                     logger.info("Resolving " + unresolvableSymbol.symbolType + " " +
-                      unresolvableSymbol.casedSymbolName + " on line " + unresolvableSymbol.line.number)
+                      unresolvableSymbol.casedSymbolName + " on line " + unresolvableSymbol.line.location.lineNumber)
                 }
 
                 // Re-evaluate expressions, setting variable or constant, and removing the forward reference if it's a
@@ -713,7 +713,7 @@ class AssemblyModel(debugCodegen: Boolean) {
             })
             val allStorageNamesAndLineReferences = undefinedSymbolNamesSorted.map((usn: CasedSymbolName) => {
                 val storageSet = unresolvedStorages(usn)
-                val storageLinesSorted = storageSet.map(_.line.number).toList.sorted
+                val storageLinesSorted = storageSet.map(_.line.location.lineNumber).toList.sorted
                 val storageLineReferences = storageLinesSorted.map("#" + _).mkString(", ")
                 val storageNameAndLineReferences = usn + ": " + storageLineReferences
 
@@ -731,7 +731,7 @@ class AssemblyModel(debugCodegen: Boolean) {
             })
             val allStorageNamesAndLineReferences = undefinedSymbolNamesSorted.map((usn: CasedSymbolName) => {
                 val unresolvableSymbols = unresolvedSymbols(usn).unresolvableSymbols
-                val unresolvableSymbolLinesSorted = unresolvableSymbols.map(_.line.number).toList.sorted
+                val unresolvableSymbolLinesSorted = unresolvableSymbols.map(_.line.location.lineNumber).toList.sorted
                 val unresolvableSymbolLineReferences = unresolvableSymbolLinesSorted.map("#" + _).mkString(", ")
                 val unresolvableSymbolNameAndLineReferences = usn + ": " + unresolvableSymbolLineReferences
 

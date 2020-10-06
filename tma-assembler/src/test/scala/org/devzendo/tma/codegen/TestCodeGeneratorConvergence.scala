@@ -16,6 +16,7 @@
 
 package org.devzendo.tma.codegen
 
+import org.devzendo.tma.SourceLocation
 import org.devzendo.tma.ast.AST.SymbolName
 import org.devzendo.tma.ast._
 import org.devzendo.tma.output.ShowListingFixture
@@ -37,11 +38,11 @@ class TestCodeGeneratorConvergence extends CodeGeneratorFixture with SourcedValu
     @Test
     def convergeModeExample1(): Unit = {
         val lines = List(
-            Line(1, "\t.TRANSPUTER", None, Some(Processor("TRANSPUTER"))),
-            Line(2, "\tLDC L1", None, Some(DirectInstruction("LDC", 0x40, SymbolArg("L1")))),
-            Line(3, "\tLDPI", None, Some(IndirectInstruction("LDPI", List(0x21, 0xfb)))),
-            Line(4, "\tDB\t255 DUP 10", None, Some(padding255BytesLong())), // pad the LDC out to 3 bytes
-            Line(5, "L1:\tDB\t'hello world'", Some("L1"), Some(DB(List(Characters("hello world")))))
+            Line(SourceLocation("", 1), "\t.TRANSPUTER", None, Some(Processor("TRANSPUTER"))),
+            Line(SourceLocation("", 2), "\tLDC L1", None, Some(DirectInstruction("LDC", 0x40, SymbolArg("L1")))),
+            Line(SourceLocation("", 3), "\tLDPI", None, Some(IndirectInstruction("LDPI", List(0x21, 0xfb)))),
+            Line(SourceLocation("", 4), "\tDB\t255 DUP 10", None, Some(padding255BytesLong())), // pad the LDC out to 3 bytes
+            Line(SourceLocation("", 5), "L1:\tDB\t'hello world'", Some("L1"), Some(DB(List(Characters("hello world")))))
         )
         val model = generateFromLines(lines)
         model.convergeMode must be(false)
@@ -83,13 +84,13 @@ class TestCodeGeneratorConvergence extends CodeGeneratorFixture with SourcedValu
     @Test
     def convergeModeExample2(): Unit = {
         val lines = List(
-            Line(1, "\t.TRANSPUTER", None, Some(Processor("TRANSPUTER"))),
-            Line(2, "\tLDC L1", None, Some(DirectInstruction("LDC", 0x40, SymbolArg("L1")))),
-            Line(3, "\tLDPI", None, Some(IndirectInstruction("LDPI", List(0x21, 0xfb)))),
-            Line(4, "\tLDC L2", None, Some(DirectInstruction("LDC", 0x40, SymbolArg("L2")))),
-            Line(5, "\tLDPI", None, Some(IndirectInstruction("LDPI", List(0x21, 0xfb)))),
-            Line(6, "L1:\tDB\t'hello'", Some("L1"), Some(DB(List(Characters("hello"))))),
-            Line(7, "L2:\tDB\t'again'", Some("L2"), Some(DB(List(Characters("again")))))
+            Line(SourceLocation("", 1), "\t.TRANSPUTER", None, Some(Processor("TRANSPUTER"))),
+            Line(SourceLocation("", 2), "\tLDC L1", None, Some(DirectInstruction("LDC", 0x40, SymbolArg("L1")))),
+            Line(SourceLocation("", 3), "\tLDPI", None, Some(IndirectInstruction("LDPI", List(0x21, 0xfb)))),
+            Line(SourceLocation("", 4), "\tLDC L2", None, Some(DirectInstruction("LDC", 0x40, SymbolArg("L2")))),
+            Line(SourceLocation("", 5), "\tLDPI", None, Some(IndirectInstruction("LDPI", List(0x21, 0xfb)))),
+            Line(SourceLocation("", 6), "L1:\tDB\t'hello'", Some("L1"), Some(DB(List(Characters("hello"))))),
+            Line(SourceLocation("", 7), "L2:\tDB\t'again'", Some("L2"), Some(DB(List(Characters("again")))))
         )
         val model = generateFromLines(lines)
         showListing(model)
@@ -105,15 +106,15 @@ class TestCodeGeneratorConvergence extends CodeGeneratorFixture with SourcedValu
     @Test
     def convergeModeExample3(): Unit = {
         val lines = List(
-            Line(1, "\t.TRANSPUTER", None, Some(Processor("TRANSPUTER"))),
-            Line(2, "L2:\tDB\t'again'", Some("L2"), Some(DB(List(Characters("again"))))),
-            Line(3, "\tLDC L1", None, Some(DirectInstruction("LDC", 0x40, SymbolArg("L1")))),
-            Line(4, "\tLDPI", None, Some(IndirectInstruction("LDPI", List(0x21, 0xfb)))),
-            Line(5, "\tCALL PRINTF", None, Some(DirectInstruction("CALL", 0x90, SymbolArg("PRINTF")))),
-            Line(6, "\tLDC L2", None, Some(DirectInstruction("LDC", 0x40, SymbolArg("L2")))),
-            Line(7, "\tLDPI", None, Some(IndirectInstruction("LDPI", List(0x21, 0xfb)))),
-            Line(8, "L1:\tDB\t'hello'", Some("L1"), Some(DB(List(Characters("hello"))))),
-            Line(9, "PRINTF:", Some("PRINTF"), None)
+            Line(SourceLocation("", 1), "\t.TRANSPUTER", None, Some(Processor("TRANSPUTER"))),
+            Line(SourceLocation("", 2), "L2:\tDB\t'again'", Some("L2"), Some(DB(List(Characters("again"))))),
+            Line(SourceLocation("", 3), "\tLDC L1", None, Some(DirectInstruction("LDC", 0x40, SymbolArg("L1")))),
+            Line(SourceLocation("", 4), "\tLDPI", None, Some(IndirectInstruction("LDPI", List(0x21, 0xfb)))),
+            Line(SourceLocation("", 5), "\tCALL PRINTF", None, Some(DirectInstruction("CALL", 0x90, SymbolArg("PRINTF")))),
+            Line(SourceLocation("", 6), "\tLDC L2", None, Some(DirectInstruction("LDC", 0x40, SymbolArg("L2")))),
+            Line(SourceLocation("", 7), "\tLDPI", None, Some(IndirectInstruction("LDPI", List(0x21, 0xfb)))),
+            Line(SourceLocation("", 8), "L1:\tDB\t'hello'", Some("L1"), Some(DB(List(Characters("hello"))))),
+            Line(SourceLocation("", 9), "PRINTF:", Some("PRINTF"), None)
         )
         val model = generateFromLines(lines)
         showListing(model)
@@ -123,19 +124,19 @@ class TestCodeGeneratorConvergence extends CodeGeneratorFixture with SourcedValu
     def convergeModeExample4(): Unit = {
         // lines needing convergence are in the middle section
         val lines = List(
-            Line(1, "\t.TRANSPUTER", None, Some(Processor("TRANSPUTER"))),
-            Line(2, "\tAJW 6", None, Some(DirectInstruction("AJW", 0xb0, Number(6)))), // nonsense program
-            Line(3, "\tRESETCH", None, Some(IndirectInstruction("RESETCH", List(0x21, 0xf2)))),
-            Line(4, "\tfpusqrtfirst", None, Some(IndirectInstruction("FPUSQRTFIRST", List(0x41, 0x2a, 0xfb)))),
-            Line(5, "\tJ PRINTF", None, Some(DirectInstruction("J", 0x00, SymbolArg("PRINTF")))), // START CONVERGENCE
-            Line(6, "L2:\tDB\t'again'", Some("L2"), Some(DB(List(Characters("again"))))),
-            Line(7, "\tLDC L1", None, Some(DirectInstruction("LDC", 0x40, SymbolArg("L1")))),
-            Line(8, "\tCALL PRINTF", None, Some(DirectInstruction("CALL", 0x90, SymbolArg("PRINTF")))),
-            Line(9, "\tLDC L2", None, Some(DirectInstruction("LDC", 0x40, SymbolArg("L2")))),
-            Line(10, "\tLDPI", None, Some(IndirectInstruction("LDPI", List(0x21, 0xfb)))),
-            Line(11, "L1:\tDB\t'hello'", Some("L1"), Some(DB(List(Characters("hello"))))),
-            Line(12, "PRINTF:", Some("PRINTF"), None), // END CONVERGENCE
-            Line(13, "\tfpusqrtfirst", None, Some(IndirectInstruction("FPUSQRTFIRST", List(0x41, 0x2a, 0xfb))))
+            Line(SourceLocation("", 1), "\t.TRANSPUTER", None, Some(Processor("TRANSPUTER"))),
+            Line(SourceLocation("", 2), "\tAJW 6", None, Some(DirectInstruction("AJW", 0xb0, Number(6)))), // nonsense program
+            Line(SourceLocation("", 3), "\tRESETCH", None, Some(IndirectInstruction("RESETCH", List(0x21, 0xf2)))),
+            Line(SourceLocation("", 4), "\tfpusqrtfirst", None, Some(IndirectInstruction("FPUSQRTFIRST", List(0x41, 0x2a, 0xfb)))),
+            Line(SourceLocation("", 5), "\tJ PRINTF", None, Some(DirectInstruction("J", 0x00, SymbolArg("PRINTF")))), // START CONVERGENCE
+            Line(SourceLocation("", 6), "L2:\tDB\t'again'", Some("L2"), Some(DB(List(Characters("again"))))),
+            Line(SourceLocation("", 7), "\tLDC L1", None, Some(DirectInstruction("LDC", 0x40, SymbolArg("L1")))),
+            Line(SourceLocation("", 8), "\tCALL PRINTF", None, Some(DirectInstruction("CALL", 0x90, SymbolArg("PRINTF")))),
+            Line(SourceLocation("", 9), "\tLDC L2", None, Some(DirectInstruction("LDC", 0x40, SymbolArg("L2")))),
+            Line(SourceLocation("", 10), "\tLDPI", None, Some(IndirectInstruction("LDPI", List(0x21, 0xfb)))),
+            Line(SourceLocation("", 11), "L1:\tDB\t'hello'", Some("L1"), Some(DB(List(Characters("hello"))))),
+            Line(SourceLocation("", 12), "PRINTF:", Some("PRINTF"), None), // END CONVERGENCE
+            Line(SourceLocation("", 13), "\tfpusqrtfirst", None, Some(IndirectInstruction("FPUSQRTFIRST", List(0x41, 0x2a, 0xfb))))
         )
         val model = generateFromLines(lines)
         showListing(model)
@@ -144,13 +145,13 @@ class TestCodeGeneratorConvergence extends CodeGeneratorFixture with SourcedValu
     @Test
     def convergedAdjustedLabelsCauseUpdateToStorage(): Unit = {
         val lines = List(
-            Line(1, "\t.TRANSPUTER", None, Some(Processor("TRANSPUTER"))),
-            Line(2, "\tORG 0x1000", None, Some(Org(Number(0x1000)))),
-            Line(3, "\tDD L1", None, Some(DD(List(SymbolArg("L1"))))), // Is this storage updated when L1 is known?
-            Line(4, "\tLDC L1", None, Some(DirectInstruction("LDC", 0x40, SymbolArg("L1")))),
-            Line(5, "\tLDPI", None, Some(IndirectInstruction("LDPI", List(0x21, 0xfb)))),
-            Line(6, "\tDB\t255 DUP 10", None, Some(padding255BytesLong())), // pad the LDC out to 3 bytes
-            Line(7, "L1:\tDB\t'hello world'", Some("L1"), Some(DB(List(Characters("hello world")))))
+            Line(SourceLocation("", 1), "\t.TRANSPUTER", None, Some(Processor("TRANSPUTER"))),
+            Line(SourceLocation("", 2), "\tORG 0x1000", None, Some(Org(Number(0x1000)))),
+            Line(SourceLocation("", 3), "\tDD L1", None, Some(DD(List(SymbolArg("L1"))))), // Is this storage updated when L1 is known?
+            Line(SourceLocation("", 4), "\tLDC L1", None, Some(DirectInstruction("LDC", 0x40, SymbolArg("L1")))),
+            Line(SourceLocation("", 5), "\tLDPI", None, Some(IndirectInstruction("LDPI", List(0x21, 0xfb)))),
+            Line(SourceLocation("", 6), "\tDB\t255 DUP 10", None, Some(padding255BytesLong())), // pad the LDC out to 3 bytes
+            Line(SourceLocation("", 7), "L1:\tDB\t'hello world'", Some("L1"), Some(DB(List(Characters("hello world")))))
         )
         val model = generateFromLines(lines)
         model.convergeMode must be(false)
@@ -173,13 +174,13 @@ class TestCodeGeneratorConvergence extends CodeGeneratorFixture with SourcedValu
     @Test
     def convergedAdjustedConstantsCauseUpdateToStorage(): Unit = {
         val lines = List(
-            Line(1, "\t.TRANSPUTER", None, Some(Processor("TRANSPUTER"))),
-            Line(2, "\tORG 0x1000", None, Some(Org(Number(0x1000)))),
-            Line(3, "\tDD C1", None, Some(DD(List(SymbolArg("C1"))))), // Is this storage updated when C1 is known?
-            Line(4, "\tLDC C1", None, Some(DirectInstruction("LDC", 0x40, SymbolArg("C1")))),
-            Line(5, "\tLDPI", None, Some(IndirectInstruction("LDPI", List(0x21, 0xfb)))),
-            Line(6, "\tDB\t255 DUP 10", None, Some(padding255BytesLong())), // pad the LDC out to 3 bytes
-            Line(7, "C1\tEQU\t$", None, Some(ConstantAssignment(new SymbolName("C1"), SymbolArg("$"))))
+            Line(SourceLocation("", 1), "\t.TRANSPUTER", None, Some(Processor("TRANSPUTER"))),
+            Line(SourceLocation("", 2), "\tORG 0x1000", None, Some(Org(Number(0x1000)))),
+            Line(SourceLocation("", 3), "\tDD C1", None, Some(DD(List(SymbolArg("C1"))))), // Is this storage updated when C1 is known?
+            Line(SourceLocation("", 4), "\tLDC C1", None, Some(DirectInstruction("LDC", 0x40, SymbolArg("C1")))),
+            Line(SourceLocation("", 5), "\tLDPI", None, Some(IndirectInstruction("LDPI", List(0x21, 0xfb)))),
+            Line(SourceLocation("", 6), "\tDB\t255 DUP 10", None, Some(padding255BytesLong())), // pad the LDC out to 3 bytes
+            Line(SourceLocation("", 7), "C1\tEQU\t$", None, Some(ConstantAssignment(new SymbolName("C1"), SymbolArg("$"))))
         )
         val model = generateFromLines(lines)
         model.convergeMode must be(false)
@@ -202,13 +203,13 @@ class TestCodeGeneratorConvergence extends CodeGeneratorFixture with SourcedValu
     @Test
     def convergedAdjustedVariablesCauseUpdateToStorage(): Unit = {
         val lines = List(
-            Line(1, "\t.TRANSPUTER", None, Some(Processor("TRANSPUTER"))),
-            Line(2, "\tORG 0x1000", None, Some(Org(Number(0x1000)))),
-            Line(3, "\tDD V1", None, Some(DD(List(SymbolArg("V1"))))), // Is this storage updated when V1 is known?
-            Line(4, "\tLDC V1", None, Some(DirectInstruction("LDC", 0x40, SymbolArg("V1")))),
-            Line(5, "\tLDPI", None, Some(IndirectInstruction("LDPI", List(0x21, 0xfb)))),
-            Line(6, "\tDB\t255 DUP 10", None, Some(padding255BytesLong())), // pad the LDC out to 3 bytes
-            Line(7, "V1\t=\t$", None, Some(ConstantAssignment(new SymbolName("V1"), SymbolArg("$"))))
+            Line(SourceLocation("", 1), "\t.TRANSPUTER", None, Some(Processor("TRANSPUTER"))),
+            Line(SourceLocation("", 2), "\tORG 0x1000", None, Some(Org(Number(0x1000)))),
+            Line(SourceLocation("", 3), "\tDD V1", None, Some(DD(List(SymbolArg("V1"))))), // Is this storage updated when V1 is known?
+            Line(SourceLocation("", 4), "\tLDC V1", None, Some(DirectInstruction("LDC", 0x40, SymbolArg("V1")))),
+            Line(SourceLocation("", 5), "\tLDPI", None, Some(IndirectInstruction("LDPI", List(0x21, 0xfb)))),
+            Line(SourceLocation("", 6), "\tDB\t255 DUP 10", None, Some(padding255BytesLong())), // pad the LDC out to 3 bytes
+            Line(SourceLocation("", 7), "V1\t=\t$", None, Some(ConstantAssignment(new SymbolName("V1"), SymbolArg("$"))))
         )
         val model = generateFromLines(lines)
         model.convergeMode must be(false)
@@ -231,14 +232,14 @@ class TestCodeGeneratorConvergence extends CodeGeneratorFixture with SourcedValu
     @Test
     def convergedAdjustedLabelsCauseUpdateToConstants(): Unit = {
         val lines = List(
-            Line(1, "\t.TRANSPUTER", None, Some(Processor("TRANSPUTER"))),
-            Line(2, "\tORG 0x1000", None, Some(Org(Number(0x1000)))),
-            Line(3, "\tL1COPY EQU L1", None, Some(ConstantAssignment("L1COPY", SymbolArg("L1")))), // Is this constant updated when L1 is known?
-            Line(4, "\tLDC L1", None, Some(DirectInstruction("LDC", 0x40, SymbolArg("L1")))),
-            Line(5, "\tLDPI", None, Some(IndirectInstruction("LDPI", List(0x21, 0xfb)))),
-            Line(6, "\tDB\t255 DUP 10", None, Some(padding255BytesLong())), // pad the LDC out to 3 bytes
-            Line(7, "L1:\tDB\t'hello world'", Some("L1"), Some(DB(List(Characters("hello world"))))),
-            Line(8, "\tDD\tL1COPY", None, Some(DD(List(SymbolArg("L1COPY")))))
+            Line(SourceLocation("", 1), "\t.TRANSPUTER", None, Some(Processor("TRANSPUTER"))),
+            Line(SourceLocation("", 2), "\tORG 0x1000", None, Some(Org(Number(0x1000)))),
+            Line(SourceLocation("", 3), "\tL1COPY EQU L1", None, Some(ConstantAssignment("L1COPY", SymbolArg("L1")))), // Is this constant updated when L1 is known?
+            Line(SourceLocation("", 4), "\tLDC L1", None, Some(DirectInstruction("LDC", 0x40, SymbolArg("L1")))),
+            Line(SourceLocation("", 5), "\tLDPI", None, Some(IndirectInstruction("LDPI", List(0x21, 0xfb)))),
+            Line(SourceLocation("", 6), "\tDB\t255 DUP 10", None, Some(padding255BytesLong())), // pad the LDC out to 3 bytes
+            Line(SourceLocation("", 7), "L1:\tDB\t'hello world'", Some("L1"), Some(DB(List(Characters("hello world"))))),
+            Line(SourceLocation("", 8), "\tDD\tL1COPY", None, Some(DD(List(SymbolArg("L1COPY")))))
         )
         val model = generateFromLines(lines)
         model.convergeMode must be(false)
@@ -269,13 +270,13 @@ class TestCodeGeneratorConvergence extends CodeGeneratorFixture with SourcedValu
     @Test
     def convergedAdjustedLabelsCauseUpdateToVariablesOnFirstSetting(): Unit = {
         val lines = List(
-            Line(1, "\t.TRANSPUTER", None, Some(Processor("TRANSPUTER"))),
-            Line(2, "\tORG 0x1000", None, Some(Org(Number(0x1000)))),
-            Line(3, "\tL1COPY = L1", None, Some(VariableAssignment("L1COPY", SymbolArg("L1")))), // Is this variable updated when L1 is known?
-            Line(4, "\tLDC L1", None, Some(DirectInstruction("LDC", 0x40, SymbolArg("L1")))),
-            Line(5, "\tLDPI", None, Some(IndirectInstruction("LDPI", List(0x21, 0xfb)))),
-            Line(6, "\tDB\t255 DUP 10", None, Some(padding255BytesLong())), // pad the LDC out to 3 bytes
-            Line(7, "L1:\tDB\t'hello world'", Some("L1"), Some(DB(List(Characters("hello world")))))
+            Line(SourceLocation("", 1), "\t.TRANSPUTER", None, Some(Processor("TRANSPUTER"))),
+            Line(SourceLocation("", 2), "\tORG 0x1000", None, Some(Org(Number(0x1000)))),
+            Line(SourceLocation("", 3), "\tL1COPY = L1", None, Some(VariableAssignment("L1COPY", SymbolArg("L1")))), // Is this variable updated when L1 is known?
+            Line(SourceLocation("", 4), "\tLDC L1", None, Some(DirectInstruction("LDC", 0x40, SymbolArg("L1")))),
+            Line(SourceLocation("", 5), "\tLDPI", None, Some(IndirectInstruction("LDPI", List(0x21, 0xfb)))),
+            Line(SourceLocation("", 6), "\tDB\t255 DUP 10", None, Some(padding255BytesLong())), // pad the LDC out to 3 bytes
+            Line(SourceLocation("", 7), "L1:\tDB\t'hello world'", Some("L1"), Some(DB(List(Characters("hello world")))))
         )
         val model = generateFromLines(lines)
         model.convergeMode must be(false)
@@ -300,14 +301,14 @@ class TestCodeGeneratorConvergence extends CodeGeneratorFixture with SourcedValu
     @Test
     def convergedAdjustedLabelsCauseUpdateToVariablesAndReferencesToTheseAreUpdatedOnFirstSetting(): Unit = {
         val lines = List(
-            Line(1, "\t.TRANSPUTER", None, Some(Processor("TRANSPUTER"))),
-            Line(2, "\tORG 0x1000", None, Some(Org(Number(0x1000)))),
-            Line(3, "\tL1COPY = L1", None, Some(VariableAssignment("L1COPY", SymbolArg("L1")))),
-            Line(4, "\tLDC L1", None, Some(DirectInstruction("LDC", 0x40, SymbolArg("L1")))),
-            Line(5, "\tLDPI", None, Some(IndirectInstruction("LDPI", List(0x21, 0xfb)))),
-            Line(6, "\tDB\t255 DUP 10", None, Some(padding255BytesLong())), // pad the LDC out to 3 bytes
-            Line(7, "L1:\tDB\t'hello world'", Some("L1"), Some(DB(List(Characters("hello world"))))),
-            Line(8, "\tDD L1COPY", None, Some(DD(List(SymbolArg("L1COPY"))))) // Is this storage updated when L1COPY is known? (after L1 is known?)
+            Line(SourceLocation("", 1), "\t.TRANSPUTER", None, Some(Processor("TRANSPUTER"))),
+            Line(SourceLocation("", 2), "\tORG 0x1000", None, Some(Org(Number(0x1000)))),
+            Line(SourceLocation("", 3), "\tL1COPY = L1", None, Some(VariableAssignment("L1COPY", SymbolArg("L1")))),
+            Line(SourceLocation("", 4), "\tLDC L1", None, Some(DirectInstruction("LDC", 0x40, SymbolArg("L1")))),
+            Line(SourceLocation("", 5), "\tLDPI", None, Some(IndirectInstruction("LDPI", List(0x21, 0xfb)))),
+            Line(SourceLocation("", 6), "\tDB\t255 DUP 10", None, Some(padding255BytesLong())), // pad the LDC out to 3 bytes
+            Line(SourceLocation("", 7), "L1:\tDB\t'hello world'", Some("L1"), Some(DB(List(Characters("hello world"))))),
+            Line(SourceLocation("", 8), "\tDD L1COPY", None, Some(DD(List(SymbolArg("L1COPY"))))) // Is this storage updated when L1COPY is known? (after L1 is known?)
         )
         val model = generateFromLines(lines)
         model.convergeMode must be(false)

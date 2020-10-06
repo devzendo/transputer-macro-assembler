@@ -16,6 +16,7 @@
 
 package org.devzendo.tma.ast
 
+import org.devzendo.tma.SourceLocation
 import org.devzendo.tma.ast.AST._
 
 object AST {
@@ -94,7 +95,7 @@ sealed abstract class Comment(comment: String) {
 case class SingleComment(comment: String) extends Comment(comment)
 case class DoubleComment(comment: String) extends Comment(comment)
 
-case class Line(number: Int, text: String, label: Option[Label], stmt: Option[Statement]) {
+case class Line(location: SourceLocation, text: String, label: Option[Label], stmt: Option[Statement]) {
 }
 
 case class MacroDefinition(name: MacroName, parameterNames: List[MacroParameterName], textLines: List[String])

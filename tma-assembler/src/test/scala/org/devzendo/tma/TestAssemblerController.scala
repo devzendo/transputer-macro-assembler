@@ -98,15 +98,15 @@ class TestAssemblerController extends AssertionsForJUnit with MustMatchers {
         CasedSymbolName.caseSensitivity must be (false)
 
         // no parse errors here, but will cause code gen / model exceptions
-        controller.addParsedLine(Line(1, "", None, Some(Org(Characters("blah"))))) // characters as an Org argument
-        controller.addParsedLine(Line(2, "", None, Some(Org(SymbolArg("fnorg"))))) // fnorg is undefined
-        controller.addParsedLine(Line(3, "", None, Some(ConstantAssignment("bar", Characters("foo"))))) // cannot set a constant to characters
-        controller.addParsedLine(Line(4, "", None, Some(ConstantAssignment("valid", Number(5))))) // perfectly valid
-        controller.addParsedLine(Line(5, "", Some("valid"), Some(DB(List(Number(5)))))) // label can't override constant...
+        controller.addParsedLine(Line(SourceLocation("", 1), "", None, Some(Org(Characters("blah"))))) // characters as an Org argument
+        controller.addParsedLine(Line(SourceLocation("", 2), "", None, Some(Org(SymbolArg("fnorg"))))) // fnorg is undefined
+        controller.addParsedLine(Line(SourceLocation("", 3), "", None, Some(ConstantAssignment("bar", Characters("foo"))))) // cannot set a constant to characters
+        controller.addParsedLine(Line(SourceLocation("", 4), "", None, Some(ConstantAssignment("valid", Number(5))))) // perfectly valid
+        controller.addParsedLine(Line(SourceLocation("", 5), "", Some("valid"), Some(DB(List(Number(5)))))) // label can't override constant...
         // ... AssemblyModelException converted to CodeGenerationException
-        controller.addParsedLine(Line(6, "", None, Some(VariableAssignment("unres", SymbolArg("missing"))))) // unresolved forward reference
-        controller.addParsedLine(Line(7, "", None, Some(End(None))))
-        controller.addParsedLine(Line(8, "", None, Some(ConstantAssignment("valid", Number(5))))) // no statements allowed after End
+        controller.addParsedLine(Line(SourceLocation("", 6), "", None, Some(VariableAssignment("unres", SymbolArg("missing"))))) // unresolved forward reference
+        controller.addParsedLine(Line(SourceLocation("", 7), "", None, Some(End(None))))
+        controller.addParsedLine(Line(SourceLocation("", 8), "", None, Some(ConstantAssignment("valid", Number(5))))) // no statements allowed after End
 
         controller.generateModel()
 

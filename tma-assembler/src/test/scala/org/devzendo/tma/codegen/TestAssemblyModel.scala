@@ -16,6 +16,7 @@
 
 package org.devzendo.tma.codegen
 
+import org.devzendo.tma.SourceLocation
 import org.devzendo.tma.ast.AST.SymbolName
 import org.devzendo.tma.ast._
 import org.junit.rules.ExpectedException
@@ -50,7 +51,7 @@ class TestAssemblyModel extends AssertionsForJUnit with MustMatchers {
 
     // Variables -------------------------------------------------------------------------------------------------------
 
-    private def genDummyLine(lineNumber: Int) = Line(lineNumber, "", None, None)
+    private def genDummyLine(lineNumber: Int) = Line(SourceLocation("", lineNumber), "", None, None)
 
     @Test
     def unknownVariableRetrieval(): Unit = {
@@ -189,7 +190,7 @@ class TestAssemblyModel extends AssertionsForJUnit with MustMatchers {
         // A = B + (C * 2)
         // where B and C are undefined
         val unresolvableExpr = Binary(Add(), SymbolArg("B"), Binary(Mult(), SymbolArg("C"), Number(2)))
-        val line = Line(1, "A = B + (C * 2)", None, Some(VariableAssignment(new SymbolName("A"), unresolvableExpr)))
+        val line = Line(SourceLocation("", 1), "A = B + (C * 2)", None, Some(VariableAssignment(new SymbolName("A"), unresolvableExpr)))
         // When codegen processes the =, it'll do...
         model.recordSymbolForwardReferences(Set(CasedSymbolName("B"), CasedSymbolName("C")), CasedSymbolName("A"), unresolvableExpr, line, SymbolType.Variable)
         // which will record A as an unresolvable symbol keyed by (i.e. resolvable when) B and C are defined.
@@ -218,7 +219,7 @@ class TestAssemblyModel extends AssertionsForJUnit with MustMatchers {
 
         logger.info("*** Defining B")
         // Now let's define B. Then only C will be unresolvable. B should exist, A and C should not.
-        val bLine = Line(2, "B EQU 3", None, Some(ConstantAssignment(new SymbolName("B"), Number(3))))
+        val bLine = Line(SourceLocation("", 2), "B EQU 3", None, Some(ConstantAssignment(new SymbolName("B"), Number(3))))
         model.setConstant(CasedSymbolName("B"), 3, bLine)
         logger.info("*** Checking state after defining B")
         if (true) { // just for fresh scope
@@ -237,7 +238,7 @@ class TestAssemblyModel extends AssertionsForJUnit with MustMatchers {
 
         logger.info("*** Defining C")
         // Now let's define C, then everything should exist, and there should be nothing in the unresolveable map.
-        val cLine = Line(3, "C EQU 4", None, Some(ConstantAssignment(new SymbolName("C"), Number(4))))
+        val cLine = Line(SourceLocation("", 3), "C EQU 4", None, Some(ConstantAssignment(new SymbolName("C"), Number(4))))
         model.setConstant(CasedSymbolName("C"), 4, cLine)
         logger.info("*** Checking state after defining C")
         if (true) { // just for fresh scope
@@ -387,7 +388,7 @@ class TestAssemblyModel extends AssertionsForJUnit with MustMatchers {
         // A EQU B + (C * 2)
         // where B and C are undefined
         val unresolvableExpr = Binary(Add(), SymbolArg("B"), Binary(Mult(), SymbolArg("C"), Number(2)))
-        val line = Line(1, "A EQU B + (C * 2)", None, Some(ConstantAssignment(new SymbolName("A"), unresolvableExpr)))
+        val line = Line(SourceLocation("", 1), "A EQU B + (C * 2)", None, Some(ConstantAssignment(new SymbolName("A"), unresolvableExpr)))
         // When codegen processes the EQU, it'll do...
         model.recordSymbolForwardReferences(Set(CasedSymbolName("B"), CasedSymbolName("C")), CasedSymbolName("A"), unresolvableExpr, line, SymbolType.Constant)
         // which will record A as an unresolvable symbol keyed by (i.e. resolvable when) B and C are defined.
@@ -409,7 +410,7 @@ class TestAssemblyModel extends AssertionsForJUnit with MustMatchers {
         }
 
         // Now let's define B. Then only C will be unresolvable. B should exist, A and C should not.
-        val bLine = Line(2, "B EQU 3", None, Some(ConstantAssignment(new SymbolName("B"), Number(3))))
+        val bLine = Line(SourceLocation("", 2), "B EQU 3", None, Some(ConstantAssignment(new SymbolName("B"), Number(3))))
         model.setConstant(CasedSymbolName("B"), 3, bLine)
         if (true) { // just for fresh scope
             val symbolsB = model.unresolvedSymbolForwardReferences(CasedSymbolName("B"))
@@ -425,7 +426,7 @@ class TestAssemblyModel extends AssertionsForJUnit with MustMatchers {
         }
 
         // Now let's define C, then everything should exist, and there should be nothing in the unresolveable map.
-        val cLine = Line(3, "C EQU 4", None, Some(ConstantAssignment(new SymbolName("C"), Number(4))))
+        val cLine = Line(SourceLocation("", 3), "C EQU 4", None, Some(ConstantAssignment(new SymbolName("C"), Number(4))))
         model.setConstant(CasedSymbolName("C"), 4, cLine)
         if (true) { // just for fresh scope
             val symbolsB = model.unresolvedSymbolForwardReferences(CasedSymbolName("B"))
@@ -770,7 +771,7 @@ class TestAssemblyModel extends AssertionsForJUnit with MustMatchers {
         val address = 69
         model.setDollar(address, genDummyLine(0))
         val exprs = List(Number(42), Number(69), Number(0), Number(1))
-        val line = Line(3, "irrelevant", None, Some(DB(exprs)))
+        val line = Line(SourceLocation("", 3), "irrelevant", None, Some(DB(exprs)))
         val storage = model.allocateStorageForLine(line, 1, exprs)
         storage.data must be(Array(42, 69, 0, 1))
         storage.cellWidth must be(1)
@@ -790,7 +791,7 @@ class TestAssemblyModel extends AssertionsForJUnit with MustMatchers {
         model.setDollar(startAddress, genDummyLine(0))
 
         val exprs = List(Number(42), Number(69))
-        val line = Line(3, "irrelevant", None, Some(DB(exprs)))
+        val line = Line(SourceLocation("", 3), "irrelevant", None, Some(DB(exprs)))
         model.allocateStorageForLine(line, cellWidth, exprs)
 
         model.getDollar must be(startAddress + (cellWidth * exprs.size))
@@ -799,7 +800,7 @@ class TestAssemblyModel extends AssertionsForJUnit with MustMatchers {
     @Test
     def storageWithForwardReferenceHasZeroesInItsData(): Unit = {
         val exprs = List(Number(42), fnordSymbolArg, SymbolArg("foo"), Number(96))
-        val storage = model.allocateStorageForLine(Line(3, "irrelevant", None, Some(DB(exprs))), 1, exprs)
+        val storage = model.allocateStorageForLine(Line(SourceLocation("", 3), "irrelevant", None, Some(DB(exprs))), 1, exprs)
 
         storage.data must be(Array[Int](42, 0, 0, 96))
     }
@@ -807,7 +808,7 @@ class TestAssemblyModel extends AssertionsForJUnit with MustMatchers {
     @Test
     def storageWithForwardReferenceIsRecordedForLaterFixup(): Unit = {
         val exprs = List(fnordSymbolArg, SymbolArg("foo"))
-        val storage = model.allocateStorageForLine(Line(3, "irrelevant", None, Some(DB(exprs))), 1, exprs)
+        val storage = model.allocateStorageForLine(Line(SourceLocation("", 3), "irrelevant", None, Some(DB(exprs))), 1, exprs)
 
         model.storageForwardReferences(fnord) must be (Set(storage))
         model.storageForwardReferences(foo) must be (Set(storage))
@@ -816,7 +817,7 @@ class TestAssemblyModel extends AssertionsForJUnit with MustMatchers {
     @Test
     def storageWithForwardReferenceIsRemovedOnVariableDefinitionButOtherForwardReferencesRemain(): Unit = {
         val exprs = List(fnordSymbolArg, SymbolArg("foo"))
-        val storage = model.allocateStorageForLine(Line(3, "irrelevant", None, Some(DB(exprs))), 1, exprs)
+        val storage = model.allocateStorageForLine(Line(SourceLocation("", 3), "irrelevant", None, Some(DB(exprs))), 1, exprs)
         model.setVariable(fnord, 73, genDummyLine(4))
 
         model.storageForwardReferences(fnord) must be (Set.empty)
@@ -826,7 +827,7 @@ class TestAssemblyModel extends AssertionsForJUnit with MustMatchers {
     @Test
     def storageWithForwardReferenceIsFixedUpAndForwardReferenceRemovedOnVariableDefinition(): Unit = {
         val exprs = List(fnordSymbolArg)
-        val storage = model.allocateStorageForLine(Line(3, "irrelevant", None, Some(DB(exprs))), 1, exprs)
+        val storage = model.allocateStorageForLine(Line(SourceLocation("", 3), "irrelevant", None, Some(DB(exprs))), 1, exprs)
         model.setVariable(fnord, 73, genDummyLine(4))
 
         storage.data must be(Array[Int](73))
@@ -836,7 +837,7 @@ class TestAssemblyModel extends AssertionsForJUnit with MustMatchers {
     @Test
     def storageWithForwardReferenceIsFixedUpAndForwardReferenceNotRemovedOnConstantDefinition(): Unit = {
         val exprs = List(fnordSymbolArg)
-        val storage = model.allocateStorageForLine(Line(3, "irrelevant", None, Some(DB(exprs))), 1, exprs)
+        val storage = model.allocateStorageForLine(Line(SourceLocation("", 3), "irrelevant", None, Some(DB(exprs))), 1, exprs)
         model.setConstant(fnord, 73, genDummyLine(4))
 
         storage.data must be(Array[Int](73))
@@ -846,7 +847,7 @@ class TestAssemblyModel extends AssertionsForJUnit with MustMatchers {
     @Test
     def storageWithForwardReferenceIsFixedUpAndForwardReferenceNotRemovedOnLabelDefinition(): Unit = {
         val exprs = List(fnordSymbolArg)
-        val storage = model.allocateStorageForLine(Line(3, "irrelevant", None, Some(DB(exprs))), 1, exprs)
+        val storage = model.allocateStorageForLine(Line(SourceLocation("", 3), "irrelevant", None, Some(DB(exprs))), 1, exprs)
         model.setLabel(fnord, 73, genDummyLine(4))
 
         storage.data must be(Array[Int](73))
@@ -858,7 +859,7 @@ class TestAssemblyModel extends AssertionsForJUnit with MustMatchers {
         val cellWidth = 1
         val str = "abc"
         val exprs = List(Characters(str))
-        val line = Line(3, "irrelevant", None, Some(DB(exprs)))
+        val line = Line(SourceLocation("", 3), "irrelevant", None, Some(DB(exprs)))
         val storage = model.allocateStorageForLine(line, cellWidth, exprs)
 
         storage.data must be(Array[Int](97, 98, 99))
@@ -913,7 +914,7 @@ class TestAssemblyModel extends AssertionsForJUnit with MustMatchers {
     def sourcedValuesCanBeCleared(): Unit = {
         val numbers = List(Number(1), Number(2), Number(3))
         val lineNumber = 4
-        val line = Line(lineNumber, "FNORD: DB 1,2,3", Some("FNORD"), Some(DB(numbers)))
+        val line = Line(SourceLocation("", lineNumber), "FNORD: DB 1,2,3", Some("FNORD"), Some(DB(numbers)))
         model.setLabel(fnord, 42, line)
         model.allocateStorageForLine(line, 1, numbers)
 
@@ -931,7 +932,7 @@ class TestAssemblyModel extends AssertionsForJUnit with MustMatchers {
     @Test
     def dbBounds(): Unit = {
         val exprs = List(Number(0), Number(255))
-        val line = Line(3, "irrelevant", None, Some(DB(exprs)))
+        val line = Line(SourceLocation("", 3), "irrelevant", None, Some(DB(exprs)))
         val storage = model.allocateStorageForLine(line, 1, exprs)
 
         storage.data must be(Array(0, 255))
@@ -943,7 +944,7 @@ class TestAssemblyModel extends AssertionsForJUnit with MustMatchers {
         thrown.expectMessage("Value of 256 cannot be expressed in a BYTE on line 7")
 
         val exprs = List(Number(256))
-        val line = Line(7, "irrelevant", None, Some(DB(exprs)))
+        val line = Line(SourceLocation("", 7), "irrelevant", None, Some(DB(exprs)))
 
         model.allocateStorageForLine(line, 1, exprs)
     }
@@ -955,7 +956,7 @@ class TestAssemblyModel extends AssertionsForJUnit with MustMatchers {
         thrown.expectMessage("Value of -1 cannot be expressed in a BYTE on line 7")
 
         val exprs = List(Number(-1))
-        val line = Line(7, "irrelevant", None, Some(DB(exprs)))
+        val line = Line(SourceLocation("", 7), "irrelevant", None, Some(DB(exprs)))
 
         model.allocateStorageForLine(line, 1, exprs)
     }
@@ -964,7 +965,7 @@ class TestAssemblyModel extends AssertionsForJUnit with MustMatchers {
     @Test
     def dwBounds(): Unit = {
         val exprs = List(Number(0), Number(65535))
-        val line = Line(3, "irrelevant", None, Some(DW(exprs)))
+        val line = Line(SourceLocation("", 3), "irrelevant", None, Some(DW(exprs)))
         val storage = model.allocateStorageForLine(line, 2, exprs)
 
         storage.data must be(Array(0, 65535))
@@ -976,7 +977,7 @@ class TestAssemblyModel extends AssertionsForJUnit with MustMatchers {
         thrown.expectMessage("Value of 65536 cannot be expressed in a WORD on line 7")
 
         val exprs = List(Number(65536))
-        val line = Line(7, "irrelevant", None, Some(DW(exprs)))
+        val line = Line(SourceLocation("", 7), "irrelevant", None, Some(DW(exprs)))
 
         model.allocateStorageForLine(line, 2, exprs)
     }
@@ -988,7 +989,7 @@ class TestAssemblyModel extends AssertionsForJUnit with MustMatchers {
         thrown.expectMessage("Value of -1 cannot be expressed in a WORD on line 7")
 
         val exprs = List(Number(-1))
-        val line = Line(7, "irrelevant", None, Some(DW(exprs)))
+        val line = Line(SourceLocation("", 7), "irrelevant", None, Some(DW(exprs)))
 
         model.allocateStorageForLine(line, 2, exprs)
     }
@@ -996,7 +997,7 @@ class TestAssemblyModel extends AssertionsForJUnit with MustMatchers {
     @Test
     def ddBounds(): Unit = {
         val exprs = List(Number(0), Number(0xffffffff))
-        val line = Line(3, "irrelevant", None, Some(DD(exprs)))
+        val line = Line(SourceLocation("", 3), "irrelevant", None, Some(DD(exprs)))
         val storage = model.allocateStorageForLine(line, 4, exprs)
 
         storage.data must be(Array(0, 0xffffffff))
@@ -1011,7 +1012,7 @@ class TestAssemblyModel extends AssertionsForJUnit with MustMatchers {
         thrown.expectMessage("Value of -1 cannot be expressed in a DWORD on line 7")
 
         val exprs = List(Number(-1))
-        val line = Line(7, "irrelevant", None, Some(DD(exprs)))
+        val line = Line(SourceLocation("", 7), "irrelevant", None, Some(DD(exprs)))
 
         model.allocateStorageForLine(line, 4, exprs)
     }
@@ -1021,16 +1022,16 @@ class TestAssemblyModel extends AssertionsForJUnit with MustMatchers {
         thrown.expect(classOf[AssemblyModelException])
         thrown.expectMessage("Storage forward references remain unresolved at end of Pass 1: (AARDVARK: #1; FNORD: #3, #4; FOO: #5; ZYGOTE: #1)")
 
-        val line1 = Line(1, "irrelevant", None, Some(DB(List(SymbolArg("aardvark"), SymbolArg("zygote")))))
+        val line1 = Line(SourceLocation("", 1), "irrelevant", None, Some(DB(List(SymbolArg("aardvark"), SymbolArg("zygote")))))
         model.allocateStorageForLine(line1, 1, List(SymbolArg("aardvark"), SymbolArg("zygote")))
 
-        val line3 = Line(3, "irrelevant", None, Some(DB(List(fnordSymbolArg))))
+        val line3 = Line(SourceLocation("", 3), "irrelevant", None, Some(DB(List(fnordSymbolArg))))
         model.allocateStorageForLine(line3, 1, List(fnordSymbolArg))
 
-        val line4 = Line(4, "irrelevant", None, Some(DB(List(fnordSymbolArg))))
+        val line4 = Line(SourceLocation("", 4), "irrelevant", None, Some(DB(List(fnordSymbolArg))))
         model.allocateStorageForLine(line4, 1, List(fnordSymbolArg))
 
-        val line5 = Line(5, "irrelevant", None, Some(DB(List(SymbolArg("foo")))))
+        val line5 = Line(SourceLocation("", 5), "irrelevant", None, Some(DB(List(SymbolArg("foo")))))
         model.allocateStorageForLine(line5, 1, List(SymbolArg("foo")))
 
         model.checkUnresolvedForwardReferences()
@@ -1038,7 +1039,7 @@ class TestAssemblyModel extends AssertionsForJUnit with MustMatchers {
 
     @Test
     def noForwardReferencesAtEndOfFirstPassIsGood(): Unit = {
-        val line = Line(3, "irrelevant", None, Some(DB(List(fnordSymbolArg))))
+        val line = Line(SourceLocation("", 3), "irrelevant", None, Some(DB(List(fnordSymbolArg))))
         model.allocateStorageForLine(line, 1, List(fnordSymbolArg))
         model.setVariable(fnord, 34, genDummyLine(9))
 
@@ -1050,11 +1051,11 @@ class TestAssemblyModel extends AssertionsForJUnit with MustMatchers {
         model.setDollar(0x4000, genDummyLine(1))
 
         val exprs = List(Number(1), Number(2))
-        model.allocateStorageForLine(Line(2, "", None, Some(DB(exprs))), 1, exprs)
+        model.allocateStorageForLine(Line(SourceLocation("", 2), "", None, Some(DB(exprs))), 1, exprs)
 
         model.setDollar(0x4020, genDummyLine(3))
 
-        model.allocateStorageForLine(Line(4, "", None, Some(DB(exprs))), 1, exprs)
+        model.allocateStorageForLine(Line(SourceLocation("", 4), "", None, Some(DB(exprs))), 1, exprs)
 
         model.lowestStorageAddress must be(0x4000)
         model.highestStorageAddress must be(0x4021)
@@ -1094,26 +1095,26 @@ class TestAssemblyModel extends AssertionsForJUnit with MustMatchers {
     private def simpleOrderingTestModel = {
         // The Lines here are illustrative of the Lines that would cause the allocateStorageForLine/assignmentForLine
         // calls...
-        val line5 = Line(5, "irrelevant", None, Some(DB(List(Number(21)))))
+        val line5 = Line(SourceLocation("", 5), "irrelevant", None, Some(DB(List(Number(21)))))
         model.allocateStorageForLine(line5, 1, List(Number(21)))
 
-        // e.g. val line4 = Line(4, "irrelevant", None, Some(VariableAssignment(new SymbolName(fnord), Number(42))))
+        // e.g. val line4 = Line(SourceLocation("", 4), "irrelevant", None, Some(VariableAssignment(new SymbolName(fnord), Number(42))))
         model.setVariable(fnord, 42, genDummyLine(4))
 
-        val line1 = Line(1, "irrelevant", None, Some(DB(List(Number(1)))))
+        val line1 = Line(SourceLocation("", 1), "irrelevant", None, Some(DB(List(Number(1)))))
         model.allocateStorageForLine(line1, 1, List(Number(1)))
 
-        val line2 = Line(2, "irrelevant", None, Some(DB(List(Number(2)))))
+        val line2 = Line(SourceLocation("", 2), "irrelevant", None, Some(DB(List(Number(2)))))
         model.allocateStorageForLine(line2, 1, List(Number(2)))
 
-        val line2again = Line(2, "irrelevant", None, Some(DB(List(Number(3)))))
+        val line2again = Line(SourceLocation("", 2), "irrelevant", None, Some(DB(List(Number(3)))))
         model.allocateStorageForLine(line2again, 1, List(Number(3)))
     }
 
     @Test
     def allocateInstructionStorageForLine(): Unit = {
         val bytes = List(0x29, 0x4c, 0x2a, 0xfb)
-        val line5 = Line(5, "fpuclrerr", None, Some(IndirectInstruction("FPUCLRERR", bytes)))
+        val line5 = Line(SourceLocation("", 5), "fpuclrerr", None, Some(IndirectInstruction("FPUCLRERR", bytes)))
         val storage = model.allocateInstructionStorageForLine(line5, bytes)
         storage.cellWidth must be(1)
         storage.address must be(0)

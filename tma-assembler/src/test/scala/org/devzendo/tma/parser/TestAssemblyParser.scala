@@ -42,7 +42,7 @@ class TestAssemblyParser extends AssertionsForJUnit with MustMatchers {
     var _thrown: ExpectedException = ExpectedException.none
 
     private def parseLine(line: String): List[Line] = {
-        val out = parser.parse(line, SourceLocation("test", lineNumber))
+        val out = parser.parse(line, SourceLocation("", lineNumber))
         lineNumber = lineNumber + 1
         parsedLinesSoFar ++= out
         out
@@ -60,7 +60,7 @@ class TestAssemblyParser extends AssertionsForJUnit with MustMatchers {
 
     private def singleLineParsesToStatement(line: String, expectedStatement: Statement): Unit = {
         parseSingleLine(line) must
-          equal(Line(1, line.trim(), None, Some(expectedStatement)))
+          equal(Line(SourceLocation("", 1), line.trim(), None, Some(expectedStatement)))
     }
 
     @Test
@@ -77,17 +77,17 @@ class TestAssemblyParser extends AssertionsForJUnit with MustMatchers {
 
     @Test
     def nullLine(): Unit = {
-        parseSingleLine(null) must equal(Line(1, "", None, None))
+        parseSingleLine(null) must equal(Line(SourceLocation("", 1), "", None, None))
     }
 
     @Test
     def emptyLine(): Unit = {
-        parseSingleLine("") must equal(Line(1, "", None, None))
+        parseSingleLine("") must equal(Line(SourceLocation("", 1), "", None, None))
     }
 
     @Test
     def justAComment(): Unit = {
-        parseSingleLine("  ; comment  ") must equal(Line(1, "; comment", None, None))
+        parseSingleLine("  ; comment  ") must equal(Line(SourceLocation("", 1), "; comment", None, None))
     }
 
     @Test
@@ -95,8 +95,8 @@ class TestAssemblyParser extends AssertionsForJUnit with MustMatchers {
         parseLine("  ; comment  ")
         parseLine("\t\t;;;another comment  ")
         parsedLinesSoFar must have size 2
-        parsedLinesSoFar.head must equal(Line(1, "; comment", None, None))
-        parsedLinesSoFar.tail.head must equal(Line(2, ";;;another comment", None, None))
+        parsedLinesSoFar.head must equal(Line(SourceLocation("", 1), "; comment", None, None))
+        parsedLinesSoFar.tail.head must equal(Line(SourceLocation("", 2), ";;;another comment", None, None))
     }
 
     @Test
@@ -619,8 +619,8 @@ class TestAssemblyParser extends AssertionsForJUnit with MustMatchers {
         val lines = parsedLinesSoFar.toList
 
         lines must be (List(
-            Line(1, ".TRANSPUTER", None, Some(Processor("TRANSPUTER"))),
-            Line(2, "CODE: ldnlp 3", Some("CODE"), Some(DirectInstruction("LDNLP", 0x50, Number(3))))
+            Line(SourceLocation("", 1), ".TRANSPUTER", None, Some(Processor("TRANSPUTER"))),
+            Line(SourceLocation("", 2), "CODE: ldnlp 3", Some("CODE"), Some(DirectInstruction("LDNLP", 0x50, Number(3))))
         ))
     }
 
@@ -681,7 +681,7 @@ class TestAssemblyParser extends AssertionsForJUnit with MustMatchers {
     def label(): Unit = {
         val line = "FOO:\tDD\t0x0"
         parseSingleLine(line) must
-          equal(Line(1, line.trim(), Some(new Label("FOO")), Some(DD(List(Number(0))))))
+          equal(Line(SourceLocation("", 1), line.trim(), Some(new Label("FOO")), Some(DD(List(Number(0))))))
     }
 
 
@@ -715,13 +715,13 @@ class TestAssemblyParser extends AssertionsForJUnit with MustMatchers {
         lines must have size 4
 
         val expectedStartStatement = MacroStart(new MacroName("$CODE"), expectedMacroParameterNames)
-        lines.head must equal(Line(1, textLines.head.trim(), None, Some(expectedStartStatement)))
+        lines.head must equal(Line(SourceLocation("", 1), textLines.head.trim(), None, Some(expectedStartStatement)))
 
-        lines(1) must equal(Line(2, textLines(1).trim(), None, Some(MacroBody(textLines(1).trim()))))
+        lines(1) must equal(Line(SourceLocation("", 2), textLines(1).trim(), None, Some(MacroBody(textLines(1).trim()))))
 
-        lines(2) must equal(Line(3, textLines(2).trim(), None, Some(MacroBody(textLines(2).trim()))))
+        lines(2) must equal(Line(SourceLocation("", 3), textLines(2).trim(), None, Some(MacroBody(textLines(2).trim()))))
 
-        lines(3) must equal(Line(4, textLines(3).trim(), None, Some(MacroBody(textLines(3).trim()))))
+        lines(3) must equal(Line(SourceLocation("", 4), textLines(3).trim(), None, Some(MacroBody(textLines(3).trim()))))
 
         val expectedMacroLines = List(
             textLines(1).trim(), textLines(2).trim(), textLines(3).trim()
@@ -731,7 +731,7 @@ class TestAssemblyParser extends AssertionsForJUnit with MustMatchers {
         // Now end the macro....
         val endmText = "\tENDM"
         val endmLines = parseLine(endmText)
-        endmLines must equal(List(Line(5, endmText.trim(), None, Some(MacroEnd()))))
+        endmLines must equal(List(Line(SourceLocation("", 5), endmText.trim(), None, Some(MacroEnd()))))
 
         macroManager.getMacro(codeMacroName) must be(Some(MacroDefinition(new MacroName(codeMacroName), expectedMacroParameterNames, expectedMacroLines)))
     }
@@ -891,17 +891,17 @@ class TestAssemblyParser extends AssertionsForJUnit with MustMatchers {
         val lines = parseLine("\t\t$CODE\t3,'?RX',QRX")
         dumpLines(lines)
         lines must be (List(
-            Line(13, "$CODE\t3,'?RX',QRX", None, Some(MacroInvocation(new MacroName("$CODE"), List( new MacroArgument("3"), new MacroArgument("'?RX'"), new MacroArgument("QRX"))))),
-            Line(13, "ALIGN\t4", None, Some(Align(4))),
-            Line(13, "QRX:", Some(new Label("QRX")), None),
-            Line(13, "_CODE\t= $", None, Some(VariableAssignment(new SymbolName("_CODE"), SymbolArg("$")))),
-            Line(13, "_LEN\t= (3 AND 01FH)/CELLL", None, Some(VariableAssignment(new SymbolName("_LEN"), Binary(Div(), Binary(And(), Number(3), Number(31)), SymbolArg("CELLL"))))),
-            Line(13, "_NAME\t= _NAME-((_LEN+3)*CELLL)", None, Some(VariableAssignment(new SymbolName("_NAME"), Binary(Sub(), SymbolArg("_NAME"), Binary(Mult(), Binary(Add(), SymbolArg("_LEN"), Number(3)), SymbolArg("CELLL")))))),
-            Line(13, "ORG\t_NAME", None, Some(Org(SymbolArg("_NAME")))),
-            Line(13, "DD\t _CODE,_LINK", None, Some(DD(List(SymbolArg("_CODE"), SymbolArg("_LINK"))))),
-            Line(13, "_LINK\t= $", None, Some(VariableAssignment(new SymbolName("_LINK"), SymbolArg("$")))),
-            Line(13, "DB\t3,'?RX'", None, Some(DB(List(Number(3), Characters("?RX"))))),
-            Line(13, "ORG\t_CODE", None, Some(Org(SymbolArg("_CODE"))))
+            Line(SourceLocation("", 13), "$CODE\t3,'?RX',QRX", None, Some(MacroInvocation(new MacroName("$CODE"), List( new MacroArgument("3"), new MacroArgument("'?RX'"), new MacroArgument("QRX"))))),
+            Line(SourceLocation("", 13), "ALIGN\t4", None, Some(Align(4))),
+            Line(SourceLocation("", 13), "QRX:", Some(new Label("QRX")), None),
+            Line(SourceLocation("", 13), "_CODE\t= $", None, Some(VariableAssignment(new SymbolName("_CODE"), SymbolArg("$")))),
+            Line(SourceLocation("", 13), "_LEN\t= (3 AND 01FH)/CELLL", None, Some(VariableAssignment(new SymbolName("_LEN"), Binary(Div(), Binary(And(), Number(3), Number(31)), SymbolArg("CELLL"))))),
+            Line(SourceLocation("", 13), "_NAME\t= _NAME-((_LEN+3)*CELLL)", None, Some(VariableAssignment(new SymbolName("_NAME"), Binary(Sub(), SymbolArg("_NAME"), Binary(Mult(), Binary(Add(), SymbolArg("_LEN"), Number(3)), SymbolArg("CELLL")))))),
+            Line(SourceLocation("", 13), "ORG\t_NAME", None, Some(Org(SymbolArg("_NAME")))),
+            Line(SourceLocation("", 13), "DD\t _CODE,_LINK", None, Some(DD(List(SymbolArg("_CODE"), SymbolArg("_LINK"))))),
+            Line(SourceLocation("", 13), "_LINK\t= $", None, Some(VariableAssignment(new SymbolName("_LINK"), SymbolArg("$")))),
+            Line(SourceLocation("", 13), "DB\t3,'?RX'", None, Some(DB(List(Number(3), Characters("?RX"))))),
+            Line(SourceLocation("", 13), "ORG\t_CODE", None, Some(Org(SymbolArg("_CODE"))))
         ))
     }
 
@@ -913,20 +913,20 @@ class TestAssemblyParser extends AssertionsForJUnit with MustMatchers {
         logger.debug("Parsing a $COLON invocation")
         val lines = parseLine("\t\t$COLON\tCOMPO+5,'doVAR',DOVAR")
         val expectedLines = List(
-            Line(18, "$COLON\tCOMPO+5,'doVAR',DOVAR", None, Some(MacroInvocation(new MacroName("$COLON"), List( new MacroArgument("COMPO+5"), new MacroArgument("'doVAR'"), new MacroArgument("DOVAR"))))),
-            Line(18, "$CODE\tCOMPO+5,'doVAR',DOVAR", None, Some(MacroInvocation(new MacroName("$CODE"), List( new MacroArgument("COMPO+5"), new MacroArgument("'doVAR'"), new MacroArgument("DOVAR"))))),
-            Line(18, "ALIGN\t4", None, Some(Align(4))),
-            Line(18, "DOVAR:", Some(new Label("DOVAR")), None),
-            Line(18, "_CODE\t= $", None, Some(VariableAssignment(new SymbolName("_CODE"), SymbolArg("$")))),
-            Line(18, "_LEN\t= (COMPO+5 AND 01FH)/CELLL", None, Some(VariableAssignment(new SymbolName("_LEN"), Binary(Div(), Binary(And(), Binary(Add(), SymbolArg("COMPO"), Number(5)), Number(31)), SymbolArg("CELLL"))))),
-            Line(18, "_NAME\t= _NAME-((_LEN+3)*CELLL)", None, Some(VariableAssignment(new SymbolName("_NAME"), Binary(Sub(), SymbolArg("_NAME"), Binary(Mult(), Binary(Add(), SymbolArg("_LEN"), Number(3)), SymbolArg("CELLL")))))),
-            Line(18, "ORG\t_NAME", None, Some(Org(SymbolArg("_NAME")))),
-            Line(18, "DD\t _CODE,_LINK", None, Some(DD(List(SymbolArg("_CODE"), SymbolArg("_LINK"))))),
-            Line(18, "_LINK\t= $", None, Some(VariableAssignment(new SymbolName("_LINK"), SymbolArg("$")))),
-            Line(18, "DB\tCOMPO+5,'doVAR'", None, Some(DB(List(Binary(Add(), SymbolArg("COMPO"), Number(5)), Characters("doVAR"))))),
-            Line(18, "ORG\t_CODE", None, Some(Org(SymbolArg("_CODE")))),
-            Line(18, "align\t4", None, Some(Align(4))),
-            Line(18, "db\t048h", None, Some(DB(List(Number(72)))))
+            Line(SourceLocation("", 18), "$COLON\tCOMPO+5,'doVAR',DOVAR", None, Some(MacroInvocation(new MacroName("$COLON"), List( new MacroArgument("COMPO+5"), new MacroArgument("'doVAR'"), new MacroArgument("DOVAR"))))),
+            Line(SourceLocation("", 18), "$CODE\tCOMPO+5,'doVAR',DOVAR", None, Some(MacroInvocation(new MacroName("$CODE"), List( new MacroArgument("COMPO+5"), new MacroArgument("'doVAR'"), new MacroArgument("DOVAR"))))),
+            Line(SourceLocation("", 18), "ALIGN\t4", None, Some(Align(4))),
+            Line(SourceLocation("", 18), "DOVAR:", Some(new Label("DOVAR")), None),
+            Line(SourceLocation("", 18), "_CODE\t= $", None, Some(VariableAssignment(new SymbolName("_CODE"), SymbolArg("$")))),
+            Line(SourceLocation("", 18), "_LEN\t= (COMPO+5 AND 01FH)/CELLL", None, Some(VariableAssignment(new SymbolName("_LEN"), Binary(Div(), Binary(And(), Binary(Add(), SymbolArg("COMPO"), Number(5)), Number(31)), SymbolArg("CELLL"))))),
+            Line(SourceLocation("", 18), "_NAME\t= _NAME-((_LEN+3)*CELLL)", None, Some(VariableAssignment(new SymbolName("_NAME"), Binary(Sub(), SymbolArg("_NAME"), Binary(Mult(), Binary(Add(), SymbolArg("_LEN"), Number(3)), SymbolArg("CELLL")))))),
+            Line(SourceLocation("", 18), "ORG\t_NAME", None, Some(Org(SymbolArg("_NAME")))),
+            Line(SourceLocation("", 18), "DD\t _CODE,_LINK", None, Some(DD(List(SymbolArg("_CODE"), SymbolArg("_LINK"))))),
+            Line(SourceLocation("", 18), "_LINK\t= $", None, Some(VariableAssignment(new SymbolName("_LINK"), SymbolArg("$")))),
+            Line(SourceLocation("", 18), "DB\tCOMPO+5,'doVAR'", None, Some(DB(List(Binary(Add(), SymbolArg("COMPO"), Number(5)), Characters("doVAR"))))),
+            Line(SourceLocation("", 18), "ORG\t_CODE", None, Some(Org(SymbolArg("_CODE")))),
+            Line(SourceLocation("", 18), "align\t4", None, Some(Align(4))),
+            Line(SourceLocation("", 18), "db\t048h", None, Some(DB(List(Number(72)))))
         )
         lines.length must be (expectedLines.length)
         for (i <- 0 until expectedLines.length) {
@@ -976,9 +976,9 @@ class TestAssemblyParser extends AssertionsForJUnit with MustMatchers {
         val lines = parseLine("LLL:\tFOO\t1,2")
         dumpLines(lines)
         lines must be (List(
-            Line(5, "LLL:\tFOO\t1,2", None, Some(MacroInvocation(new MacroName("FOO"), List( new MacroArgument("1"), new MacroArgument("2"))))),
-            Line(5, "DB\t1", Some(new Label("LLL")), Some(DB(List(Number(1))))),
-            Line(5, "DB\t2", None, Some(DB(List(Number(2)))))
+            Line(SourceLocation("", 5), "LLL:\tFOO\t1,2", None, Some(MacroInvocation(new MacroName("FOO"), List( new MacroArgument("1"), new MacroArgument("2"))))),
+            Line(SourceLocation("", 5), "DB\t1", Some(new Label("LLL")), Some(DB(List(Number(1))))),
+            Line(SourceLocation("", 5), "DB\t2", None, Some(DB(List(Number(2)))))
         ))
     }
 
@@ -999,9 +999,9 @@ class TestAssemblyParser extends AssertionsForJUnit with MustMatchers {
         val lines = parseLine("FOO\t1,2")
         dumpLines(lines)
         lines must be (List(
-            Line(5, "FOO\t1,2", None, Some(MacroInvocation(new MacroName("FOO"), List( new MacroArgument("1"), new MacroArgument("2"))))),
-            Line(5, "LLL:\tDB\t1", Some(new Label("LLL")), Some(DB(List(Number(1))))),
-            Line(5, "DB\t2", None, Some(DB(List(Number(2)))))
+            Line(SourceLocation("", 5), "FOO\t1,2", None, Some(MacroInvocation(new MacroName("FOO"), List( new MacroArgument("1"), new MacroArgument("2"))))),
+            Line(SourceLocation("", 5), "LLL:\tDB\t1", Some(new Label("LLL")), Some(DB(List(Number(1))))),
+            Line(SourceLocation("", 5), "DB\t2", None, Some(DB(List(Number(2)))))
         ))
     }
 
@@ -1016,9 +1016,9 @@ class TestAssemblyParser extends AssertionsForJUnit with MustMatchers {
         val lines = parseLine("XXX:\tFOO\t1,2")
         dumpLines(lines)
         lines must be (List(
-            Line(5, "XXX:\tFOO\t1,2", None, Some(MacroInvocation(new MacroName("FOO"), List( new MacroArgument("1"), new MacroArgument("2"))))),
-            Line(5, "LLL:\tDB\t1", Some(new Label("XXX")), Some(DB(List(Number(1))))), // Yes, the text says LLL: but the Line's Label is what matters.
-            Line(5, "DB\t2", None, Some(DB(List(Number(2)))))
+            Line(SourceLocation("", 5), "XXX:\tFOO\t1,2", None, Some(MacroInvocation(new MacroName("FOO"), List( new MacroArgument("1"), new MacroArgument("2"))))),
+            Line(SourceLocation("", 5), "LLL:\tDB\t1", Some(new Label("XXX")), Some(DB(List(Number(1))))), // Yes, the text says LLL: but the Line's Label is what matters.
+            Line(SourceLocation("", 5), "DB\t2", None, Some(DB(List(Number(2)))))
         ))
     }
 
@@ -1032,8 +1032,8 @@ class TestAssemblyParser extends AssertionsForJUnit with MustMatchers {
         val lines = parseLine("\tFOO")
         dumpLines(lines)
         lines must be (List(
-            Line(4, "FOO", None, Some(MacroInvocation(new MacroName("FOO"), List()))),
-            Line(4, "; single semicolon passed through", None, None)
+            Line(SourceLocation("", 4), "FOO", None, Some(MacroInvocation(new MacroName("FOO"), List()))),
+            Line(SourceLocation("", 4), "; single semicolon passed through", None, None)
         ))
     }
 
@@ -1047,8 +1047,8 @@ class TestAssemblyParser extends AssertionsForJUnit with MustMatchers {
         val lines = parseLine("\tFOO")
         dumpLines(lines)
         lines must be (List(
-            Line(4, "FOO", None, Some(MacroInvocation(new MacroName("FOO"), List()))),
-            Line(4, "", None, None)
+            Line(SourceLocation("", 4), "FOO", None, Some(MacroInvocation(new MacroName("FOO"), List()))),
+            Line(SourceLocation("", 4), "", None, None)
         ))
     }
 
@@ -1061,7 +1061,7 @@ class TestAssemblyParser extends AssertionsForJUnit with MustMatchers {
         val lines = parseLine("\tFOO\t; comment")
         dumpLines(lines)
         lines must be (List(
-            Line(3, "FOO\t; comment", None, Some(MacroInvocation(new MacroName("FOO"), List())))
+            Line(SourceLocation("", 3), "FOO\t; comment", None, Some(MacroInvocation(new MacroName("FOO"), List())))
         ))
     }
 
@@ -1074,7 +1074,7 @@ class TestAssemblyParser extends AssertionsForJUnit with MustMatchers {
         val lines = parseLine("\tFOO\t;; comment")
         dumpLines(lines)
         lines must be (List(
-            Line(3, "FOO\t;; comment", None, Some(MacroInvocation(new MacroName("FOO"), List())))
+            Line(SourceLocation("", 3), "FOO\t;; comment", None, Some(MacroInvocation(new MacroName("FOO"), List())))
         ))
     }
 
@@ -1088,8 +1088,8 @@ class TestAssemblyParser extends AssertionsForJUnit with MustMatchers {
         val lines = parseLine("\tFOO")
         dumpLines(lines)
         lines must be (List(
-            Line(4, "FOO", None, Some(MacroInvocation(new MacroName("FOO"), List()))),
-            Line(4, "DB ';; see me'", None, Some(DB(List(Characters(";; see me")))))
+            Line(SourceLocation("", 4), "FOO", None, Some(MacroInvocation(new MacroName("FOO"), List()))),
+            Line(SourceLocation("", 4), "DB ';; see me'", None, Some(DB(List(Characters(";; see me")))))
         ))
     }
 
@@ -1103,8 +1103,8 @@ class TestAssemblyParser extends AssertionsForJUnit with MustMatchers {
         val lines = parseLine("\tFOO")
         dumpLines(lines)
         lines must be (List(
-            Line(4, "FOO", None, Some(MacroInvocation(new MacroName("FOO"), List()))),
-            Line(4, "DB \";; see me\"", None, Some(DB(List(Characters(";; see me")))))
+            Line(SourceLocation("", 4), "FOO", None, Some(MacroInvocation(new MacroName("FOO"), List()))),
+            Line(SourceLocation("", 4), "DB \";; see me\"", None, Some(DB(List(Characters(";; see me")))))
         ))
     }
 

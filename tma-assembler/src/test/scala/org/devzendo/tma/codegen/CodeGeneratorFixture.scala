@@ -16,6 +16,7 @@
 
 package org.devzendo.tma.codegen
 
+import org.devzendo.tma.SourceLocation
 import org.devzendo.tma.ast.{Line, Statement}
 
 abstract class CodeGeneratorFixture {
@@ -24,12 +25,12 @@ abstract class CodeGeneratorFixture {
     val codegen = new CodeGenerator(true, model)
 
     def generateFromStatements(stmts: List[Statement]): AssemblyModel = {
-        val stmts2Lines = stmts.zipWithIndex.map((p: (Statement, Int)) => Line(p._2 + 1, p._1.toString, None, Some(p._1)))
+        val stmts2Lines = stmts.zipWithIndex.map((p: (Statement, Int)) => Line(SourceLocation("", p._2 + 1), p._1.toString, None, Some(p._1)))
         generateFromLines(stmts2Lines)
     }
 
     def generateFromStatement(stmt: Statement): AssemblyModel = {
-        generateFromLine(Line(1, "", None, Some(stmt)))
+        generateFromLine(Line(SourceLocation("", 1), "", None, Some(stmt)))
     }
 
     def generateFromLine(line: Line): AssemblyModel = {

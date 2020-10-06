@@ -145,18 +145,19 @@ class CodeGenerator(debugCodegen: Boolean, model: AssemblyModel) {
         }
     }
 
-    // Note the distinction between lineIndex (the monotonically increasing index into inputLines) and line.number
-    // (the human-understandable line number - the location in a source file, which could be nested in the case of
-    // include files, and could be duplicated within a consecutive range of lines in the case of macro expansions).
+    // Note the distinction between lineIndex (the monotonically increasing index into inputLines) and
+    // line.location.lineNumber (the human-understandable line number - the location in a source file, which could be
+    // nested in the case of include files, and could be duplicated within a consecutive range of lines in the case
+    // of macro expansions).
     private def processLine(line: Line, lineIndex: Int): Unit = {
         if (debugCodegen) {
-            logger.info("Line " + line.number + ": " + line.toString)
+            logger.info("Line " + line.location.lineNumber + ": " + line.toString)
         }
 
         // What does this mean, in the context of nested include files that have more than one line number?
         // LINENUMBER
-        if (line.number > lastLineNumber) {
-            lastLineNumber = line.number
+        if (line.location.lineNumber > lastLineNumber) {
+            lastLineNumber = line.location.lineNumber
         }
 
         try {
@@ -176,7 +177,7 @@ class CodeGenerator(debugCodegen: Boolean, model: AssemblyModel) {
                         startConvergeDollar = model.getDollar
                         directInstructionByLineIndex.clear()
                         startConvergeLineIndex = lineIndex
-                        logger.debug("Start of convergable lines at line index " + lineIndex + " line number " + line.number + " $=" + HexDump.int2hex(startConvergeDollar))
+                        logger.debug("Start of convergable lines at line index " + lineIndex + " line number " + line.location.lineNumber + " $=" + HexDump.int2hex(startConvergeDollar))
                     }
                     logger.debug("Adding " + directUndefineds + " to converge symbol set")
                     symbolsToConverge ++= directUndefineds
@@ -201,7 +202,7 @@ class CodeGenerator(debugCodegen: Boolean, model: AssemblyModel) {
 
                 if (convergeMode && symbolsToConverge.isEmpty) {
                     endConvergeLineIndex = lineIndex
-                    logger.debug("End of convergable lines on line index " + lineIndex + " line number " + modifiedLine.number)
+                    logger.debug("End of convergable lines on line index " + lineIndex + " line number " + modifiedLine.location.lineNumber)
                     converge()
                     convergeMode = false
                 }
@@ -212,7 +213,7 @@ class CodeGenerator(debugCodegen: Boolean, model: AssemblyModel) {
             }
 
         } catch {
-            case ame: AssemblyModelException => throw new CodeGenerationException(line.number, ame.getMessage)
+            case ame: AssemblyModelException => throw new CodeGenerationException(line.location.lineNumber, ame.getMessage)
         }
     }
 
@@ -227,7 +228,7 @@ class CodeGenerator(debugCodegen: Boolean, model: AssemblyModel) {
         val set = mutable.HashSet[Int]()
         for (i <- startConvergeLineIndex to endConvergeLineIndex) {
             val line = inputLines(i)
-            set += line.number
+            set += line.location.lineNumber
         }
         set.toList
     }
@@ -363,7 +364,7 @@ class CodeGenerator(debugCodegen: Boolean, model: AssemblyModel) {
 
                     if (stmt != initialStmt) {
                         if (debugCodegen) {
-                            logger.debug("Line " + line.number + " (Transformed): " + stmt)
+                            logger.debug("Line " + line.location.lineNumber + " (Transformed): " + stmt)
                         }
                         val replacedLine = line.copy(stmt = Some(stmt))
                         (replacedLine, Some(stmt))
@@ -374,7 +375,7 @@ class CodeGenerator(debugCodegen: Boolean, model: AssemblyModel) {
                 } catch {
                     case ste: StatementTransformationException =>
                         logger.debug(s"Rethowing ${ste.getMessage}")
-                        throw new CodeGenerationException(line.number, ste.getMessage)
+                        throw new CodeGenerationException(line.location.lineNumber, ste.getMessage)
                 }
             case None =>
                 (line, None)
@@ -382,7 +383,7 @@ class CodeGenerator(debugCodegen: Boolean, model: AssemblyModel) {
     }
 
     private def processStatement(line: Line, lineIndex: Int, stmt: Statement): Unit = {
-        val lineNumber = line.number
+        val lineNumber = line.location.lineNumber
 
         // Pass 2 fixups run after pass 1 (duh!), and require processing of statements after this check would have
         // triggered in pass 1.
@@ -443,7 +444,7 @@ class CodeGenerator(debugCodegen: Boolean, model: AssemblyModel) {
     }
 
     private def processOrg(line: Line, expr: Expression): Unit = {
-        val lineNumber = line.number
+        val lineNumber = line.location.lineNumber
         if (expressionContainsCharacters(expr)) {
             throw new CodeGenerationException(lineNumber, "Origin cannot be set to a Character expression '" + expr + "'")
         }
@@ -465,7 +466,7 @@ class CodeGenerator(debugCodegen: Boolean, model: AssemblyModel) {
 
     private def processConstantAssignment(line: Line, name: SymbolName, expr: Expression): Unit = {
         val casedName = CasedSymbolName(name)
-        val lineNumber = line.number
+        val lineNumber = line.location.lineNumber
         if (expressionContainsCharacters(expr)) {
             throw new CodeGenerationException(lineNumber, "Constant cannot be set to a Character expression '" + expr + "'")
         }
@@ -484,7 +485,7 @@ class CodeGenerator(debugCodegen: Boolean, model: AssemblyModel) {
 
     private def processVariableAssignment(line: Line, name: SymbolName, expr: Expression): Unit = {
         val casedName = CasedSymbolName(name)
-        val lineNumber = line.number
+        val lineNumber = line.location.lineNumber
         if (expressionContainsCharacters(expr)) {
             throw new CodeGenerationException(lineNumber, "Variable cannot be set to a Character expression '" + expr + "'")
         }
@@ -524,7 +525,7 @@ class CodeGenerator(debugCodegen: Boolean, model: AssemblyModel) {
 
     private def processElse(line: Line): Unit = {
         if (generationMode != GenerationMode.If1Seen) {
-            throw new CodeGenerationException(line.number, "Else seen without prior If1")
+            throw new CodeGenerationException(line.location.lineNumber, "Else seen without prior If1")
         }
         val dollar = model.getDollar
         if (debugCodegen) {
@@ -539,7 +540,7 @@ class CodeGenerator(debugCodegen: Boolean, model: AssemblyModel) {
 
     private def processEndif(line: Line): Unit = {
         if (generationMode != GenerationMode.If1Seen && generationMode != GenerationMode.ElseSeen) {
-            throw new CodeGenerationException(line.number, "Endif seen without prior If1")
+            throw new CodeGenerationException(line.location.lineNumber, "Endif seen without prior If1")
         }
         if (debugCodegen) {
             logger.info("Storing collected Pass 2 Lines in Endif; switching to Pass 1 Line Assembly")
@@ -569,7 +570,7 @@ class CodeGenerator(debugCodegen: Boolean, model: AssemblyModel) {
                 // Current address must match end address of pass 1. If not, the blocks are different sizes.
                 val endAddressPass2 = model.getDollar
                 if (endAddressPass2 != p2.getEndAddress) {
-                    throw new CodeGenerationException(p2Lines.head._1.number, "Differently-sized blocks in Passes 1 and 2: Pass 1=" +
+                    throw new CodeGenerationException(p2Lines.head._1.location.lineNumber, "Differently-sized blocks in Passes 1 and 2: Pass 1=" +
                       (p2.getEndAddress - p2.getStartAddress) + " byte(s); Pass 2=" +
                       (endAddressPass2 - p2.getStartAddress) + " byte(s)")
                 }
@@ -578,7 +579,7 @@ class CodeGenerator(debugCodegen: Boolean, model: AssemblyModel) {
     }
 
     private def processDirectInstruction(line: Line, lineIndex: Int, di: DirectInstruction, opbyte: Int, expr: Expression): Unit = {
-        val lineNumber = line.number
+        val lineNumber = line.location.lineNumber
         val evaluation = model.evaluateExpression(expr)
         evaluation match {
             case Right(value) =>

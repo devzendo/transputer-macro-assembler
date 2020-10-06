@@ -19,7 +19,7 @@ package org.devzendo.tma.codegen
 import org.devzendo.tma.ast.AST.{Label, SymbolName}
 import org.devzendo.tma.ast._
 import org.devzendo.tma.output.ShowListingFixture
-import org.devzendo.tma.{AssemblerFixture, TransputerDirectInstructions}
+import org.devzendo.tma.{AssemblerFixture, SourceLocation, TransputerDirectInstructions}
 import org.junit.rules.ExpectedException
 import org.junit.{Before, Rule, Test}
 import org.log4s.Logger
@@ -333,7 +333,7 @@ class TestOffsetTransformer extends CodeGeneratorFixture with AssemblerFixture w
         val cellWidth = 1
         val count = 5
         val dbDupStatement = DBDup(Number(count), Number(69))
-        val line = Line(1, "", None, Some(dbDupStatement))
+        val line = Line(SourceLocation("", 1), "", None, Some(dbDupStatement))
         val model = generateFromLine(line)
 
         val storages = model.getSourcedValuesForLineNumber(1)
@@ -342,7 +342,7 @@ class TestOffsetTransformer extends CodeGeneratorFixture with AssemblerFixture w
         storage.address must be(0)
         storage.cellWidth must be(1)
         storage.data.toList must be(List(69, 69, 69, 69, 69))
-        storage.line must be(Line(1, "", None, Some(DB(List(Number(69), Number(69), Number(69), Number(69), Number(69))))))
+        storage.line must be(Line(SourceLocation("", 1), "", None, Some(DB(List(Number(69), Number(69), Number(69), Number(69), Number(69))))))
         model.getDollar must be(0 + (cellWidth * count))
     }
 
@@ -352,7 +352,7 @@ class TestOffsetTransformer extends CodeGeneratorFixture with AssemblerFixture w
         // to disallow it.
         val count = 0
         val dbDupStatement = DBDup(Number(count), Number(69))
-        val line = Line(1, "", None, Some(dbDupStatement))
+        val line = Line(SourceLocation("", 1), "", None, Some(dbDupStatement))
         val model = generateFromLine(line)
 
         val storages = model.getSourcedValuesForLineNumber(1)
@@ -361,15 +361,15 @@ class TestOffsetTransformer extends CodeGeneratorFixture with AssemblerFixture w
         storage.address must be(0)
         storage.cellWidth must be(1)
         storage.data.toList must be(List.empty)
-        storage.line must be(Line(1, "", None, Some(DB(List()))))
+        storage.line must be(Line(SourceLocation("", 1), "", None, Some(DB(List()))))
         model.getDollar must be(0)
     }
 
     @Test
     def negativeOffset(): Unit = {
         val lines = List(
-            Line(1, "LABEL: DB 1,2,3,4", Some("LABEL"), Some(DB(List(Number(1), Number(2), Number(3), Number(4))))),
-            Line(2, "C EQU OFFSET LABEL'", None, Some(ConstantAssignment(new SymbolName("C"), Unary(Offset(), SymbolArg(new SymbolName("LABEL"))))))
+            Line(SourceLocation("", 1), "LABEL: DB 1,2,3,4", Some("LABEL"), Some(DB(List(Number(1), Number(2), Number(3), Number(4))))),
+            Line(SourceLocation("", 2), "C EQU OFFSET LABEL'", None, Some(ConstantAssignment(new SymbolName("C"), Unary(Offset(), SymbolArg(new SymbolName("LABEL"))))))
         )
         val model = generateFromLines(lines)
 
@@ -379,8 +379,8 @@ class TestOffsetTransformer extends CodeGeneratorFixture with AssemblerFixture w
     @Test
     def zeroOffset(): Unit = {
         val lines = List(
-            Line(1, "LABEL:", Some("LABEL"), None),
-            Line(2, "C EQU OFFSET LABEL'", None, Some(ConstantAssignment(new SymbolName("C"), Unary(Offset(), SymbolArg(new SymbolName("LABEL"))))))
+            Line(SourceLocation("", 1), "LABEL:", Some("LABEL"), None),
+            Line(SourceLocation("", 2), "C EQU OFFSET LABEL'", None, Some(ConstantAssignment(new SymbolName("C"), Unary(Offset(), SymbolArg(new SymbolName("LABEL"))))))
         )
         val model = generateFromLines(lines)
 
@@ -390,9 +390,9 @@ class TestOffsetTransformer extends CodeGeneratorFixture with AssemblerFixture w
     @Test
     def positiveOffset(): Unit = {
         val lines = List(
-            Line(1, "C EQU OFFSET LABEL'", None, Some(ConstantAssignment(new SymbolName("C"), Unary(Offset(), SymbolArg(new SymbolName("LABEL")))))),
-            Line(2, "DB 1,2,3,4", None, Some(DB(List(Number(1), Number(2), Number(3), Number(4))))),
-            Line(3, "LABEL:", Some("LABEL"), None)
+            Line(SourceLocation("", 1), "C EQU OFFSET LABEL'", None, Some(ConstantAssignment(new SymbolName("C"), Unary(Offset(), SymbolArg(new SymbolName("LABEL")))))),
+            Line(SourceLocation("", 2), "DB 1,2,3,4", None, Some(DB(List(Number(1), Number(2), Number(3), Number(4))))),
+            Line(SourceLocation("", 3), "LABEL:", Some("LABEL"), None)
         )
         val model = generateFromLines(lines)
 
@@ -402,12 +402,12 @@ class TestOffsetTransformer extends CodeGeneratorFixture with AssemblerFixture w
     @Test
     def convergeOffset(): Unit = {
         val lines = List(
-            Line(1, "\t.TRANSPUTER", None, Some(Processor("TRANSPUTER"))),
-            Line(2, "\tORG 0x1000", None, Some(Org(Number(0x1000)))),
-            Line(3, "\tLDC OFFSET L1", None, Some(DirectInstruction("LDC", 0x40, Unary(Offset(), SymbolArg("L1"))))),
-            Line(4, "\tLDPI", None, Some(IndirectInstruction("LDPI", List(0x21, 0xfb)))),
-            Line(5, "\tDB\t255 DUP 10", None, Some(DBDup(Number(255), Number(10)))), // pad the LDC out to 3 bytes
-            Line(6, "L1:\tDB\t'hello world'", Some("L1"), Some(DB(List(Characters("hello world")))))
+            Line(SourceLocation("", 1), "\t.TRANSPUTER", None, Some(Processor("TRANSPUTER"))),
+            Line(SourceLocation("", 2), "\tORG 0x1000", None, Some(Org(Number(0x1000)))),
+            Line(SourceLocation("", 3), "\tLDC OFFSET L1", None, Some(DirectInstruction("LDC", 0x40, Unary(Offset(), SymbolArg("L1"))))),
+            Line(SourceLocation("", 4), "\tLDPI", None, Some(IndirectInstruction("LDPI", List(0x21, 0xfb)))),
+            Line(SourceLocation("", 5), "\tDB\t255 DUP 10", None, Some(DBDup(Number(255), Number(10)))), // pad the LDC out to 3 bytes
+            Line(SourceLocation("", 6), "L1:\tDB\t'hello world'", Some("L1"), Some(DB(List(Characters("hello world")))))
         )
         val model = generateFromLines(lines)
         model.convergeMode must be(false)
@@ -449,14 +449,14 @@ class TestOffsetTransformer extends CodeGeneratorFixture with AssemblerFixture w
     @Test
     def offsetsInDataSequencesAreRelativeToTheirPosition(): Unit = {
         val lines = List(
-            Line(1, "\t.TRANSPUTER", None, Some(Processor("TRANSPUTER"))),
-            Line(2, "\tORG 0x1000", None, Some(Org(Number(0x1000)))),
-            Line(3, "\tDD OFFSET X, OFFSET X, OFFSET X", None, Some(DD(List(                                    // 3,2,1
+            Line(SourceLocation("", 1), "\t.TRANSPUTER", None, Some(Processor("TRANSPUTER"))),
+            Line(SourceLocation("", 2), "\tORG 0x1000", None, Some(Org(Number(0x1000)))),
+            Line(SourceLocation("", 3), "\tDD OFFSET X, OFFSET X, OFFSET X", None, Some(DD(List(                                    // 3,2,1
                 Unary(Offset(), SymbolArg("X")),
                 Unary(Offset(), SymbolArg("X")),
                 Unary(Offset(), SymbolArg("X")))))),
-            Line(4, "\tX: DD OFFSET X", Some(new Label("X")), Some(DD(List(Unary(Offset(), SymbolArg("X")))))), // 0
-            Line(5, "\tDD OFFSET X, OFFSET X, OFFSET X", None, Some(DD(List(                                    // -1,-2,-3
+            Line(SourceLocation("", 4), "\tX: DD OFFSET X", Some(new Label("X")), Some(DD(List(Unary(Offset(), SymbolArg("X")))))), // 0
+            Line(SourceLocation("", 5), "\tDD OFFSET X, OFFSET X, OFFSET X", None, Some(DD(List(                                    // -1,-2,-3
                 Unary(Offset(), SymbolArg("X")),
                 Unary(Offset(), SymbolArg("X")),
                 Unary(Offset(), SymbolArg("X")))))),
