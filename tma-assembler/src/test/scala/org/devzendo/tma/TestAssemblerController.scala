@@ -39,11 +39,11 @@ class TestAssemblerController extends AssertionsForJUnit with MustMatchers {
 
     @Test
     def parserErrorsAccumulate(): Unit = {
-        controller.parseTextLine(1, "blarg") // unknown command
-        controller.parseTextLine(2, "fnord") // unknown command
-        controller.parseTextLine(3, "bigmac macro") // ok
-        controller.parseTextLine(4, "endm") // ok
-        controller.parseTextLine(5, "bigmac macro") // duplicate macro
+        controller.parseTextLine(SourceLocation("", 1), "blarg") // unknown command
+        controller.parseTextLine(SourceLocation("", 2), "fnord") // unknown command
+        controller.parseTextLine(SourceLocation("", 3), "bigmac macro") // ok
+        controller.parseTextLine(SourceLocation("", 4), "endm") // ok
+        controller.parseTextLine(SourceLocation("", 5), "bigmac macro") // duplicate macro
         val errors = controller.getParseExceptions.map((e: AssemblyParserException) => e.getMessage )
         errors must be(List(
             "1: Unknown statement 'blarg'",
@@ -67,16 +67,16 @@ class TestAssemblerController extends AssertionsForJUnit with MustMatchers {
         thrown.expect(classOf[RuntimeException])
         thrown.expectMessage("Parse errors; cannot continue")
 
-        controller.parseTextLine(1, "") // perfectly valid empty line, ensures there is at least one parsed line
-        controller.parseTextLine(2, "blarg") // unknown command
+        controller.parseTextLine(SourceLocation("", 1), "") // perfectly valid empty line, ensures there is at least one parsed line
+        controller.parseTextLine(SourceLocation("", 2), "blarg") // unknown command
 
         controller.generateModel()
     }
 
     @Test // indirect, avoids mocks, and the interface extraction they'd necessitate just to test.
     def generate(): Unit = {
-        controller.parseTextLine(1, "title 'hello world'")
-        controller.parseTextLine(2, "end")
+        controller.parseTextLine(SourceLocation("", 1), "title 'hello world'")
+        controller.parseTextLine(SourceLocation("", 2), "end")
         // not much of a program! tests that the parsed lines are passed to codegen though..
         val model = controller.generateModel()
         model.title must be("'hello world'")
@@ -84,7 +84,7 @@ class TestAssemblerController extends AssertionsForJUnit with MustMatchers {
 
     @Test // indirect, avoids mocks, and the interface extraction they'd necessitate just to test.
     def callsEndCheck(): Unit = {
-        controller.parseTextLine(1, "title 'hello world'")
+        controller.parseTextLine(SourceLocation("", 1), "title 'hello world'")
         // NO end statement
         // not much of a program! tests that the end check is called on codegen though..
         controller.generateModel()
