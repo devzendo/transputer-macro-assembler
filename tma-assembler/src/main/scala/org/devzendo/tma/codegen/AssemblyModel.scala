@@ -529,7 +529,7 @@ class AssemblyModel(debugCodegen: Boolean) {
         sourcedValuesForLineNumbers.remove(lineNumber)
     }
 
-    def allocateInstructionStorageForLine(line: Line, opbytes: List[Int]): Storage = {
+    def allocateInstructionStorageForLine(line: Line, lineIndex: Int, opbytes: List[Int]): Storage = {
         val lineNumber = line.location.lineNumber
         val existingSourcedValues = sourcedValuesArrayBufferForLineNumber(lineNumber)
 

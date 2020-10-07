@@ -155,7 +155,6 @@ class CodeGenerator(debugCodegen: Boolean, model: AssemblyModel) {
         }
 
         // What does this mean, in the context of nested include files that have more than one line number?
-        // LINENUMBER
         if (line.location.lineNumber > lastLineNumber) {
             lastLineNumber = line.location.lineNumber
         }
@@ -426,8 +425,8 @@ class CodeGenerator(debugCodegen: Boolean, model: AssemblyModel) {
             case Else() => processElse(line)
             case Endif() => processEndif(line)
             case DirectInstruction(_, opbyte, expr) => processDirectInstruction(line, lineIndex, stmt.asInstanceOf[DirectInstruction], opbyte, expr)
-            case DirectEncodedInstruction(_, opbytes) => model.allocateInstructionStorageForLine(line, opbytes)
-            case IndirectInstruction(_, opbytes) => model.allocateInstructionStorageForLine(line, opbytes)
+            case DirectEncodedInstruction(_, opbytes) => model.allocateInstructionStorageForLine(line, lineIndex, opbytes)
+            case IndirectInstruction(_, opbytes) => model.allocateInstructionStorageForLine(line, lineIndex, opbytes)
         }
     }
 
@@ -590,7 +589,7 @@ class CodeGenerator(debugCodegen: Boolean, model: AssemblyModel) {
 
                 logger.debug(s"Encoding direct instruction (non-convergence); original value to encode $value; after length adjustment $valueToEncode")
                 val prefixedBytes = DirectInstructionEncoder.apply(opbyte, valueToEncode)
-                model.allocateInstructionStorageForLine(line, prefixedBytes)
+                model.allocateInstructionStorageForLine(line, lineIndex, prefixedBytes)
             case Left(undefineds) =>
                 if (debugCodegen) {
                     logger.info("Symbol(s) (" + undefineds + ") are not yet defined on line " + lineNumber)

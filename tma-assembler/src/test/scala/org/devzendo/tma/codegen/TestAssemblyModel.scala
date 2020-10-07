@@ -1115,7 +1115,8 @@ class TestAssemblyModel extends AssertionsForJUnit with MustMatchers {
     def allocateInstructionStorageForLine(): Unit = {
         val bytes = List(0x29, 0x4c, 0x2a, 0xfb)
         val line5 = Line(SourceLocation("", 5), "fpuclrerr", None, Some(IndirectInstruction("FPUCLRERR", bytes)))
-        val storage = model.allocateInstructionStorageForLine(line5, bytes)
+        val lineIndex = 4
+        val storage = model.allocateInstructionStorageForLine(line5, lineIndex, bytes)
         storage.cellWidth must be(1)
         storage.address must be(0)
         storage.exprs must be (bytes map { Number }) // for completeness
