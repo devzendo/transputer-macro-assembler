@@ -8,7 +8,7 @@ of Microsoft MASM 5.1.
 It also supports the instruction set of the Inmos T414/T800/T801/T805 Transputer,
 when the .TRANSPUTER directive is given.
 
-(C) 2018-2019 Matt J. Gumbley
+(C) 2018-2020 Matt J. Gumbley
 matt.gumbley@devzendo.org
 @mattgumbley @devzendo
 http://devzendo.github.io/parachute
@@ -37,12 +37,12 @@ The assembler has built a binary of eForth without any parsing/code gen errors (
 to MASM! I can't generate a binary with MASM - linking fails - but the listing is sufficient for verification.
 
 Current work:
+  * INCLUDE, in lieu of building linkable object files
        
 Remaining work:
   * Escape codes do not work in DB strings? \12 ? \n ? \r ?
   * local labels
   * global and extern symbols
-  * INCLUDE, in lieu of building linkable object files
 
 * later....
   * ELF writing (or other object format: TCOFF?)  
