@@ -54,7 +54,7 @@ class TestCodeGeneratorConvergence extends CodeGeneratorFixture with SourcedValu
 
         // The LDC is encoded with the right size for the offest of L1 - there have been iterations to increase its
         // size from its initial length of 1 byte.
-        val line2Storages = model.getSourcedValuesForLineNumber(2)
+        val line2Storages = model.getSourcedValuesForLineIndex(1)
         line2Storages must have size 1
         val line2Storage = singleStorage(line2Storages)
         line2Storage.address must be(0)
@@ -62,7 +62,7 @@ class TestCodeGeneratorConvergence extends CodeGeneratorFixture with SourcedValu
         line2Storage.data.toList must be(List(0x21, 0x20, 0x44))
 
         // Statements that are not DirectInstructions (here's an IndirectInstruction, the LDPI)
-        val line3Storages = model.getSourcedValuesForLineNumber(3)
+        val line3Storages = model.getSourcedValuesForLineIndex(2)
         line3Storages must have size 1
         val line3Storage = singleStorage(line3Storages)
         line3Storage.address must be(3)
@@ -71,7 +71,7 @@ class TestCodeGeneratorConvergence extends CodeGeneratorFixture with SourcedValu
 
         // Each line (that generates storage) only generates one for the whole convergence - storages generated in
         // early iterations are removed.
-        val line5Storages = model.getSourcedValuesForLineNumber(5) // the DB hello world
+        val line5Storages = model.getSourcedValuesForLineIndex(4) // the DB hello world
         line5Storages.size must be (2) // a storage and a label
         val line5Storage = singleStorage(line5Storages)
         line5Storage.address must be(0x104)
@@ -95,7 +95,7 @@ class TestCodeGeneratorConvergence extends CodeGeneratorFixture with SourcedValu
         val model = generateFromLines(lines)
         showListing(model)
 
-        val line2Storages = model.getSourcedValuesForLineNumber(2)
+        val line2Storages = model.getSourcedValuesForLineIndex(1)
         line2Storages must have size 1
         val line2Storage = singleStorage(line2Storages)
         line2Storage.address must be(0)
@@ -163,7 +163,7 @@ class TestCodeGeneratorConvergence extends CodeGeneratorFixture with SourcedValu
         model.getLabel(CasedSymbolName("L1")) must be(expectedL1)
 
         // What is that DD now set to?
-        val line3Storages = model.getSourcedValuesForLineNumber(3)
+        val line3Storages = model.getSourcedValuesForLineIndex(2)
         line3Storages must have size 1
         val line3Storage = singleStorage(line3Storages)
         line3Storage.address must be(0x1000)
@@ -192,7 +192,7 @@ class TestCodeGeneratorConvergence extends CodeGeneratorFixture with SourcedValu
         model.getConstant(CasedSymbolName("C1")) must be(expectedC1)
 
         // What is that DD now set to?
-        val line3Storages = model.getSourcedValuesForLineNumber(3)
+        val line3Storages = model.getSourcedValuesForLineIndex(2)
         line3Storages must have size 1
         val line3Storage = singleStorage(line3Storages)
         line3Storage.address must be(0x1000)
@@ -221,7 +221,7 @@ class TestCodeGeneratorConvergence extends CodeGeneratorFixture with SourcedValu
         model.getConstant(CasedSymbolName("V1")) must be(expectedV1)
 
         // What is that DD now set to?
-        val line3Storages = model.getSourcedValuesForLineNumber(3)
+        val line3Storages = model.getSourcedValuesForLineIndex(2)
         line3Storages must have size 1
         val line3Storage = singleStorage(line3Storages)
         line3Storage.address must be(0x1000)
@@ -253,14 +253,14 @@ class TestCodeGeneratorConvergence extends CodeGeneratorFixture with SourcedValu
 
         // What is that AssignedValue now set to? There will be several, what's in the last (which will be what's in
         // the binary file)
-        val line3SourcedValues = model.getSourcedValuesForLineNumber(3)
+        val line3SourcedValues = model.getSourcedValuesForLineIndex(2)
         line3SourcedValues.foreach( (sv: SourcedValue) => logger.debug(s"L1COPY sourced value $sv"))
         line3SourcedValues must have size 5
         val line3AssignmentValue = lastAssignmentValue(line3SourcedValues)
         line3AssignmentValue.data must be(expectedL1)
 
         // What does L1COPY get stored as in the DD on line 8?
-        val line8SourcedValues = model.getSourcedValuesForLineNumber(8)
+        val line8SourcedValues = model.getSourcedValuesForLineIndex(7)
         line8SourcedValues.foreach( (sv: SourcedValue) => logger.debug(s"DD L1COPY sourced value $sv"))
         line8SourcedValues must have size 1
         val line8Storage = singleStorage(line8SourcedValues)
@@ -291,7 +291,7 @@ class TestCodeGeneratorConvergence extends CodeGeneratorFixture with SourcedValu
         model.getVariable(CasedSymbolName("L1COPY")) must be(firstL1)
 
         // What is that AssignedValue now set to?
-        val line3SourcedValues = model.getSourcedValuesForLineNumber(3)
+        val line3SourcedValues = model.getSourcedValuesForLineIndex(2)
         line3SourcedValues.foreach( (sv: SourcedValue) => logger.debug(s"L1COPY sourced value $sv"))
         line3SourcedValues must have size 1
         val line3AssignmentValue = singleAssignmentValue(line3SourcedValues)
@@ -323,7 +323,7 @@ class TestCodeGeneratorConvergence extends CodeGeneratorFixture with SourcedValu
         model.getVariable(CasedSymbolName("L1COPY")) must be(firstL1)
 
         // What is that DD now set to?
-        val line8Storages = model.getSourcedValuesForLineNumber(8)
+        val line8Storages = model.getSourcedValuesForLineIndex(7)
         line8Storages must have size 1
         val line8Storage = singleStorage(line8Storages)
         line8Storage.address must be(0x1110)

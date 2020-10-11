@@ -41,7 +41,7 @@ class CodeGenerator(debugCodegen: Boolean, model: AssemblyModel) {
 
     def getLastLineNumber: Int = lastLineNumber
 
-    private[codegen] var inputLines = mutable.ArrayBuffer[Line]()
+    private[codegen] var inputLines = mutable.ArrayBuffer[IndexedLine]()
 
     /* State maintained during converge mode - when building optimal encodings for direct instruction offsets of
      * forward-referenced symbols. Also see the AssemblyModel's converge mode flag that relaxes whether symbols can be
@@ -95,14 +95,17 @@ class CodeGenerator(debugCodegen: Boolean, model: AssemblyModel) {
     }
 
     def createModel(lines: List[Line]): AssemblyModel = {
-        // Store the lines in a mutable, random accessible form, as convergence needs them
+        // Store the lines in a mutable, random accessible form, as convergence needs them, and add their unique index.
         inputLines.clear()
-        inputLines ++= lines
+        lines.zipWithIndex.foreach { tuple: (Line, Int) =>
+            var line = tuple._1
+            inputLines += IndexedLine(tuple._2, line.location, line.text, line.label, line.stmt)
+        }
 
-        logger.info("Pass 1: Creating model from " + lines.size + " macro-expanded line(s)")
-        inputLines.zipWithIndex.foreach { tuple: (Line, Int) =>
+        logger.info("Pass 1: Creating model from " + inputLines.size + " macro-expanded/included line(s)")
+        for (indexedLine <- inputLines) {
             try {
-                processLine(tuple._1, tuple._2)
+                processLine(indexedLine)
             } catch {
                 case cge: CodeGenerationException => codeGenerationErrors += cge
             }
@@ -137,71 +140,71 @@ class CodeGenerator(debugCodegen: Boolean, model: AssemblyModel) {
         }
     }
 
-    private[codegen] def lineContainsDirectInstructionWithUndefinedSymbols(line: Line): Set[CasedSymbolName] = {
-        line.stmt match {
+    private[codegen] def lineContainsDirectInstructionWithUndefinedSymbols(indexedLine: IndexedLine): Set[CasedSymbolName] = {
+        indexedLine.stmt match {
             case Some(DirectInstruction(_, _, expr)) => model.findUndefineds(expr)
             case Some(_) => Set.empty
             case None => Set.empty
         }
     }
 
-    // Note the distinction between lineIndex (the monotonically increasing index into inputLines) and
-    // line.location.lineNumber (the human-understandable line number - the location in a source file, which could be
-    // nested in the case of include files, and could be duplicated within a consecutive range of lines in the case
-    // of macro expansions).
-    private def processLine(line: Line, lineIndex: Int): Unit = {
+    // Note the distinction between indexedLine.lineIndex (the monotonically increasing index into inputLines) and
+    // indexedLine.location.lineNumber (the human-understandable line number - the location in a source file, which
+    // could be nested in the case of include files, and could be duplicated within a consecutive range of lines in
+    // the case of macro expansions).
+    private def processLine(indexedLine: IndexedLine): Unit = {
         if (debugCodegen) {
-            logger.info("Line " + line.location.lineNumber + ": " + line.toString)
+            logger.info("Line " + indexedLine.location.lineNumber + ": " + indexedLine.toString)
         }
 
         // What does this mean, in the context of nested include files that have more than one line number?
-        if (line.location.lineNumber > lastLineNumber) {
-            lastLineNumber = line.location.lineNumber
+        if (indexedLine.location.lineNumber > lastLineNumber) {
+            lastLineNumber = indexedLine.location.lineNumber
         }
 
         try {
-            if (generationMode == GenerationMode.ElseSeen && notEndif(line)) {
+            if (generationMode == GenerationMode.ElseSeen && notEndif(indexedLine)) {
                 if (debugCodegen) {
-                    logger.info("Adding line to Pass 2 Collection: " + line)
+                    logger.info("Adding line to Pass 2 Collection: " + indexedLine)
                 }
-                currentP2Structure.addPass2Line((line, lineIndex))
+                currentP2Structure.addPass2Line(indexedLine)
             } else {
-                createLabel(line)
+                createLabel(indexedLine)
 
                 // Have we found the start of a range of lines that require convergence?
-                val directUndefineds = lineContainsDirectInstructionWithUndefinedSymbols(line)
+                val directUndefineds = lineContainsDirectInstructionWithUndefinedSymbols(indexedLine)
                 if (directUndefineds.nonEmpty) {
                     if (!convergeMode) {
                         convergeMode = true
                         startConvergeDollar = model.getDollar
                         directInstructionByLineIndex.clear()
-                        startConvergeLineIndex = lineIndex
-                        logger.debug("Start of convergable lines at line index " + lineIndex + " line number " + line.location.lineNumber + " $=" + HexDump.int2hex(startConvergeDollar))
+                        startConvergeLineIndex = indexedLine.lineIndex
+                        logger.debug("Start of convergable lines at line index " + indexedLine.lineIndex + " line number " + indexedLine.location.lineNumber + " $=" + HexDump.int2hex(startConvergeDollar))
                     }
                     logger.debug("Adding " + directUndefineds + " to converge symbol set")
                     symbolsToConverge ++= directUndefineds
                 }
 
-                val (modifiedLine, maybeStatement) = applyStatementTransformers(line)
-                model.addLine(modifiedLine)
+                val (modifiedIndexedLine, maybeStatement) = applyStatementTransformers(indexedLine)
+                model.addLine(modifiedIndexedLine)
 
                 // Convergence replays Lines - so if the Statement has been transformed, it must be replaced in its
                 // Line in the input..
                 // TODO this is an appalling code smell. too much mutable state...
-                inputLines(lineIndex) = modifiedLine
+                inputLines(indexedLine.lineIndex) = modifiedIndexedLine
 
                 maybeStatement.foreach {
-                    stmt: Statement => processStatement(modifiedLine, lineIndex, stmt)
+                    stmt: Statement => processStatement(modifiedIndexedLine, stmt)
                 }
 
                 // Has convergence ended? Resolve any label on this line.
-                modifiedLine.label.foreach((label: Label) => {
+                modifiedIndexedLine.label.foreach((label: Label) => {
                     resolveConvergeSetSymbol(CasedSymbolName(label))
                 })
 
                 if (convergeMode && symbolsToConverge.isEmpty) {
-                    endConvergeLineIndex = lineIndex
-                    logger.debug("End of convergable lines on line index " + lineIndex + " line number " + modifiedLine.location.lineNumber)
+                    endConvergeLineIndex = indexedLine.lineIndex
+                    logger.debug("End of convergable lines on line index " + indexedLine.lineIndex + " line number " + modifiedIndexedLine.location.lineNumber)
                     converge()
                     convergeMode = false
                 }
@@ -212,7 +215,7 @@ class CodeGenerator(debugCodegen: Boolean, model: AssemblyModel) {
             }
 
         } catch {
-            case ame: AssemblyModelException => throw new CodeGenerationException(line.location.lineNumber, ame.getMessage)
+            case ame: AssemblyModelException => throw new CodeGenerationException(indexedLine.location.lineNumber, ame.getMessage)
         }
     }
 
@@ -255,17 +258,18 @@ class CodeGenerator(debugCodegen: Boolean, model: AssemblyModel) {
             // At top of loop, clear down model storage for all lines - macro expansions mean that multiple entries
             // in inputLines could have the same line number. So only clear each line once, before reprocessing them
             // all, below.
-            // LINENUMBER - sourced values need to be referenced by line index, not number
-            lineNumbersInConvergence.foreach(lineNumber => model.clearSourcedValuesForLineNumber(lineNumber))
+            for (convergeLineIndex <- startConvergeLineIndex to endConvergeLineIndex) {
+                model.clearSourcedValuesForLineIndex(convergeLineIndex)
+            }
             // Convergence should only occur in pass 1. Pass 2 could add Storages that this would clear.
 
             for (lineIndex <- startConvergeLineIndex to endConvergeLineIndex) {
-                val line = inputLines(lineIndex)
+                val indexedLine = inputLines(lineIndex)
                 if (debugCodegen) {
-                    logger.info("Converging line index " + lineIndex + ": " + line)
+                    logger.info("Converging line index " + lineIndex + ": " + indexedLine)
                 }
 
-                createLabel(line) // update any label with current $
+                createLabel(indexedLine) // update any label with current $
                 val maybeElement = directInstructionByLineIndex.get(lineIndex)
                 maybeElement match {
                     case Some(DirectInstructionState(di: DirectInstruction, currentSize: Int)) =>
@@ -300,7 +304,7 @@ class CodeGenerator(debugCodegen: Boolean, model: AssemblyModel) {
                                     if (debugCodegen) {
                                         logger.debug("Defined: Storage size ok; allocating")
                                     }
-                                    model.allocateStorageForLine(line, 1, encoded map Number) // silently increments $
+                                    model.allocateStorageForLine(indexedLine, 1, encoded map Number) // silently increments $
                                 }
 
                             case Left(undefineds) =>
@@ -315,8 +319,8 @@ class CodeGenerator(debugCodegen: Boolean, model: AssemblyModel) {
                             logger.debug("Processing non-direct-instruction")
                         }
                         // NB Not processLineStatement as that adds the Line to the model, and it's already been added once.
-                        line.stmt.foreach((stmt: Statement) =>
-                            processStatement(line, lineIndex, stmt)
+                        indexedLine.stmt.foreach((stmt: Statement) =>
+                            processStatement(indexedLine, stmt)
                         )
                 }
             }
@@ -338,21 +342,21 @@ class CodeGenerator(debugCodegen: Boolean, model: AssemblyModel) {
         }
     }
 
-    private def notEndif(line: Line): Boolean = {
-        line.stmt match {
+    private def notEndif(indexedLine: IndexedLine): Boolean = {
+        indexedLine.stmt match {
             case Some(Endif()) => false
             case _ => true
         }
     }
 
-    private def createLabel(line: Line): Unit = {
-        line.label.foreach((label: Label) =>
-            model.setLabel(CasedSymbolName(label), model.getDollar, line)
+    private def createLabel(indexedLine: IndexedLine): Unit = {
+        indexedLine.label.foreach((label: Label) =>
+            model.setLabel(CasedSymbolName(label), model.getDollar, indexedLine)
         )
     }
 
-    private def applyStatementTransformers(line: Line): (Line, Option[Statement]) = {
-        line.stmt match {
+    private def applyStatementTransformers(indexedLine: IndexedLine): (IndexedLine, Option[Statement]) = {
+        indexedLine.stmt match {
             case Some(initialStmt) =>
                 // Apply all statement transformers to the statement...
                 try {
@@ -363,26 +367,26 @@ class CodeGenerator(debugCodegen: Boolean, model: AssemblyModel) {
 
                     if (stmt != initialStmt) {
                         if (debugCodegen) {
-                            logger.debug("Line " + line.location.lineNumber + " (Transformed): " + stmt)
+                            logger.debug("Line " + indexedLine.location.lineNumber + " (Transformed): " + stmt)
                         }
-                        val replacedLine = line.copy(stmt = Some(stmt))
+                        val replacedLine = indexedLine.copy(stmt = Some(stmt))
                         (replacedLine, Some(stmt))
                     } else {
-                        (line, Some(stmt))
+                        (indexedLine, Some(stmt))
                     }
 
                 } catch {
                     case ste: StatementTransformationException =>
                         logger.debug(s"Rethowing ${ste.getMessage}")
-                        throw new CodeGenerationException(line.location.lineNumber, ste.getMessage)
+                        throw new CodeGenerationException(indexedLine.location.lineNumber, ste.getMessage)
                 }
             case None =>
-                (line, None)
+                (indexedLine, None)
         }
     }
 
-    private def processStatement(line: Line, lineIndex: Int, stmt: Statement): Unit = {
-        val lineNumber = line.location.lineNumber
+    private def processStatement(indexedLine: IndexedLine, stmt: Statement): Unit = {
+        val lineNumber = indexedLine.location.lineNumber
 
         // Pass 2 fixups run after pass 1 (duh!), and require processing of statements after this check would have
         // triggered in pass 1.
@@ -405,32 +409,32 @@ class CodeGenerator(debugCodegen: Boolean, model: AssemblyModel) {
                     case "386" => Endianness.Little
                     case "TRANSPUTER" => Endianness.Little
                 }
-            case Align(n) => processAlign(line, n)
-            case Org(expr) => processOrg(line, expr)
-            case End(expr) => processEnd(line, expr)
-            case ConstantAssignment(name, expr) => processConstantAssignment(line, name, expr)
-            case VariableAssignment(name, expr) => processVariableAssignment(line, name, expr)
+            case Align(n) => processAlign(indexedLine, n)
+            case Org(expr) => processOrg(indexedLine, expr)
+            case End(expr) => processEnd(indexedLine, expr)
+            case ConstantAssignment(name, expr) => processConstantAssignment(indexedLine, name, expr)
+            case VariableAssignment(name, expr) => processVariableAssignment(indexedLine, name, expr)
             case Ignored() => // Do nothing
             case MacroStart(_, _) =>  // All macro AST statements are handled by the parser; the expansions are handled
             case MacroBody(_) =>      // by the rest of the AST statement handlers, here..
             case MacroEnd() =>        // So, do nothing...
             case MacroInvocation(_, _) => // Non-macro statements would follow after an invocation, unless it's an empty macro.
-            case DB(exprs) => model.allocateStorageForLine(line, 1, exprs)
-            case DW(exprs) => model.allocateStorageForLine(line, 2, exprs)
-            case DD(exprs) => model.allocateStorageForLine(line, 4, exprs)
+            case DB(exprs) => model.allocateStorageForLine(indexedLine, 1, exprs)
+            case DW(exprs) => model.allocateStorageForLine(indexedLine, 2, exprs)
+            case DD(exprs) => model.allocateStorageForLine(indexedLine, 4, exprs)
             case DBDup(_, _) => // Will have been transformed into DB by OffsetTransformer
             case DWDup(_, _) => // Will have been transformed into DW by OffsetTransformer
             case DDDup(_, _) => // Will have been transformed into DD by OffsetTransformer
             case If1() => processIf1()
-            case Else() => processElse(line)
-            case Endif() => processEndif(line)
-            case DirectInstruction(_, opbyte, expr) => processDirectInstruction(line, lineIndex, stmt.asInstanceOf[DirectInstruction], opbyte, expr)
-            case DirectEncodedInstruction(_, opbytes) => model.allocateInstructionStorageForLine(line, lineIndex, opbytes)
-            case IndirectInstruction(_, opbytes) => model.allocateInstructionStorageForLine(line, lineIndex, opbytes)
+            case Else() => processElse(indexedLine)
+            case Endif() => processEndif(indexedLine)
+            case DirectInstruction(_, opbyte, expr) => processDirectInstruction(indexedLine, stmt.asInstanceOf[DirectInstruction], opbyte, expr)
+            case DirectEncodedInstruction(_, opbytes) => model.allocateInstructionStorageForLine(indexedLine, opbytes)
+            case IndirectInstruction(_, opbytes) => model.allocateInstructionStorageForLine(indexedLine, opbytes)
         }
     }
 
-    private def processAlign(line: Line, alignment: Int): Unit = {
+    private def processAlign(indexedLine: IndexedLine, alignment: Int): Unit = {
         val dollar = model.getDollar
         val remainder = dollar % alignment
         if (remainder > 0) {
@@ -442,8 +446,8 @@ class CodeGenerator(debugCodegen: Boolean, model: AssemblyModel) {
         }
     }
 
-    private def processOrg(line: Line, expr: Expression): Unit = {
-        val lineNumber = line.location.lineNumber
+    private def processOrg(indexedLine: IndexedLine, expr: Expression): Unit = {
+        val lineNumber = indexedLine.location.lineNumber
         if (expressionContainsCharacters(expr)) {
             throw new CodeGenerationException(lineNumber, "Origin cannot be set to a Character expression '" + expr + "'")
         }
@@ -455,17 +459,17 @@ class CodeGenerator(debugCodegen: Boolean, model: AssemblyModel) {
                 if (debugCodegen) {
                     logger.info("Org: " + HexDump.int2hex(org))
                 }
-                model.setDollar(org, line)
+                model.setDollar(org, indexedLine)
         }
     }
 
-    private def processEnd(line: Line, expr: Option[Expression]): Unit = {
+    private def processEnd(indexedLine: IndexedLine, expr: Option[Expression]): Unit = {
         model.endHasBeenSeen()
     }
 
-    private def processConstantAssignment(line: Line, name: SymbolName, expr: Expression): Unit = {
+    private def processConstantAssignment(indexedLine: IndexedLine, name: SymbolName, expr: Expression): Unit = {
         val casedName = CasedSymbolName(name)
-        val lineNumber = line.location.lineNumber
+        val lineNumber = indexedLine.location.lineNumber
         if (expressionContainsCharacters(expr)) {
             throw new CodeGenerationException(lineNumber, "Constant cannot be set to a Character expression '" + expr + "'")
         }
@@ -475,16 +479,16 @@ class CodeGenerator(debugCodegen: Boolean, model: AssemblyModel) {
                 if (debugCodegen) {
                     logger.info("Cannot set constant " + casedName + " to expression " + expr + " due to undefined symbols " + undefinedSymbols + " on line number " + lineNumber)
                 }
-                model.recordSymbolForwardReferences(undefinedSymbols, casedName, expr, line, SymbolType.Constant)
+                model.recordSymbolForwardReferences(undefinedSymbols, casedName, expr, indexedLine, SymbolType.Constant)
             case Right(value) =>
-                model.setConstant(casedName, value, line)
+                model.setConstant(casedName, value, indexedLine)
                 resolveConvergeSetSymbol(casedName)
         }
     }
 
-    private def processVariableAssignment(line: Line, name: SymbolName, expr: Expression): Unit = {
+    private def processVariableAssignment(indexedLine: IndexedLine, name: SymbolName, expr: Expression): Unit = {
         val casedName = CasedSymbolName(name)
-        val lineNumber = line.location.lineNumber
+        val lineNumber = indexedLine.location.lineNumber
         if (expressionContainsCharacters(expr)) {
             throw new CodeGenerationException(lineNumber, "Variable cannot be set to a Character expression '" + expr + "'")
         }
@@ -494,9 +498,9 @@ class CodeGenerator(debugCodegen: Boolean, model: AssemblyModel) {
                 if (debugCodegen) {
                     logger.info("Cannot set variable " + casedName + " to expression " + expr + " due to undefined symbols " + undefineds + " on line number " + lineNumber)
                 }
-                model.recordSymbolForwardReferences(undefineds, casedName, expr, line, SymbolType.Variable)
+                model.recordSymbolForwardReferences(undefineds, casedName, expr, indexedLine, SymbolType.Variable)
             case Right(value) =>
-                model.setVariable(casedName, value, line)
+                model.setVariable(casedName, value, indexedLine)
                 resolveConvergeSetSymbol(casedName)
         }
     }
@@ -522,9 +526,9 @@ class CodeGenerator(debugCodegen: Boolean, model: AssemblyModel) {
         generationMode = GenerationMode.If1Seen
     }
 
-    private def processElse(line: Line): Unit = {
+    private def processElse(indexedLine: IndexedLine): Unit = {
         if (generationMode != GenerationMode.If1Seen) {
-            throw new CodeGenerationException(line.location.lineNumber, "Else seen without prior If1")
+            throw new CodeGenerationException(indexedLine.location.lineNumber, "Else seen without prior If1")
         }
         val dollar = model.getDollar
         if (debugCodegen) {
@@ -537,9 +541,9 @@ class CodeGenerator(debugCodegen: Boolean, model: AssemblyModel) {
         generationMode = GenerationMode.ElseSeen
     }
 
-    private def processEndif(line: Line): Unit = {
+    private def processEndif(indexedLine: IndexedLine): Unit = {
         if (generationMode != GenerationMode.If1Seen && generationMode != GenerationMode.ElseSeen) {
-            throw new CodeGenerationException(line.location.lineNumber, "Endif seen without prior If1")
+            throw new CodeGenerationException(indexedLine.location.lineNumber, "Endif seen without prior If1")
         }
         if (debugCodegen) {
             logger.info("Storing collected Pass 2 Lines in Endif; switching to Pass 1 Line Assembly")
@@ -560,16 +564,16 @@ class CodeGenerator(debugCodegen: Boolean, model: AssemblyModel) {
             // for diagnostics..
             if (p2Lines.nonEmpty) {
                 model.setDollarSilently(p2.getStartAddress)
-                for (line <- p2Lines) {
+                for (indexedLine <- p2Lines) {
                     // This will possibly append Storages at existing addresses - these will be resolved sequentially
                     // overwriting earlier memory, in the writers.
-                    processLine(line._1, line._2)
+                    processLine(indexedLine)
                 }
 
                 // Current address must match end address of pass 1. If not, the blocks are different sizes.
                 val endAddressPass2 = model.getDollar
                 if (endAddressPass2 != p2.getEndAddress) {
-                    throw new CodeGenerationException(p2Lines.head._1.location.lineNumber, "Differently-sized blocks in Passes 1 and 2: Pass 1=" +
+                    throw new CodeGenerationException(p2Lines.head.location.lineNumber, "Differently-sized blocks in Passes 1 and 2: Pass 1=" +
                       (p2.getEndAddress - p2.getStartAddress) + " byte(s); Pass 2=" +
                       (endAddressPass2 - p2.getStartAddress) + " byte(s)")
                 }
@@ -577,8 +581,8 @@ class CodeGenerator(debugCodegen: Boolean, model: AssemblyModel) {
         }
     }
 
-    private def processDirectInstruction(line: Line, lineIndex: Int, di: DirectInstruction, opbyte: Int, expr: Expression): Unit = {
-        val lineNumber = line.location.lineNumber
+    private def processDirectInstruction(indexedLine: IndexedLine, di: DirectInstruction, opbyte: Int, expr: Expression): Unit = {
+        val lineNumber = indexedLine.location.lineNumber
         val evaluation = model.evaluateExpression(expr)
         evaluation match {
             case Right(value) =>
@@ -589,13 +593,13 @@ class CodeGenerator(debugCodegen: Boolean, model: AssemblyModel) {
 
                 logger.debug(s"Encoding direct instruction (non-convergence); original value to encode $value; after length adjustment $valueToEncode")
                 val prefixedBytes = DirectInstructionEncoder.apply(opbyte, valueToEncode)
-                model.allocateInstructionStorageForLine(line, lineIndex, prefixedBytes)
+                model.allocateInstructionStorageForLine(indexedLine, prefixedBytes)
             case Left(undefineds) =>
                 if (debugCodegen) {
                     logger.info("Symbol(s) (" + undefineds + ") are not yet defined on line " + lineNumber)
-                    logger.info("Storing undefined direct instruction " + di + " on line index " + lineIndex)
+                    logger.info("Storing undefined direct instruction " + di + " on line index " + indexedLine.lineIndex)
                 }
-                directInstructionByLineIndex.put(lineIndex, DirectInstructionState(di, 1))
+                directInstructionByLineIndex.put(indexedLine.lineIndex, DirectInstructionState(di, 1))
                 model.incrementDollar(1)
         }
     }

@@ -28,11 +28,11 @@ object Endianness extends Enumeration {
     val Little, Big = Value
 }
 
-sealed abstract class SourcedValue(val line: Line)
+sealed abstract class SourcedValue(val indexedLine: IndexedLine)
 // Macro expansions have the same line number as their invocation; hence line number -> list[storage+]
-case class Storage(address: Int, cellWidth: Int, data: Array[Int], override val line: Line, exprs: List[Expression]) extends SourcedValue(line)
+case class Storage(address: Int, cellWidth: Int, data: Array[Int], override val indexedLine: IndexedLine, exprs: List[Expression]) extends SourcedValue(indexedLine)
 // Constant and Variable assignments are recalled against the line that sets them to a particular value
-case class AssignmentValue(data: Int, override val line: Line, symbolType: SymbolType.Value) extends SourcedValue(line)
+case class AssignmentValue(data: Int, override val indexedLine: IndexedLine, symbolType: SymbolType.Value) extends SourcedValue(indexedLine)
 
 case class SymbolTableEntry(casedSymbolName: CasedSymbolName, value: Int)
 
@@ -44,7 +44,7 @@ object SymbolType extends Enumeration {
     val Variable, Constant, Label = Value
 }
 
-case class UnresolvableSymbol(line: Line, symbolType: SymbolType.Value, casedSymbolName: CasedSymbolName, expr: Expression)
+case class UnresolvableSymbol(indexedLine: IndexedLine, symbolType: SymbolType.Value, casedSymbolName: CasedSymbolName, expr: Expression)
 
 class SymbolForwardReferenceFixupState {
 
@@ -72,7 +72,7 @@ class SymbolForwardReferenceFixups {
             logger.debug(s"Undefined Symbol ${entry._1}; Resolution Count: ${entry._2.resolutionCount}")
             val references = entry._2.unresolvableSymbols
             references.foreach((us: UnresolvableSymbol) => {
-                logger.debug(s"  Unresolvable ${us.symbolType} ${us.casedSymbolName} line number ${us.line.location.lineNumber}")
+                logger.debug(s"  Unresolvable ${us.symbolType} ${us.casedSymbolName} line number ${us.indexedLine.location.lineNumber}")
             })
         }
         map.foreach (logEntry)
@@ -195,12 +195,12 @@ class AssemblyModel(debugCodegen: Boolean) {
     // All incoming Lines (original-in-source and macro expansion lines) are appended here after they have been
     // transformed by any StatementTransformers. Recall that macro expansion lines will have the same line number as
     // original-in-source lines.
-    private val lines = mutable.ArrayBuffer[Line]()
+    private val lines = mutable.ArrayBuffer[IndexedLine]()
     // SourcedValues has a reference to its Line, so when the map of Undefined forward references -> Set[Storage]
     // is scanned at the end of the codegen phase, each Storage can show the Line on which the forward reference is.
-    private val sourcedValuesForLineNumbers = mutable.HashMap[Int, mutable.ArrayBuffer[SourcedValue]]() // indexed by line number
+    private val sourcedValuesForLineIndices = mutable.HashMap[Int, mutable.ArrayBuffer[SourcedValue]]() // indexed by line number
     // And it's a map, since it's likely to be sparsely populated (not every line generates Storage)
-    // Recall that macro expansions could lead to multiple entries here for a given line number, hence the ArrayBuffer.
+    // Recall that macro expansions could lead to multiple entries here with the same line number, hence the ArrayBuffer.
 
     // Forward references are only resolved for Storages and Constants.
 
@@ -220,8 +220,8 @@ class AssemblyModel(debugCodegen: Boolean) {
     setDollarSilently(0)
 
     def getDollar: Int = getVariable(dollar)
-    def setDollar(n: Int, line: Line): Unit = {
-        setVariable(dollar, n, line)
+    def setDollar(n: Int, indexedLine: IndexedLine): Unit = {
+        setVariable(dollar, n, indexedLine)
     }
     def setDollarSilently(n: Int): Unit = {
         // Set $ without storing back reference to a Line, since there isn't one.
@@ -238,8 +238,8 @@ class AssemblyModel(debugCodegen: Boolean) {
     def variable(casedSymbolName: CasedSymbolName): Option[Int] = {
         maybeSymbol(SymbolType.Variable, casedSymbolName)
     }
-    def setVariable(casedSymbolName: CasedSymbolName, n: Int, line: Line): Unit = {
-        setVariableInternal(n, line, casedSymbolName, SymbolType.Variable)
+    def setVariable(casedSymbolName: CasedSymbolName, n: Int, indexedLine: IndexedLine): Unit = {
+        setVariableInternal(n, indexedLine, casedSymbolName, SymbolType.Variable)
     }
 
     def getConstant(casedSymbolName: CasedSymbolName): Int = {
@@ -248,8 +248,8 @@ class AssemblyModel(debugCodegen: Boolean) {
     def constant(casedSymbolName: CasedSymbolName): Option[Int] = {
         maybeSymbol(SymbolType.Constant, casedSymbolName)
     }
-    def setConstant(casedSymbolName: CasedSymbolName, n: Int, line: Line): Unit = {
-        setConstantOrLabelInternal(n, line, casedSymbolName, SymbolType.Constant)
+    def setConstant(casedSymbolName: CasedSymbolName, n: Int, indexedLine: IndexedLine): Unit = {
+        setConstantOrLabelInternal(n, indexedLine, casedSymbolName, SymbolType.Constant)
     }
 
     def getLabel(casedSymbolName: CasedSymbolName): Int = {
@@ -258,32 +258,32 @@ class AssemblyModel(debugCodegen: Boolean) {
     def label(casedSymbolName: CasedSymbolName): Option[Int] =  {
         maybeSymbol(SymbolType.Label, casedSymbolName)
     }
-    def setLabel(casedSymbolName: CasedSymbolName, n: Int, line: Line): Unit = {
-        setConstantOrLabelInternal(n, line, casedSymbolName, SymbolType.Label)
+    def setLabel(casedSymbolName: CasedSymbolName, n: Int, indexedLine: IndexedLine): Unit = {
+        setConstantOrLabelInternal(n, indexedLine, casedSymbolName, SymbolType.Label)
     }
 
-    private def setVariableInternal(n: Int, line: Line, casedSymbolName: CasedSymbolName, symbolType: SymbolType.Value): Unit = {
+    private def setVariableInternal(n: Int, indexedLine: IndexedLine, casedSymbolName: CasedSymbolName, symbolType: SymbolType.Value): Unit = {
         symbols.get(casedSymbolName) match {
             case Some(Value(_, `symbolType`, _)) => // drop through to reassign
             case Some(sym) => throw new AssemblyModelException(symbolType + " '" + casedSymbolName + "' cannot override existing " + sym.symbolType.toString.toLowerCase + "; initially defined on line " + sym.definitionLine)
             case None => // drop through
         }
-        storeSymbolInternal(n, line, casedSymbolName, symbolType)
+        storeSymbolInternal(n, indexedLine, casedSymbolName, symbolType)
     }
 
-    private def setConstantOrLabelInternal(n: Int, line: Line, casedSymbolName: CasedSymbolName, symbolType: SymbolType.Value): Unit = {
+    private def setConstantOrLabelInternal(n: Int, indexedLine: IndexedLine, casedSymbolName: CasedSymbolName, symbolType: SymbolType.Value): Unit = {
         // Allow replacement...
         if (convergeMode && symbolExists(symbolType, casedSymbolName))
             symbols.remove(casedSymbolName)
         symbols.get(casedSymbolName) match {
             case Some(sym) => throw new AssemblyModelException(symbolType + " '" + casedSymbolName + "' cannot override existing " + sym.symbolType.toString.toLowerCase + "; defined on line " + sym.definitionLine)
-            case None => storeSymbolInternal(n, line, casedSymbolName, symbolType)
+            case None => storeSymbolInternal(n, indexedLine, casedSymbolName, symbolType)
         }
     }
 
-    private def storeSymbolInternal(n: Int, line: Line, casedSymbolName: CasedSymbolName, symbolType: SymbolType.Value): Unit = {
-        symbols.put(casedSymbolName, Value(n, symbolType, line.location.lineNumber))
-        sourcedValuesArrayBufferForLineNumber(line.location.lineNumber) += AssignmentValue(n, line, symbolType)
+    private def storeSymbolInternal(n: Int, indexedLine: IndexedLine, casedSymbolName: CasedSymbolName, symbolType: SymbolType.Value): Unit = {
+        symbols.put(casedSymbolName, Value(n, symbolType, indexedLine.location.lineNumber))
+        sourcedValuesArrayBufferForLineIndex(indexedLine.lineIndex) += AssignmentValue(n, indexedLine, symbolType)
         if (debugCodegen) {
             logger.info(symbolType + " " + casedSymbolName + " = " + n)
         }
@@ -427,16 +427,16 @@ class AssemblyModel(debugCodegen: Boolean) {
         }
     }
 
-    def addLine(line: Line): Unit = {
-        lines += line
+    def addLine(indexedLine: IndexedLine): Unit = {
+        lines += indexedLine
     }
 
-    def getSourcedValuesForLineNumber(lineNumber: Int): List[SourcedValue] = {
-        sourcedValuesForLineNumbers.getOrElse(lineNumber, ArrayBuffer[SourcedValue]()).toList
+    def getSourcedValuesForLineIndex(lineIndex: Int): List[SourcedValue] = {
+        sourcedValuesForLineIndices.getOrElse(lineIndex, ArrayBuffer[SourcedValue]()).toList
     }
 
-    private def sourcedValuesArrayBufferForLineNumber(lineNumber: Int) = {
-        sourcedValuesForLineNumbers.getOrElseUpdate(lineNumber, mutable.ArrayBuffer[SourcedValue]())
+    private def sourcedValuesArrayBufferForLineIndex(lineIndex: Int) = {
+        sourcedValuesForLineIndices.getOrElseUpdate(lineIndex, mutable.ArrayBuffer[SourcedValue]())
     }
 
     private def getUnsignedInt(x: Int): Long = x & 0x00000000ffffffffL
@@ -467,15 +467,15 @@ class AssemblyModel(debugCodegen: Boolean) {
         })
     }
 
-    def allocateStorageForLine(line: Line, cellWidth: Int, exprs: List[Expression]): Storage = {
-        val lineNumber = line.location.lineNumber
-        val existingSourcedValues = sourcedValuesArrayBufferForLineNumber(lineNumber)
+    def allocateStorageForLine(indexedLine: IndexedLine, cellWidth: Int, exprs: List[Expression]): Storage = {
+        val lineNumber = indexedLine.location.lineNumber
+        val existingSourcedValues = sourcedValuesArrayBufferForLineIndex(indexedLine.lineIndex)
         // The incoming exprs will need evaluating to numbers that are stored in the Storage's data field. Most
         // expressions are evaluated to a single number, but Characters are evaluated to multiple. So expand all
         // elements of a Characters expression to an individual Number.
         val characterExpandedExprs = expandCharacterExpressions(exprs)
 
-        val storage = Storage(getDollar, cellWidth, Array.ofDim[Int](characterExpandedExprs.size), line, characterExpandedExprs)
+        val storage = Storage(getDollar, cellWidth, Array.ofDim[Int](characterExpandedExprs.size), indexedLine, characterExpandedExprs)
         existingSourcedValues += storage
 
         // Evaluate expressions, storing, or record forward references if symbols are undefined at the moment.
@@ -522,18 +522,18 @@ class AssemblyModel(debugCodegen: Boolean) {
         }
     }
 
-    def clearSourcedValuesForLineNumber(lineNumber: Int): Unit = {
+    def clearSourcedValuesForLineIndex(lineIndex: Int): Unit = {
         if (debugCodegen) {
-            logger.debug("Clearing sourced values for line number " + lineNumber)
+            logger.debug("Clearing sourced values for line index " + lineIndex)
         }
-        sourcedValuesForLineNumbers.remove(lineNumber)
+        sourcedValuesForLineIndices.remove(lineIndex)
     }
 
-    def allocateInstructionStorageForLine(line: Line, lineIndex: Int, opbytes: List[Int]): Storage = {
-        val lineNumber = line.location.lineNumber
-        val existingSourcedValues = sourcedValuesArrayBufferForLineNumber(lineNumber)
+    def allocateInstructionStorageForLine(indexedLine: IndexedLine, opbytes: List[Int]): Storage = {
+        val lineNumber = indexedLine.location.lineNumber
+        val existingSourcedValues = sourcedValuesArrayBufferForLineIndex(indexedLine.lineIndex)
 
-        val storage = Storage(getDollar, 1, opbytes.toArray, line, opbytes map { Number })
+        val storage = Storage(getDollar, 1, opbytes.toArray, indexedLine, opbytes map { Number })
         existingSourcedValues += storage
 
         validateDataSizes(lineNumber, storage.data, 1) // they should be instruction bytes, so this shouldn't fail
@@ -547,29 +547,29 @@ class AssemblyModel(debugCodegen: Boolean) {
     // back-references to its originating Line. (Which will be the Line of the first argument.)
     // Each Line can have more than one SourcedValue: e.g. a Label on the same line as a DB generates an AssignmentValue
     // and a Storage.
-    def foreachLineSourcedValues(op: (Line, List[SourcedValue]) => Unit): Unit = {
-        for (line <- lines) { // can have many macro expanded lines' storages for this line number
-            val lineNumber = line.location.lineNumber
-            val sourcedValues = getSourcedValuesForLineNumber(lineNumber)
-            val sourcedValuesForThisLine = sourcedValues.filter((s: SourcedValue) => {s.line == line}) // NB: don't compare on line number!
+    def foreachLineSourcedValues(op: (IndexedLine, List[SourcedValue]) => Unit): Unit = {
+        lines.foreach { indexedLine: IndexedLine =>
+            // NB: can have many macro expanded lines' storages for each line number
+            val sourcedValues = getSourcedValuesForLineIndex(indexedLine.lineIndex)
+            val sourcedValuesForThisLine = sourcedValues.filter((s: SourcedValue) => {s.indexedLine == indexedLine}) // NB: don't compare on line number!
 
-            op(line, sourcedValuesForThisLine)
+            op(indexedLine, sourcedValuesForThisLine)
 
-            // So: line is the original Line, sourcedValues(x).line is always the Line that caused it, could be the original
-            // Line or a macro expansion from it
-            // And: sourcedValues could be empty, if there's no sourced value for Line
+            // So: indexedLine is the original Line, sourcedValues(x).indexedLine is always the IndexedLine that caused
+            // it, could be the original line or a macro expansion from it
+            // And: sourcedValues could be empty, if there's no sourced value for IndexedLine
         }
     }
 
-    def allLines(): List[Line] = {
+    def allLines(): List[IndexedLine] = {
         lines.toList
     }
 
-    // Note, this does not get you the original-in-source Lines, only those Lines that have had Storage allocated.
+    // Note, this does not get you the original-in-source IndexedLines, only those Lines that have had Storage allocated.
     def foreachSourcedValue(op: (Int, List[SourcedValue]) => Unit): Unit = {
-        val lineNumbers = sourcedValuesForLineNumbers.keySet.toList.sorted
-        lineNumbers.foreach(num => {
-            val sourcedValues = getSourcedValuesForLineNumber(num)
+        val lineIndices = sourcedValuesForLineIndices.keySet.toList.sorted
+        lineIndices.foreach(num => {
+            val sourcedValues = getSourcedValuesForLineIndex(num)
 
             op(num, sourcedValues)
         })
@@ -586,8 +586,9 @@ class AssemblyModel(debugCodegen: Boolean) {
     // unresolvableSymbolName=A, unresolvableExpr=B+C*2, undefinedSymbols={B,C},
     // unresolvableSymbolType=Constant and line = (5, "A EQU B+C*2", None, Some(unresolvableExpr)) (etc.)
     def recordSymbolForwardReferences(undefinedSymbols: Set[CasedSymbolName], unresolvableSymbolName: CasedSymbolName,
-                                      unresolvableExpr: Expression, line: Line, unresolvableSymbolType: SymbolType.Value): Unit = {
-        val unresolvableSymbol = UnresolvableSymbol(line, unresolvableSymbolType, unresolvableSymbolName, unresolvableExpr)
+                                      unresolvableExpr: Expression, indexedLine: IndexedLine,
+                                      unresolvableSymbolType: SymbolType.Value): Unit = {
+        val unresolvableSymbol = UnresolvableSymbol(indexedLine, unresolvableSymbolType, unresolvableSymbolName, unresolvableExpr)
         for (undefinedSymbol <- undefinedSymbols) {
             if (debugCodegen) {
                 logger.info(s"Recording symbol $unresolvableSymbolName's forward reference to $undefinedSymbol")
@@ -631,7 +632,7 @@ class AssemblyModel(debugCodegen: Boolean) {
             }
             for (storage <- storagesWithForwardReferences) {
                 if (debugCodegen) {
-                    logger.info("Resolving on line " + storage.line.location.lineNumber)
+                    logger.info("Resolving on line " + storage.indexedLine.location.lineNumber)
                 }
 
                 // Re-evaluate expressions, storing, and removing the forward reference.
@@ -656,7 +657,7 @@ class AssemblyModel(debugCodegen: Boolean) {
             for (unresolvableSymbol <- unresolvableSymbols) {
                 if (debugCodegen) {
                     logger.info("Resolving " + unresolvableSymbol.symbolType + " " +
-                      unresolvableSymbol.casedSymbolName + " on line " + unresolvableSymbol.line.location.lineNumber)
+                      unresolvableSymbol.casedSymbolName + " on line " + unresolvableSymbol.indexedLine.location.lineNumber)
                 }
 
                 // Re-evaluate expressions, setting variable or constant, and removing the forward reference if it's a
@@ -665,14 +666,14 @@ class AssemblyModel(debugCodegen: Boolean) {
                     case Right(result) =>
                         unresolvableSymbol.symbolType match {
                             case SymbolType.Constant =>
-                                setConstant(unresolvableSymbol.casedSymbolName, result, unresolvableSymbol.line)
+                                setConstant(unresolvableSymbol.casedSymbolName, result, unresolvableSymbol.indexedLine)
                                 // When Converging, constant changes are tracked, so keep the
                                 // unresolvableSymbolReference in the fixup map.
                                 if (debugCodegen) {
                                     logger.debug(s"${unresolvableSymbol.casedSymbolName} is a Constant so not removing from fixup map, so convergence will track changes")
                                 }
                             case SymbolType.Variable =>
-                                setVariable(unresolvableSymbol.casedSymbolName, result, unresolvableSymbol.line)
+                                setVariable(unresolvableSymbol.casedSymbolName, result, unresolvableSymbol.indexedLine)
                                 // When Converging, variable changes are not tracked, so remove the
                                 // unresolvableSymbolReference in the fixup map, now that it has been set initially.
                                 if (debugCodegen) {
@@ -713,7 +714,7 @@ class AssemblyModel(debugCodegen: Boolean) {
             })
             val allStorageNamesAndLineReferences = undefinedSymbolNamesSorted.map((usn: CasedSymbolName) => {
                 val storageSet = unresolvedStorages(usn)
-                val storageLinesSorted = storageSet.map(_.line.location.lineNumber).toList.sorted
+                val storageLinesSorted = storageSet.map(_.indexedLine.location.lineNumber).toList.sorted
                 val storageLineReferences = storageLinesSorted.map("#" + _).mkString(", ")
                 val storageNameAndLineReferences = usn + ": " + storageLineReferences
 
@@ -731,7 +732,7 @@ class AssemblyModel(debugCodegen: Boolean) {
             })
             val allStorageNamesAndLineReferences = undefinedSymbolNamesSorted.map((usn: CasedSymbolName) => {
                 val unresolvableSymbols = unresolvedSymbols(usn).unresolvableSymbols
-                val unresolvableSymbolLinesSorted = unresolvableSymbols.map(_.line.location.lineNumber).toList.sorted
+                val unresolvableSymbolLinesSorted = unresolvableSymbols.map(_.indexedLine.location.lineNumber).toList.sorted
                 val unresolvableSymbolLineReferences = unresolvableSymbolLinesSorted.map("#" + _).mkString(", ")
                 val unresolvableSymbolNameAndLineReferences = usn + ": " + unresolvableSymbolLineReferences
 
@@ -753,10 +754,10 @@ class AssemblyModel(debugCodegen: Boolean) {
 
     private def calculateBounds(): Unit = {
         if ((lowStorageAddress, highStorageAddress) == (0, 0)) {
-            if (sourcedValuesForLineNumbers.nonEmpty) {
+            if (sourcedValuesForLineIndices.nonEmpty) {
                 lowStorageAddress = Int.MaxValue
                 highStorageAddress = Int.MinValue
-                for (sourcedValues <- sourcedValuesForLineNumbers.values) {
+                for (sourcedValues <- sourcedValuesForLineIndices.values) {
                     for (sourcedValue <- sourcedValues) {
                         sourcedValue match {
                             case storage: Storage =>
@@ -791,9 +792,9 @@ class AssemblyModel(debugCodegen: Boolean) {
 
     def dump(): Unit = {
         // Uses lines storage
-        foreachLineSourcedValues((line: Line, sourcedValues: List[SourcedValue]) => {
+        foreachLineSourcedValues((indexedLine: IndexedLine, sourcedValues: List[SourcedValue]) => {
             logger.debug("----------")
-            logger.debug(s"line $line")
+            logger.debug(s"line $indexedLine")
             for (sv <- sourcedValues) {
                 sv match {
                     case st: Storage =>

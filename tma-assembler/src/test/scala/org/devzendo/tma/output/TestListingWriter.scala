@@ -164,8 +164,8 @@ class TestListingWriter extends TempFolder with AssertionsForJUnit with MustMatc
     @Test
     def dontPadIfWrittenLinesCompletelyFillThePage(): Unit = {
         model.rows = 5
-        for (index <- 1 to model.rows - 2) { // - 2 due to header/title
-            val line = Line(SourceLocation("", index), "", None, None)
+        for (lineNumber <- 1 to model.rows - 2) { // - 2 due to header/title
+            val line = IndexedLine(lineNumber - 1, SourceLocation("", lineNumber), "", None, None)
             model.addLine(line)
         }
 
@@ -181,7 +181,7 @@ class TestListingWriter extends TempFolder with AssertionsForJUnit with MustMatc
     def singleLineOfStorageGivesSinglePage(): Unit = {
         // so there's at least one page; not bothered about storage / line content yet
         val exprs1 = List(Number(1), Number(2))
-        val line = Line(SourceLocation("", 2), "", None, Some(DB(exprs1)))
+        val line = IndexedLine(1, SourceLocation("", 2), "", None, Some(DB(exprs1)))
         model.addLine(line)
         model.allocateStorageForLine(line, 1, exprs1)
 
@@ -198,8 +198,8 @@ class TestListingWriter extends TempFolder with AssertionsForJUnit with MustMatc
     def differentPageNumbersOnSequentialPages(): Unit = {
         // three pages
         model.rows = 5
-        for (index <- 1 to (15 - 6)) { // - 6 due to header/title
-            val line = Line(SourceLocation("", index), "", None, None)
+        for (lineNumber <- 1 to (15 - 6)) { // - 6 due to header/title
+            val line = IndexedLine(lineNumber - 1, SourceLocation("", lineNumber), "", None, None)
             model.addLine(line)
         }
 
@@ -261,7 +261,7 @@ class TestListingWriter extends TempFolder with AssertionsForJUnit with MustMatc
     @Test
     def lineTruncationWithLeftExpansionArea(): Unit = {
         model.columns = 70
-        val line = Line(SourceLocation("", 1), ";234567890123456789012345678901234567890123456789012345678901234567890", None, None)
+        val line = IndexedLine(0, SourceLocation("", 1), ";234567890123456789012345678901234567890123456789012345678901234567890", None, None)
         val leftExpansionArea = " " * 22
         model.addLine(line)
 
@@ -307,7 +307,7 @@ class TestListingWriter extends TempFolder with AssertionsForJUnit with MustMatc
     @Test
     def labelsShowTheirAddresses(): Unit = {
         model.setDollarSilently(0x40000000)
-        val line = Line(SourceLocation("", 1), "FNORD:", Some(fnord), None)
+        val line = IndexedLine(0, SourceLocation("", 1), "FNORD:", Some(fnord), None)
         model.addLine(line)
         model.setLabel(CasedSymbolName(fnord), model.getDollar, line)
         //                  123456789012345678901234567890
@@ -317,7 +317,7 @@ class TestListingWriter extends TempFolder with AssertionsForJUnit with MustMatc
 
     @Test
     def assignmentOf16BitNumber(): Unit = {
-        val line = Line(SourceLocation("", 1), "FNORD = 65534", None, Some(VariableAssignment(new SymbolName(fnord), Number(65534))))
+        val line = IndexedLine(0, SourceLocation("", 1), "FNORD = 65534", None, Some(VariableAssignment(new SymbolName(fnord), Number(65534))))
         model.addLine(line)
         model.setVariable(CasedSymbolName(fnord), 65534, line)
         //                  12345678901234567890123456789012345
@@ -327,7 +327,7 @@ class TestListingWriter extends TempFolder with AssertionsForJUnit with MustMatc
 
     @Test
     def assignmentOf32BitNumber(): Unit = {
-        val line = Line(SourceLocation("", 1), "FNORD = 65536", None, Some(VariableAssignment(new SymbolName(fnord), Number(65536))))
+        val line = IndexedLine(0, SourceLocation("", 1), "FNORD = 65536", None, Some(VariableAssignment(new SymbolName(fnord), Number(65536))))
         model.addLine(line)
         model.setVariable(CasedSymbolName(fnord), 65536, line)
         //                  12345678901234567890123456789012345
@@ -337,7 +337,7 @@ class TestListingWriter extends TempFolder with AssertionsForJUnit with MustMatc
 
     @Test
     def assignmentOf32BitNegativeNumber(): Unit = {
-        val line = Line(SourceLocation("", 1), "FNORD = 0x80000070", None, Some(VariableAssignment(new SymbolName(fnord), Number(0x80000070))))
+        val line = IndexedLine(0, SourceLocation("", 1), "FNORD = 0x80000070", None, Some(VariableAssignment(new SymbolName(fnord), Number(0x80000070))))
         model.addLine(line)
         model.setVariable(CasedSymbolName(fnord), 0x80000070, line)
         //                  12345678901234567890123456789012345
@@ -349,7 +349,7 @@ class TestListingWriter extends TempFolder with AssertionsForJUnit with MustMatc
     def storageShowsItsAddress(): Unit = {
         model.setDollarSilently(0x40000000)
         val exprs = List(Number(1), Number(2), Number(3))
-        val line = Line(SourceLocation("", 1), "DB 1,2,3", None, Some(DB(exprs)))
+        val line = IndexedLine(0, SourceLocation("", 1), "DB 1,2,3", None, Some(DB(exprs)))
         model.addLine(line)
         model.allocateStorageForLine(line, 1, exprs)
         //                  12345678901234567890123456789012345
@@ -360,7 +360,7 @@ class TestListingWriter extends TempFolder with AssertionsForJUnit with MustMatc
     @Test
     def storageMaxBytesPerLine(): Unit = {
         val exprs = List(Number(1), Number(2), Number(3), Number(4))
-        val line = Line(SourceLocation("", 1), "DB 1,2,3,4", None, Some(DB(exprs)))
+        val line = IndexedLine(0, SourceLocation("", 1), "DB 1,2,3,4", None, Some(DB(exprs)))
         model.addLine(line)
         model.allocateStorageForLine(line, 1, exprs)
         //                  12345678901234567890123456789012345
@@ -371,7 +371,7 @@ class TestListingWriter extends TempFolder with AssertionsForJUnit with MustMatc
     @Test
     def storageMaxWordsPerLine(): Unit = {
         val exprs = List(Number(0x0102), Number(0x0304))
-        val line = Line(SourceLocation("", 1), "DW 0x0102,0x0304", None, Some(DW(exprs)))
+        val line = IndexedLine(0, SourceLocation("", 1), "DW 0x0102,0x0304", None, Some(DW(exprs)))
         model.addLine(line)
         model.allocateStorageForLine(line, 2, exprs)
         //                  12345678901234567890123456789012345
@@ -382,7 +382,7 @@ class TestListingWriter extends TempFolder with AssertionsForJUnit with MustMatc
     @Test
     def storageMaxDoubleWordsPerLine(): Unit = {
         val exprs = List(Number(0x01020304))
-        val line = Line(SourceLocation("", 1), "DD 0x01020304", None, Some(DD(exprs)))
+        val line = IndexedLine(0, SourceLocation("", 1), "DD 0x01020304", None, Some(DD(exprs)))
         model.addLine(line)
         model.allocateStorageForLine(line, 4, exprs)
         //                  12345678901234567890123456789012345
@@ -393,7 +393,7 @@ class TestListingWriter extends TempFolder with AssertionsForJUnit with MustMatc
     @Test
     def storageOverMaxBytesPerLine(): Unit = {
         val exprs = List(Number(1), Number(2), Number(3), Number(4), Number(5), Number(6), Number(7), Number(8), Number(9))
-        val line = Line(SourceLocation("", 1), "DB 1,2,3,4,5,6,7,8,9", None, Some(DB(exprs)))
+        val line = IndexedLine(0, SourceLocation("", 1), "DB 1,2,3,4,5,6,7,8,9", None, Some(DB(exprs)))
         model.addLine(line)
         model.allocateStorageForLine(line, 1, exprs)
         //                   12345678901234567890123456789012345
@@ -406,7 +406,7 @@ class TestListingWriter extends TempFolder with AssertionsForJUnit with MustMatc
     @Test
     def storageOverMaxWordsPerLine(): Unit = {
         val exprs = List(Number(0x0102), Number(0x0304), Number(0x0506), Number(0x0708), Number(0x090A))
-        val line = Line(SourceLocation("", 1), "DW 0x0102,0x0304,0x0506,0x0708,0x090A", None, Some(DW(exprs)))
+        val line = IndexedLine(0, SourceLocation("", 1), "DW 0x0102,0x0304,0x0506,0x0708,0x090A", None, Some(DW(exprs)))
         model.addLine(line)
         model.allocateStorageForLine(line, 2, exprs)
         //                   12345678901234567890123456789012345
@@ -419,7 +419,7 @@ class TestListingWriter extends TempFolder with AssertionsForJUnit with MustMatc
     @Test
     def storageOverMaxDoubleWordsPerLine(): Unit = {
         val exprs = List(Number(0x01020304), Number(0x05060708), Number(0x090A0B0C))
-        val line = Line(SourceLocation("", 1), "DD 0x01020304,0x05060708,0x090A0B0C", None, Some(DD(exprs)))
+        val line = IndexedLine(0, SourceLocation("", 1), "DD 0x01020304,0x05060708,0x090A0B0C", None, Some(DD(exprs)))
         model.addLine(line)
         model.allocateStorageForLine(line, 4, exprs)
         //                   12345678901234567890123456789012345
@@ -432,11 +432,11 @@ class TestListingWriter extends TempFolder with AssertionsForJUnit with MustMatc
     @Test
     def labelsShownInSymbolTable(): Unit = {
         model.setDollarSilently(0x40000000)
-        val line1 = Line(SourceLocation("", 1), "FNORD:", Some(fnord), None)
+        val line1 = IndexedLine(0, SourceLocation("", 1), "FNORD:", Some(fnord), None)
         model.addLine(line1)
         model.setLabel(CasedSymbolName(fnord), model.getDollar, line1)
         model.setDollarSilently(0x40000020)
-        val line2 = Line(SourceLocation("", 2), "AARDVARK:", Some("AARDVARK"), None)
+        val line2 = IndexedLine(1, SourceLocation("", 2), "AARDVARK:", Some("AARDVARK"), None)
         model.addLine(line2)
         model.setLabel(CasedSymbolName("AARDVARK"), model.getDollar, line2)
 
@@ -445,10 +445,10 @@ class TestListingWriter extends TempFolder with AssertionsForJUnit with MustMatc
 
     @Test
     def constantsShownInSymbolTable(): Unit = {
-        val line1 = Line(SourceLocation("", 1), "EQU FNORD 0x40000020", None, Some(ConstantAssignment(new SymbolName(fnord), Number(0x40000020))))
+        val line1 = IndexedLine(0, SourceLocation("", 1), "EQU FNORD 0x40000020", None, Some(ConstantAssignment(new SymbolName(fnord), Number(0x40000020))))
         model.addLine(line1)
         model.setConstant(CasedSymbolName(fnord), 0x40000000, line1)
-        val line2 = Line(SourceLocation("", 2), "EQL AARDVARK 0x40000000", None, Some(ConstantAssignment(new SymbolName("AARDVARK"), Number(0x40000010))))
+        val line2 = IndexedLine(1, SourceLocation("", 2), "EQL AARDVARK 0x40000000", None, Some(ConstantAssignment(new SymbolName("AARDVARK"), Number(0x40000010))))
         model.addLine(line2)
         model.setConstant(CasedSymbolName("AARDVARK"), 0x40000020, line2)
 

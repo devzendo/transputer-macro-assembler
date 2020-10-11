@@ -177,7 +177,7 @@ class TestOffsetTransformer extends CodeGeneratorFixture with AssemblerFixture w
             ))
         ))
         val cellWidth = 1
-        model.getSourcedValuesForLineNumber(2).head match {
+        model.getSourcedValuesForLineIndex(1).head match {
             case Storage(4, _, data, _, _) => data must be(Array[Int](
                 12 - (4 + (0*cellWidth)),
                 12 - (4 + (1*cellWidth)),
@@ -198,7 +198,7 @@ class TestOffsetTransformer extends CodeGeneratorFixture with AssemblerFixture w
             ))
         ))
         val cellWidth = 2
-        model.getSourcedValuesForLineNumber(2).head match {
+        model.getSourcedValuesForLineIndex(1).head match {
             case Storage(4, _, data, _, _) => data must be(Array[Int](
                 12 - (4 + (0*cellWidth)),
                 12 - (4 + (1*cellWidth)),
@@ -219,7 +219,7 @@ class TestOffsetTransformer extends CodeGeneratorFixture with AssemblerFixture w
             ))
         ))
         val cellWidth = 4
-        model.getSourcedValuesForLineNumber(2).head match {
+        model.getSourcedValuesForLineIndex(1).head match {
             case Storage(4, _, data, _, _) => data must be(Array[Int](
                 12 - (4 + (0*cellWidth)),
                 12 - (4 + (1*cellWidth)),
@@ -235,7 +235,7 @@ class TestOffsetTransformer extends CodeGeneratorFixture with AssemblerFixture w
             Org(Number(4)),
             DirectInstruction("LDC", 0x40, Unary(Offset(), Number(12))) // 12 - 4 (but the end of instruction is 5)
         ))
-        model.getSourcedValuesForLineNumber(2).head match {
+        model.getSourcedValuesForLineIndex(1).head match {
             case Storage(4, _, data, _, _) => data must be(Array[Int](0x47)) // 12 - 5
             case _ => fail("Did not return a Storage")
         }
@@ -247,7 +247,7 @@ class TestOffsetTransformer extends CodeGeneratorFixture with AssemblerFixture w
             Org(Number(4)),
             DBDup(Unary(Offset(), Number(12)), Number(7)) // 12 - 4
         ))
-        model.getSourcedValuesForLineNumber(2).head match {
+        model.getSourcedValuesForLineIndex(1).head match {
             case Storage(4, _, data, _, _) => data must be(Array[Int](7, 7, 7, 7, 7, 7, 7, 7))
             case _ => fail("Did not return a Storage")
         }
@@ -260,7 +260,7 @@ class TestOffsetTransformer extends CodeGeneratorFixture with AssemblerFixture w
             DBDup(Number(3), Unary(Offset(), Number(12)))
         ))
         val cellWidth = 1
-        model.getSourcedValuesForLineNumber(2).head match {
+        model.getSourcedValuesForLineIndex(1).head match {
             case Storage(4, _, data, _, _) => data must be(Array[Int](
                 12 - (4 + (0*cellWidth)),
                 12 - (4 + (1*cellWidth)),
@@ -276,7 +276,7 @@ class TestOffsetTransformer extends CodeGeneratorFixture with AssemblerFixture w
             Org(Number(4)),
             DWDup(Unary(Offset(), Number(12)), Number(7)) // 12 - 4
         ))
-        model.getSourcedValuesForLineNumber(2).head match {
+        model.getSourcedValuesForLineIndex(1).head match {
             case Storage(4, _, data, _, _) => data must be(Array[Int](7, 7, 7, 7, 7, 7, 7, 7))
             case _ => fail("Did not return a Storage")
         }
@@ -289,7 +289,7 @@ class TestOffsetTransformer extends CodeGeneratorFixture with AssemblerFixture w
             DWDup(Number(3), Unary(Offset(), Number(12)))
         ))
         val cellWidth = 2
-        model.getSourcedValuesForLineNumber(2).head match {
+        model.getSourcedValuesForLineIndex(1).head match {
             case Storage(4, _, data, _, _) => data must be(Array[Int](
                 12 - (4 + (0*cellWidth)),
                 12 - (4 + (1*cellWidth)),
@@ -305,7 +305,7 @@ class TestOffsetTransformer extends CodeGeneratorFixture with AssemblerFixture w
             Org(Number(4)),
             DDDup(Unary(Offset(), Number(12)), Number(7)) // 12 - 4
         ))
-        model.getSourcedValuesForLineNumber(2).head match {
+        model.getSourcedValuesForLineIndex(1).head match {
             case Storage(4, _, data, _, _) => data must be(Array[Int](7, 7, 7, 7, 7, 7, 7, 7))
             case _ => fail("Did not return a Storage")
         }
@@ -318,7 +318,7 @@ class TestOffsetTransformer extends CodeGeneratorFixture with AssemblerFixture w
             DDDup(Number(3), Unary(Offset(), Number(12))) // 12 - 4
         ))
         val cellWidth = 4
-        model.getSourcedValuesForLineNumber(2).head match {
+        model.getSourcedValuesForLineIndex(1).head match {
             case Storage(4, _, data, _, _) => data must be(Array[Int](
                 12 - (4 + (0*cellWidth)),
                 12 - (4 + (1*cellWidth)),
@@ -336,13 +336,13 @@ class TestOffsetTransformer extends CodeGeneratorFixture with AssemblerFixture w
         val line = Line(SourceLocation("", 1), "", None, Some(dbDupStatement))
         val model = generateFromLine(line)
 
-        val storages = model.getSourcedValuesForLineNumber(1)
+        val storages = model.getSourcedValuesForLineIndex(0)
         storages must have size 1
         val storage = singleStorage(storages)
         storage.address must be(0)
         storage.cellWidth must be(1)
         storage.data.toList must be(List(69, 69, 69, 69, 69))
-        storage.line must be(Line(SourceLocation("", 1), "", None, Some(DB(List(Number(69), Number(69), Number(69), Number(69), Number(69))))))
+        storage.indexedLine must be(IndexedLine(0, SourceLocation("", 1), "", None, Some(DB(List(Number(69), Number(69), Number(69), Number(69), Number(69))))))
         model.getDollar must be(0 + (cellWidth * count))
     }
 
@@ -355,13 +355,13 @@ class TestOffsetTransformer extends CodeGeneratorFixture with AssemblerFixture w
         val line = Line(SourceLocation("", 1), "", None, Some(dbDupStatement))
         val model = generateFromLine(line)
 
-        val storages = model.getSourcedValuesForLineNumber(1)
+        val storages = model.getSourcedValuesForLineIndex(0)
         storages must have size 1
         val storage = singleStorage(storages)
         storage.address must be(0)
         storage.cellWidth must be(1)
         storage.data.toList must be(List.empty)
-        storage.line must be(Line(SourceLocation("", 1), "", None, Some(DB(List()))))
+        storage.indexedLine must be(IndexedLine(0, SourceLocation("", 1), "", None, Some(DB(List()))))
         model.getDollar must be(0)
     }
 
@@ -419,7 +419,7 @@ class TestOffsetTransformer extends CodeGeneratorFixture with AssemblerFixture w
 
         // The LDC is encoded with the right size for the offset of L1 - there have been iterations to increase its
         // size from its initial length of 1 byte.
-        val line3Storages = model.getSourcedValuesForLineNumber(3)
+        val line3Storages = model.getSourcedValuesForLineIndex(2)
         line3Storages must have size 1
         val line3Storage = singleStorage(line3Storages)
         line3Storage.address must be(0x1000)
@@ -427,7 +427,7 @@ class TestOffsetTransformer extends CodeGeneratorFixture with AssemblerFixture w
         line3Storage.data.toList must be(List(0x21, 0x20, 0x41))
 
         // Statements that are not DirectInstructions (here's an IndirectInstruction, the LDPI)
-        val line4Storages = model.getSourcedValuesForLineNumber(4)
+        val line4Storages = model.getSourcedValuesForLineIndex(3)
         line4Storages must have size 1
         val line4Storage = singleStorage(line4Storages)
         line4Storage.address must be(0x1003)
@@ -436,7 +436,7 @@ class TestOffsetTransformer extends CodeGeneratorFixture with AssemblerFixture w
 
         // Each line (that generates storage) only generates one for the whole convergence - storages generated in
         // early iterations are removed.
-        val line6Storages = model.getSourcedValuesForLineNumber(6) // the DB hello world
+        val line6Storages = model.getSourcedValuesForLineIndex(5) // the DB hello world
         line6Storages.size must be (2) // a storage and a label
         val line6Storage = singleStorage(line6Storages)
         line6Storage.address must be(0x1104)
@@ -470,7 +470,7 @@ class TestOffsetTransformer extends CodeGeneratorFixture with AssemblerFixture w
         model.getLabel(CasedSymbolName("X")) must be(0x100C)
 
         // Positive offsets from X
-        val line3SVs = model.getSourcedValuesForLineNumber(3)
+        val line3SVs = model.getSourcedValuesForLineIndex(2)
         line3SVs must have size 1
         val line3Storage = singleStorage(line3SVs)
         line3Storage.address must be(0x1000)
@@ -478,7 +478,7 @@ class TestOffsetTransformer extends CodeGeneratorFixture with AssemblerFixture w
         line3Storage.data.toList must be(List(3 * 4, 2 * 4, 1 * 4)) // *4's here illustrate these are DDs
 
         // X: DD OFFSET X has no offset!
-        val line4SVs = model.getSourcedValuesForLineNumber(4)
+        val line4SVs = model.getSourcedValuesForLineIndex(3)
         line4SVs must have size 2
         val line4Storage = singleStorage(line4SVs)
         line4Storage.address must be(0x100C)
@@ -488,7 +488,7 @@ class TestOffsetTransformer extends CodeGeneratorFixture with AssemblerFixture w
         line4AssignmentValue.data must be(0x100C)
 
         // Positive offsets from X
-        val line5SVs = model.getSourcedValuesForLineNumber(5)
+        val line5SVs = model.getSourcedValuesForLineIndex(4)
         line5SVs must have size 1
         val line5Storage = singleStorage(line5SVs)
         line5Storage.address must be(0x1010)

@@ -16,7 +16,7 @@
 
 package org.devzendo.tma.codegen
 
-import org.devzendo.tma.ast.{Line, Statement}
+import org.devzendo.tma.ast.{IndexedLine, Line, Statement}
 
 import scala.collection.mutable
 
@@ -31,7 +31,7 @@ class Pass2Structure {
 
     // The Int here is a line index (could refer to expanded macros) not a line number (refer to input source lines,
     // and is available in line.number).
-    private val linesAndIndices = mutable.ArrayBuffer[(Line, Int)]()
+    private val indexedLines = mutable.ArrayBuffer[IndexedLine]()
 
     def setStartAddress(startAddress: Int): Unit = {
         this.startAddress = startAddress
@@ -45,8 +45,8 @@ class Pass2Structure {
 
     def getPass1BlockSize = endAddress - startAddress
 
-    def addPass2Line(tuple: (Line, Int)): Unit = {
-        linesAndIndices += tuple
+    def addPass2Line(indexedLine: IndexedLine): Unit = {
+        indexedLines += indexedLine
     }
-    def getPass2Lines: List[(Line, Int)] = linesAndIndices.toList
+    def getPass2Lines: List[IndexedLine] = indexedLines.toList
 }

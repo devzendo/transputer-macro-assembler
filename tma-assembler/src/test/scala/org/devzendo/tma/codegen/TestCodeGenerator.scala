@@ -60,13 +60,13 @@ class TestCodeGenerator extends CodeGeneratorFixture with SourcedValuesFixture w
 
         // foreachLineSourcedValues is the only way to get original/transformed Lines out...
         var calls = 0
-        model.foreachLineSourcedValues((line: Line, sourcedValues: List[SourcedValue]) => {
+        model.foreachLineSourcedValues((line: IndexedLine, sourcedValues: List[SourcedValue]) => {
             calls += 1
             if (calls > 1) {
                 fail("Should have only called back once")
             }
 
-            line must be(originalLine)
+            line must be(toIndexedLine(originalLine))
             sourcedValues must be(empty)
         })
     }
@@ -429,6 +429,14 @@ class TestCodeGenerator extends CodeGeneratorFixture with SourcedValuesFixture w
         generateFromStatement(MacroInvocation(new MacroName(fnord), List.empty))
     }
 
+    // Test helper that assumes your test lines start at line 1
+    private def toIndexedLine(line: Line): IndexedLine = {
+        IndexedLine(line.location.lineNumber - 1, line.location, line.text, line.label, line.stmt)
+    }
+    private def toLine(indexedLine: IndexedLine): Line = {
+        Line(indexedLine.location, indexedLine.text, indexedLine.label, indexedLine.stmt)
+    }
+
     // Precondition for the DB/DD/DW, checked for by the parser: the expressions are non-empty lists.
     @Test
     def dbNumbers(): Unit = {
@@ -437,13 +445,13 @@ class TestCodeGenerator extends CodeGeneratorFixture with SourcedValuesFixture w
         val line = Line(SourceLocation("", 1), "", None, Some(dbStatement))
         val model = generateFromLine(line)
 
-        val storages = model.getSourcedValuesForLineNumber(1)
+        val storages = model.getSourcedValuesForLineIndex(0)
         storages must have size 1
         val storage = singleStorage(storages)
         storage.address must be(0)
         storage.cellWidth must be(1)
         storage.data.toList must be(List(42, 69))
-        storage.line must be(line)
+        storage.indexedLine must be(toIndexedLine(line))
         model.getDollar must be(0 + (cellWidth * 2))
     }
 
@@ -454,13 +462,13 @@ class TestCodeGenerator extends CodeGeneratorFixture with SourcedValuesFixture w
         val line = Line(SourceLocation("", 1), "", None, Some(dbStatement))
         val model = generateFromLine(line)
 
-        val storages = model.getSourcedValuesForLineNumber(1)
+        val storages = model.getSourcedValuesForLineIndex(0)
         storages must have size 1
         val storage = singleStorage(storages)
         storage.address must be(0)
         storage.cellWidth must be(1)
         storage.data.toList must be(List(65, 98, 48))
-        storage.line must be(line)
+        storage.indexedLine must be(toIndexedLine(line))
         model.getDollar must be(0 + (cellWidth * 3))
     }
 
@@ -471,13 +479,13 @@ class TestCodeGenerator extends CodeGeneratorFixture with SourcedValuesFixture w
         val line = Line(SourceLocation("", 1), "", None, Some(dbStatement))
         val model = generateFromLine(line)
 
-        val storages = model.getSourcedValuesForLineNumber(1)
+        val storages = model.getSourcedValuesForLineIndex(0)
         storages must have size 1
         val storage = singleStorage(storages)
         storage.address must be(0)
         storage.cellWidth must be(1)
         storage.data.toList must be(List(5, 97, 98, 99, 7))
-        storage.line must be(line)
+        storage.indexedLine must be(toIndexedLine(line))
         model.getDollar must be(0 + (cellWidth * 5))
     }
 
@@ -488,13 +496,13 @@ class TestCodeGenerator extends CodeGeneratorFixture with SourcedValuesFixture w
         val line = Line(SourceLocation("", 1), "", None, Some(dwStatement))
         val model = generateFromLine(line)
 
-        val storages = model.getSourcedValuesForLineNumber(1)
+        val storages = model.getSourcedValuesForLineIndex(0)
         storages must have size 1
         val storage = singleStorage(storages)
         storage.address must be(0)
         storage.cellWidth must be(2)
         storage.data.toList must be(List(42, 69))
-        storage.line must be(line)
+        storage.indexedLine must be(toIndexedLine(line))
         model.getDollar must be(0 + (cellWidth * 2))
     }
 
@@ -505,13 +513,13 @@ class TestCodeGenerator extends CodeGeneratorFixture with SourcedValuesFixture w
         val line = Line(SourceLocation("", 1), "", None, Some(dwStatement))
         val model = generateFromLine(line)
 
-        val storages = model.getSourcedValuesForLineNumber(1)
+        val storages = model.getSourcedValuesForLineIndex(0)
         storages must have size 1
         val storage = singleStorage(storages)
         storage.address must be(0)
         storage.cellWidth must be(2)
         storage.data.toList must be(List(65, 98, 48))
-        storage.line must be(line)
+        storage.indexedLine must be(toIndexedLine(line))
         model.getDollar must be(0 + (cellWidth * 3))
     }
 
@@ -522,13 +530,13 @@ class TestCodeGenerator extends CodeGeneratorFixture with SourcedValuesFixture w
         val line = Line(SourceLocation("", 1), "", None, Some(dwStatement))
         val model = generateFromLine(line)
 
-        val storages = model.getSourcedValuesForLineNumber(1)
+        val storages = model.getSourcedValuesForLineIndex(0)
         storages must have size 1
         val storage = singleStorage(storages)
         storage.address must be(0)
         storage.cellWidth must be(2)
         storage.data.toList must be(List(5, 97, 98, 99, 7))
-        storage.line must be(line)
+        storage.indexedLine must be(toIndexedLine(line))
         model.getDollar must be(0 + (cellWidth * 5))
     }
 
@@ -539,13 +547,13 @@ class TestCodeGenerator extends CodeGeneratorFixture with SourcedValuesFixture w
         val line = Line(SourceLocation("", 1), "", None, Some(ddStatement))
         val model = generateFromLine(line)
 
-        val storages = model.getSourcedValuesForLineNumber(1)
+        val storages = model.getSourcedValuesForLineIndex(0)
         storages must have size 1
         val storage = singleStorage(storages)
         storage.address must be(0)
         storage.cellWidth must be(4)
         storage.data.toList must be(List(42, 69))
-        storage.line must be(line)
+        storage.indexedLine must be(toIndexedLine(line))
         model.getDollar must be(0 + (cellWidth * 2))
     }
 
@@ -556,13 +564,13 @@ class TestCodeGenerator extends CodeGeneratorFixture with SourcedValuesFixture w
         val line = Line(SourceLocation("", 1), "", None, Some(ddStatement))
         val model = generateFromLine(line)
 
-        val storages = model.getSourcedValuesForLineNumber(1)
+        val storages = model.getSourcedValuesForLineIndex(0)
         storages must have size 1
         val storage = singleStorage(storages)
         storage.address must be(0)
         storage.cellWidth must be(4)
         storage.data.toList must be(List(65, 98, 48))
-        storage.line must be(line)
+        storage.indexedLine must be(toIndexedLine(line))
         model.getDollar must be(0 + (cellWidth * 3))
     }
 
@@ -573,13 +581,13 @@ class TestCodeGenerator extends CodeGeneratorFixture with SourcedValuesFixture w
         val line = Line(SourceLocation("", 1), "", None, Some(ddStatement))
         val model = generateFromLine(line)
 
-        val storages = model.getSourcedValuesForLineNumber(1)
+        val storages = model.getSourcedValuesForLineIndex(0)
         storages must have size 1
         val storage = singleStorage(storages)
         storage.address must be(0)
         storage.cellWidth must be(4)
         storage.data.toList must be(List(5, 97, 98, 99, 7))
-        storage.line must be(line)
+        storage.indexedLine must be(toIndexedLine(line))
         model.getDollar must be(0 + (cellWidth * 5))
     }
 
@@ -641,13 +649,13 @@ class TestCodeGenerator extends CodeGeneratorFixture with SourcedValuesFixture w
         val model = generateFromLines(lines)
 
         // The Pass 2 lines are stored in the current P2 structure....
-        codegen.currentP2Structure.getPass2Lines must be(List((lines(2), 2), (lines(3), 3)))
+        codegen.currentP2Structure.getPass2Lines must be(List(toIndexedLine(lines(2)), (toIndexedLine(lines(3)))))
 
         // ...and not yet stored in the list for Pass 2
         codegen.p2Structures must be(empty)
 
         // ...and the pass 2 lines haven't been stored normally.
-        val storages = model.getSourcedValuesForLineNumber(3)
+        val storages = model.getSourcedValuesForLineIndex(2)
         storages must be(empty)
     }
 
@@ -687,10 +695,10 @@ class TestCodeGenerator extends CodeGeneratorFixture with SourcedValuesFixture w
         ))
 
         // Line 5 is stored... since we're back in Assembly (conversion to Storage) mode after Endif
-        val storages = model.getSourcedValuesForLineNumber(5)
+        val storages = model.getSourcedValuesForLineIndex(4)
         storages must have size 1
         val line5Storage = singleStorage(storages)
-        line5Storage.line.location.lineNumber must be(5)
+        line5Storage.indexedLine.location.lineNumber must be(5)
         line5Storage.data must have size 1
         line5Storage.data(0) must be(11)
     }
@@ -718,17 +726,17 @@ class TestCodeGenerator extends CodeGeneratorFixture with SourcedValuesFixture w
             Line(SourceLocation("", 4), "", None, Some(DB(List(Number(1), Number(2), Number(3))))),
             Line(SourceLocation("", 5), "", None, Some(DW(List(Number(4), Number(5))))),
             Line(SourceLocation("", 6), "", None, Some(DD(List(Number(0))))),
-            Line(SourceLocation("", 6), "", None, Some(Else())),
-            Line(SourceLocation("", 7), "", None, Some(DB(List(Number(6), Number(7), Number(8))))), // updated values in pass 2
-            Line(SourceLocation("", 8), "", None, Some(DW(List(Number(9), Number(10))))),
-            Line(SourceLocation("", 9), "", None, Some(DD(List(SymbolArg(fnord))))), // should get fixed up in pass 2
-            Line(SourceLocation("", 10), "", None, Some(Endif())),
-            Line(SourceLocation("", 11), "", None, Some(DB(List(Number(11)))))
+            Line(SourceLocation("", 7), "", None, Some(Else())),
+            Line(SourceLocation("", 8), "", None, Some(DB(List(Number(6), Number(7), Number(8))))), // updated values in pass 2
+            Line(SourceLocation("", 9), "", None, Some(DW(List(Number(9), Number(10))))),
+            Line(SourceLocation("", 10), "", None, Some(DD(List(SymbolArg(fnord))))), // should get fixed up in pass 2
+            Line(SourceLocation("", 11), "", None, Some(Endif())),
+            Line(SourceLocation("", 12), "", None, Some(DB(List(Number(11)))))
         ))
 
         model.getLabel(CasedSymbolName(fnord)) must be(42)
 
-        val line2SourcedValues = model.getSourcedValuesForLineNumber(2)
+        val line2SourcedValues = model.getSourcedValuesForLineIndex(1)
         line2SourcedValues must have size 2
         val line2Storage = singleStorage(line2SourcedValues)
         line2Storage.address must be(42)
@@ -738,33 +746,33 @@ class TestCodeGenerator extends CodeGeneratorFixture with SourcedValuesFixture w
         val line2AssignmentValue = singleAssignmentValue(line2SourcedValues)
         line2AssignmentValue.data must be(42)
 
-        val line4Storages = model.getSourcedValuesForLineNumber(4)
+        val line4Storages = model.getSourcedValuesForLineIndex(3)
         line4Storages must have size 1
         val line4Storage = singleStorage(line4Storages)
         line4Storage.address must be(43)
         line4Storage.data must be(Array(1, 2, 3))
         line4Storage.cellWidth must be(1)
 
-        val line7Storages = model.getSourcedValuesForLineNumber(7)
-        line7Storages must have size 1
-        val line7Storage = singleStorage(line7Storages)
-        line7Storage.address must be(43)
-        line7Storage.data must be(Array(6, 7, 8))
-        line7Storage.cellWidth must be(1)
+        val line8Storages = model.getSourcedValuesForLineIndex(7)
+        line8Storages must have size 1
+        val line8Storage = singleStorage(line8Storages)
+        line8Storage.address must be(43)
+        line8Storage.data must be(Array(6, 7, 8))
+        line8Storage.cellWidth must be(1)
 
-        val line9Storages = model.getSourcedValuesForLineNumber(9)
-        line9Storages must have size 1
-        val line9Storage = singleStorage(line9Storages)
-        line9Storage.address must be(50)
-        line9Storage.data must be(Array(42)) // fnord is resolved
-        line9Storage.cellWidth must be(4)
+        val line10Storages = model.getSourcedValuesForLineIndex(9)
+        line10Storages must have size 1
+        val line10Storage = singleStorage(line10Storages)
+        line10Storage.address must be(50)
+        line10Storage.data must be(Array(42)) // fnord is resolved
+        line10Storage.cellWidth must be(4)
 
-        val line11Storages = model.getSourcedValuesForLineNumber(11)
-        line11Storages must have size 1
-        val line11Storage = singleStorage(line11Storages)
-        line11Storage.address must be(54)
-        line11Storage.data must be(Array(11))
-        line11Storage.cellWidth must be(1)
+        val line12Storages = model.getSourcedValuesForLineIndex(11)
+        line12Storages must have size 1
+        val line12Storage = singleStorage(line12Storages)
+        line12Storage.address must be(54)
+        line12Storage.data must be(Array(11))
+        line12Storage.cellWidth must be(1)
     }
 
     @Test
@@ -798,7 +806,7 @@ class TestCodeGenerator extends CodeGeneratorFixture with SourcedValuesFixture w
             Line(SourceLocation("", 2), "", Some(new Label(fnord)), Some(DB(List(Number(77)))))
         ))
 
-        val sourcedValues = model.getSourcedValuesForLineNumber(2)
+        val sourcedValues = model.getSourcedValuesForLineIndex(1)
         sourcedValues must have size 2
 
         val storage = singleStorage(sourcedValues)
@@ -818,7 +826,7 @@ class TestCodeGenerator extends CodeGeneratorFixture with SourcedValuesFixture w
             Line(SourceLocation("", 2), "", Some(new Label(fnord)), Some(VariableAssignment(new SymbolName("foo"), Number(77))))
         ))
 
-        val sourcedValues = model.getSourcedValuesForLineNumber(2)
+        val sourcedValues = model.getSourcedValuesForLineIndex(1)
         sourcedValues must have size 2
 
         val assignmentValues = sourcedValues.map(_.asInstanceOf[AssignmentValue])
@@ -858,12 +866,12 @@ class TestCodeGenerator extends CodeGeneratorFixture with SourcedValuesFixture w
         val model = generateFromLines(lines)
 
         var index = 0
-        model.foreachLineSourcedValues((line: Line, sourcedValues: List[SourcedValue]) => {
-            logger.info(s"line $line")
+        model.foreachLineSourcedValues((indexedLine: IndexedLine, sourcedValues: List[SourcedValue]) => {
+            logger.info(s"line $indexedLine")
             for (st <- sourcedValues) {
                 logger.info(s"   sourcedValue $st")
             }
-            DiagrammedAssertions.assert(line == lines(index))
+            DiagrammedAssertions.assert(toLine(indexedLine) == lines(index))
 
             // just check the data...
             val expectedDataList = expectedDataValues(index)
@@ -888,13 +896,13 @@ class TestCodeGenerator extends CodeGeneratorFixture with SourcedValuesFixture w
         val line = Line(SourceLocation("", 1), "FPUCLRERR", None, Some(inst))
         val model = generateFromLine(line)
 
-        val storages = model.getSourcedValuesForLineNumber(1)
+        val storages = model.getSourcedValuesForLineIndex(0)
         storages must have size 1
         val storage = singleStorage(storages)
         storage.address must be(0)
         storage.cellWidth must be(1)
         storage.data.toList must be(List(0x29, 0x4c, 0x2a, 0xfb))
-        storage.line must be(line)
+        storage.indexedLine must be(toIndexedLine(line))
         model.getDollar must be(0 + (cellWidth * 4))
     }
 
@@ -907,13 +915,13 @@ class TestCodeGenerator extends CodeGeneratorFixture with SourcedValuesFixture w
         val line = Line(SourceLocation("", 1), "LDC 0xa", None, Some(inst))
         val model = generateFromLine(line)
 
-        val storages = model.getSourcedValuesForLineNumber(1)
+        val storages = model.getSourcedValuesForLineIndex(0)
         storages must have size 1
         val storage = singleStorage(storages)
         storage.address must be(0)
         storage.cellWidth must be(1)
         storage.data.toList must be(List(0x4a))
-        storage.line must be(line)
+        storage.indexedLine must be(toIndexedLine(line))
         model.getDollar must be(0 + (cellWidth * 1))
     }
 
@@ -924,13 +932,13 @@ class TestCodeGenerator extends CodeGeneratorFixture with SourcedValuesFixture w
         val line = Line(SourceLocation("", 1), "LDC 0x1234abcd", None, Some(inst))
         val model = generateFromLine(line)
 
-        val storages = model.getSourcedValuesForLineNumber(1)
+        val storages = model.getSourcedValuesForLineIndex(0)
         storages must have size 1
         val storage = singleStorage(storages)
         storage.address must be(0)
         storage.cellWidth must be(1)
         storage.data.toList must be(List(0x21, 0x22, 0x23, 0x24, 0x2a, 0x2b, 0x2c, 0x4d))
-        storage.line must be(line)
+        storage.indexedLine must be(toIndexedLine(line))
         model.getDollar must be(0 + (cellWidth * 8))
     }
 
@@ -939,25 +947,25 @@ class TestCodeGenerator extends CodeGeneratorFixture with SourcedValuesFixture w
 
     @Test
     def noStatement(): Unit = {
-        val line = Line(SourceLocation("", 1), "FOO:", Some("FOO"), None)
+        val line = IndexedLine(0, SourceLocation("", 1), "FOO:", Some("FOO"), None)
         lcdiwus(line) must be('empty)
     }
 
     @Test
     def notEitherInstruction(): Unit = {
-        val line = Line(SourceLocation("", 1), "DB 5", None, Some(DB(List(Number(5)))))
+        val line = IndexedLine(0, SourceLocation("", 1), "DB 5", None, Some(DB(List(Number(5)))))
         lcdiwus(line) must be('empty)
     }
 
     @Test
     def indirectInstruction(): Unit = {
-        val line = Line(SourceLocation("", 1), "RESETCH", None, Some(IndirectInstruction("RESETCH", List(0x21, 0xf2))))
+        val line = IndexedLine(0, SourceLocation("", 1), "RESETCH", None, Some(IndirectInstruction("RESETCH", List(0x21, 0xf2))))
         lcdiwus(line) must be('empty)
     }
 
     @Test
     def directInstructionWithEvaluatableExpression(): Unit = {
-        val line = Line(SourceLocation("", 1), "LDC 5", None, Some(DirectInstruction("LDC", 0x40, Number(5))))
+        val line = IndexedLine(0, SourceLocation("", 1), "LDC 5", None, Some(DirectInstruction("LDC", 0x40, Number(5))))
         lcdiwus(line) must be('empty)
     }
 
@@ -966,26 +974,26 @@ class TestCodeGenerator extends CodeGeneratorFixture with SourcedValuesFixture w
         // Since the DirectInstructionOffsetEncoder's job is to convert DirectInstructions with undefined symbols
         // into DirectEncodedInstructions, which are not generated by the parser, it should never see one.. but it
         // shouldn't barf or return true for one.
-        val line = Line(SourceLocation("", 1), "LDC 5", None, Some(DirectEncodedInstruction("LDC", List(0x45))))
+        val line = IndexedLine(0, SourceLocation("", 1), "LDC 5", None, Some(DirectEncodedInstruction("LDC", List(0x45))))
         lcdiwus(line) must be('empty)
     }
 
     @Test
     def directInstructionWithUndefinedExpression(): Unit = {
-        val line = Line(SourceLocation("", 1), "LDC FOO + BAR", None, Some(DirectInstruction("LDC", 0x40, Binary(Add(), SymbolArg("FOO"), SymbolArg("BAR")))))
+        val line = IndexedLine(0, SourceLocation("", 1), "LDC FOO + BAR", None, Some(DirectInstruction("LDC", 0x40, Binary(Add(), SymbolArg("FOO"), SymbolArg("BAR")))))
         lcdiwus(line) must be(Set(CasedSymbolName("FOO"), CasedSymbolName("BAR")))
     }
 
     @Test
     def directInstructionWithDefinedExpression(): Unit = {
-        val constline = Line(SourceLocation("", 1), "FOO EQU 10", None, Some(ConstantAssignment("FOO", Number(10))))
+        val constline = IndexedLine(0, SourceLocation("", 1), "FOO EQU 10", None, Some(ConstantAssignment("FOO", Number(10))))
         model.setConstant(CasedSymbolName("FOO"), 10, constline)
-        val line = Line(SourceLocation("", 2), "LDC FOO", None, Some(DirectInstruction("LDC", 0x40, SymbolArg("FOO"))))
+        val line = IndexedLine(1, SourceLocation("", 2), "LDC FOO", None, Some(DirectInstruction("LDC", 0x40, SymbolArg("FOO"))))
         lcdiwus(line) must be('empty)
     }
 
-    private def lcdiwus(line: Line) = {
-        codegen.lineContainsDirectInstructionWithUndefinedSymbols(line)
+    private def lcdiwus(indexedLine: IndexedLine) = {
+        codegen.lineContainsDirectInstructionWithUndefinedSymbols(indexedLine)
     }
 
     @Test

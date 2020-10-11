@@ -34,15 +34,22 @@ class TestOffsetTransformerAssembly extends AssemblerFixture with SourcedValuesF
         val linesToParse: ArrayBuffer[String] = wrapInPrologueAndEpilogue(lines:_*)
 
         // Find the branch in the passed lines..
-        val branchLineIndex = lines.indexWhere(_.contains("J"))
+        val branchLineIndex = linesToParse.indexWhere(_.contains("J"))
         if (branchLineIndex == -1) {
             fail("No branch")
         } else {
+            logger.debug("checking branch line index " + branchLineIndex)
+            linesToParse.zipWithIndex.foreach { tuple: (String, Int) =>
+                logger.debug("idx#" + tuple._2 + ": " + tuple._1)
+            }
             val model = assemble(linesToParse.toList)
-            showListing(model)
+            //showListing(model)
+            model.dump()
 
-            val branchLineNumber = 4 + branchLineIndex
-            val branchLineSourcedValues = model.getSourcedValuesForLineNumber(branchLineNumber)
+            val branchLineNumber = model.allLines()(branchLineIndex).location.lineNumber
+            logger.debug("checking branch line number " + branchLineNumber)
+
+            val branchLineSourcedValues = model.getSourcedValuesForLineIndex(branchLineIndex)
             logger.debug("branchLineSourcedValues: on line number " + branchLineNumber + ": " + branchLineSourcedValues)
             val branchLineStorage = singleStorage(branchLineSourcedValues)
             branchLineStorage.cellWidth must be(1)
@@ -74,7 +81,7 @@ class TestOffsetTransformerAssembly extends AssemblerFixture with SourcedValuesF
             "J BEFORE")
         val model = assemble(assembler.toList)
 
-        def itsACorrectlyTransformedLine(line: Line): Boolean = {
+        def itsACorrectlyTransformedLine(line: IndexedLine): Boolean = {
             line.stmt match {
                 case Some(DirectInstruction("J", 0x00, Unary(OffsetFrom(0x1001), SymbolArg("BEFORE")))) =>
                     true

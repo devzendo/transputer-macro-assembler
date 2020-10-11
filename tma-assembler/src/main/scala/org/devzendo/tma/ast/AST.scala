@@ -99,3 +99,8 @@ case class Line(location: SourceLocation, text: String, label: Option[Label], st
 }
 
 case class MacroDefinition(name: MacroName, parameterNames: List[MacroParameterName], textLines: List[String])
+
+// The list of all Lines can contain duplicate line numbers in the case of multi-line macro expansions, and if include
+// files are used, line numbers without their filename are meaningless. The CodeGenerator and AssemblyModel need to
+// index each line in the whole macro-expanded, include-file-included input text, so work on IndexedLine objects:
+case class IndexedLine(lineIndex: Int, location: SourceLocation, text: String, label: Option[Label], stmt: Option[Statement])

@@ -22,7 +22,7 @@ import java.time.format.DateTimeFormatter
 
 import org.devzendo.commoncode.string.HexDump
 import org.devzendo.tma.Version
-import org.devzendo.tma.ast.Line
+import org.devzendo.tma.ast.{IndexedLine, Line}
 import org.devzendo.tma.codegen.{AssemblyModel, AssignmentValue, SourcedValue, Storage, SymbolType}
 
 object ListingWriter {
@@ -74,7 +74,7 @@ class ListingWriter(val outputFile: File) {
 
         def calculatePrintableListingLines(): Int = {
             var printableLines = 0
-            model.foreachLineSourcedValues((_: Line, sourcedValues: List[SourcedValue]) => {
+            model.foreachLineSourcedValues((_: IndexedLine, sourcedValues: List[SourcedValue]) => {
                 if (sourcedValues.nonEmpty) {
                     for (sourcedValue <- sourcedValues) {
                         printableLines += numPrintableLinesForSourcedValue(sourcedValue)
@@ -119,7 +119,7 @@ class ListingWriter(val outputFile: File) {
         val printWriter = new PrintWriter(outputFile)
         try {
             // First, the Listing...
-            model.foreachLineSourcedValues((line: Line, sourcedValues: List[SourcedValue]) => {
+            model.foreachLineSourcedValues((indexedLine: IndexedLine, sourcedValues: List[SourcedValue]) => {
 
                 val lineBuf = new StringBuilder()
 
@@ -161,7 +161,7 @@ class ListingWriter(val outputFile: File) {
                 val left = padToLength(" " + List(address, assignment, firstStorageLine).filter(_.nonEmpty).mkString(" "), 22)
                 logger.debug(s"address '$address' assignment '$assignment' left '$left'")
                 lineBuf.append(left)
-                lineBuf.append(line.text)
+                lineBuf.append(indexedLine.text)
                 emitLineWithHeader(lineBuf.toString())
 
                 if (storageLines.size > 1) {

@@ -17,7 +17,7 @@
 package org.devzendo.tma.codegen
 
 import org.devzendo.tma.SourceLocation
-import org.devzendo.tma.ast.{Line, Statement}
+import org.devzendo.tma.ast.{IndexedLine, Line, Statement}
 
 abstract class CodeGeneratorFixture {
 

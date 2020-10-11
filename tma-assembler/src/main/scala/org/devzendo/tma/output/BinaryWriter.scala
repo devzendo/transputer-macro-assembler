@@ -38,8 +38,8 @@ class BinaryWriter(val outputFile: File) {
         try {
             logger.debug("Zeroing 0x" + HexDump.int2hex(fileSize) + " byte(s)")
             zero(raf, fileSize)
-            model.foreachSourcedValue((lineNumber: Int, sourcedValues: List[SourcedValue]) => {
-                logger.debug("Writing storage for line " + lineNumber)
+            model.foreachSourcedValue((lineIndex: Int, sourcedValues: List[SourcedValue]) => {
+                logger.debug("Writing storage for line index " + lineIndex)
                 for (sourcedValue <- sourcedValues) {
                     sourcedValue match {
                         case storage: Storage =>
