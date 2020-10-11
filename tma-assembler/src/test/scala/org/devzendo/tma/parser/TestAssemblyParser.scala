@@ -1108,4 +1108,28 @@ class TestAssemblyParser extends AssertionsForJUnit with MustMatchers {
         ))
     }
 
+    private def checkIncludeStatement(line: String) = {
+        parseSingleLine(line) must
+          equal(Line(SourceLocation("", 1), line.trim(), None, Some(Include("src/test/resources/TESTINC.INC"))))
+    }
+
+    @Test
+    def includeIsParsedWithoutQuotes(): Unit = {
+        val line = "\tINCLUDE src/test/resources/TESTINC.INC"
+        checkIncludeStatement(line)
+    }
+
+
+    @Test
+    def includeIsParsedWithSingleQuotes(): Unit = {
+        val line = "\tINCLUDE 'src/test/resources/TESTINC.INC'"
+        checkIncludeStatement(line)
+    }
+
+    @Test
+    def includeIsParsedWithDoubleQuotes(): Unit = {
+        val line = "\tINCLUDE \"src/test/resources/TESTINC.INC\""
+        checkIncludeStatement(line)
+    }
+
 }

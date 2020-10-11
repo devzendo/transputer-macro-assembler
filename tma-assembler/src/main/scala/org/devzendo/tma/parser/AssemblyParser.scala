@@ -198,7 +198,7 @@ class AssemblyParser(val debugParser: Boolean, val showParserOutput: Boolean, va
         }
 
         def statement: Parser[Statement] = constantAssignment | variableAssignment | macroStart | origin | data |
-            title | page | processor | align | condif1 | condelse | condendif | end | opcode | ignored
+            title | page | processor | align | condif1 | condelse | condendif | include | end | opcode | ignored
 
         // Not sure why I can't use ~> and <~ here to avoid the equ?
         def constantAssignment: Parser[ConstantAssignment] = (
@@ -413,6 +413,16 @@ class AssemblyParser(val debugParser: Boolean, val showParserOutput: Boolean, va
         def condelse: Parser[Else] = """(?i)ELSE""".r ^^ ( _ => Else() )
         def condendif: Parser[Endif] = """(?i)ENDIF""".r ^^ ( _ => Endif() )
 
+        def include: Parser[Include] = (
+          """(?i)INCLUDE""".r  ~> includeFile
+          ) ^^ {
+            case fileName: Characters =>
+                if (debugParser) logger.debug("including '" + fileName + "'")
+                Include(fileName.text)
+        }
+
+        def includeFile: Parser[Characters] = singleQuotedString | doubleQuotedString | nonWhiteSpaceSequence
+
         def ignored: Parser[Ignored] = ( ignoredKeyword ~ """.*""".r ) ^^ { _ => Ignored() }
         def ignoredKeyword: Regex = """(?i)(MAIN|ASSUME|\.LIST|\.NOLIST)""".r
 
@@ -431,6 +441,14 @@ class AssemblyParser(val debugParser: Boolean, val showParserOutput: Boolean, va
                     val stringBody = contents.substring(1, contents.length - 1)
                     if (debugParser) logger.debug("in doubleQuotedString, contents is: |" + stringBody + "|")
                     Characters(stringBody)
+                }
+            }
+
+        def nonWhiteSpaceSequence: Parser[Characters] =
+            """\S*""".r ^^ {
+                contents => {
+                    if (debugParser) logger.debug("in nonWhiteSpaceSequence, contents is: |" + contents + "|")
+                    Characters(contents)
                 }
             }
 

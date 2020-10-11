@@ -81,6 +81,7 @@ case class Ignored() extends Statement
 case class If1() extends Statement
 case class Else() extends Statement
 case class Endif() extends Statement
+case class Include(fileName: String) extends Statement
 // These need to be produced in the Transputer-specific code generator if a Transputer CPU is selected with Processor..
 // Caveat: only the to T414/T800/T801/T805 encoding is considered here: don't support other variants (T810, T9000, Transterpreter, etc.)
 // In the direct instructions, the opbyte would be a Byte, but Int makes it easier to construct byte literals.
