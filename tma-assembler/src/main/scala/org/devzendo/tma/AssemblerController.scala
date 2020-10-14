@@ -53,6 +53,7 @@ class AssemblerController(includer: SourceIncludingReader, parser: AssemblyParse
     }
 
     // ... or it is pre-parsed (perhaps created by a higher-level language), and just added.
+    // (But this won't allow for include files.)
     def addParsedLine(line: Line): Unit = {
         parsedLinesSoFar += line
     }

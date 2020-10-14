@@ -16,13 +16,16 @@
 
 package org.devzendo.tma.parser
 
-import org.devzendo.tma.{SourceIncludingReader, SourceLocation}
+import java.io.File
+
+import org.devzendo.tma.{SourceIncludingReader, SourceItem, SourceLocation}
 import org.devzendo.tma.ast.AST._
 import org.devzendo.tma.ast._
 import org.junit.rules.ExpectedException
 import org.junit.{Ignore, Rule, Test}
 import org.log4s.Logger
-import org.scalatest.MustMatchers
+import org.scalatest.DiagrammedAssertions.diagrammedAssertionsHelper
+import org.scalatest.{DiagrammedAssertions, MustMatchers}
 import org.scalatest.junit.AssertionsForJUnit
 
 import scala.collection.mutable
@@ -1130,6 +1133,29 @@ class TestAssemblyParser extends AssertionsForJUnit with MustMatchers {
     def includeIsParsedWithDoubleQuotes(): Unit = {
         val line = "\tINCLUDE \"src/test/resources/TESTINC.INC\""
         checkIncludeStatement(line)
+    }
+
+    @Test
+    def includeIncludesIncludeFileThenReturnsToInitialFile(): Unit = {
+        // This test can't use parseLines to present input to the parser, as that mechanism doesn't allow for include
+        // file reading, so use a real file, with the includer... this test is a mini AssemblyController.
+        val sourceItems = includer.openSourceIterator(new File("src/test/resources/TESTMAIN.ASM"))
+        // si.currentSourceLocation.lineNumber is relative to the start of the current file only
+        val lines = mutable.ArrayBuffer[Line]()
+        sourceItems.foreach( (si: SourceItem) => {
+            lines ++= parser.parse(si.line, si.currentSourceLocation)
+        })
+
+        val lineList = lines.toList
+        dumpLines(lineList)
+
+        val expectedLines = List(
+            Line(SourceLocation("TESTMAIN.ASM", 1), "INCLUDE src/test/resources/TESTINC.INC", None, Some(Include("src/test/resources/TESTINC.INC"))),
+            Line(SourceLocation("TESTINC.INC",  1), "DB 0x11", None, Some(DB(List(Number(0x11))))),
+            Line(SourceLocation("TESTMAIN.ASM", 2), "DB 0x99", None, Some(DB(List(Number(0x99))))),
+        )
+
+        DiagrammedAssertions.assert(lineList == expectedLines)
     }
 
 }

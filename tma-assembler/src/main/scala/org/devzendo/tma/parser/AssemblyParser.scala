@@ -17,6 +17,7 @@
 package org.devzendo.tma.parser
 
 import java.io
+import java.io.File
 
 import org.devzendo.tma.{Includer, SourceLocation}
 import org.devzendo.tma.ast.AST.{Label, MacroArgument, MacroName, MacroParameterName}
@@ -417,8 +418,10 @@ class AssemblyParser(val debugParser: Boolean, val showParserOutput: Boolean, va
           """(?i)INCLUDE""".r  ~> includeFile
           ) ^^ {
             case fileName: Characters =>
-                if (debugParser) logger.debug("including '" + fileName + "'")
-                Include(fileName.text)
+                val includeFileName = fileName.text
+                if (debugParser) logger.debug("including '" + includeFileName + "'")
+                includer.pushIncludeFile(new File(includeFileName))
+                Include(includeFileName)
         }
 
         def includeFile: Parser[Characters] = singleQuotedString | doubleQuotedString | nonWhiteSpaceSequence
