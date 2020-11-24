@@ -16,7 +16,7 @@
 
 package org.devzendo.tma
 
-import java.io.File
+import java.io.{File, FileNotFoundException, IOException}
 
 import org.log4s.Logger
 
@@ -51,6 +51,9 @@ case class SourceItem(nestedLocations: List[SourceLocation], currentSourceLocati
     }
 }
 
+/**
+ * The Includer trait is used by the parser when it parses an INCLUDE directive.
+ */
 trait Includer {
     def pushIncludeFile(includeFile: File): Unit
 }
@@ -61,6 +64,22 @@ class SourceIncludingReader extends Includer {
     case class SourceContext(file: File, var lineNumber: Int, iterator: Iterator[String])
     val contexts = new mutable.ArrayBuffer[SourceContext]
 
+    private val includePaths = new mutable.ArrayBuffer[File]
+
+    /**
+     * Add an include path to the reader. These paths will be searched in order when loading an include file.
+     */
+    def addIncludePath(path: File): Unit = {
+        if (path.exists) {
+            if (!path.isDirectory) {
+                throw new IOException("Include path '" + path.getName + "' is not a directory")
+            }
+        } else {
+            throw new FileNotFoundException("Include path '" + path.getName + "' does not exist")
+        }
+        includePaths += path
+    }
+
     /**
      * Open the first input file, and return a Iterator of SourceItems containing its data.
      * @param firstInputFile The input file name. The file may contain include directives, which when processed by a
@@ -68,7 +87,6 @@ class SourceIncludingReader extends Includer {
      * @return The Iterator of SourceItems.
      */
     def openSourceIterator(firstInputFile: File): Iterator[SourceItem] = {
-
         val firstInputFileName = firstInputFile.getName
         logger.debug("Starting source iterator with " + firstInputFileName)
         val lineIterator = Source.fromFile(firstInputFile).getLines()
@@ -103,7 +121,33 @@ class SourceIncludingReader extends Includer {
 
     def pushIncludeFile(includeFile: File): Unit = {
         logger.debug("Pushing include file " + includeFile.getName)
-        val lineIterator = Source.fromFile(includeFile).getLines()
-        contexts += SourceContext(includeFile, 0, lineIterator)
+        // If it's an absolute path, don't bother searching through include paths...
+        if (includeFile.isAbsolute) {
+            if (includeFile.exists()) {
+                logger.debug("Found absolute-pathed include file " + includeFile.getName + " at " + includeFile.getAbsolutePath)
+                val lineIterator = Source.fromFile(includeFile).getLines()
+                contexts += SourceContext(includeFile, 0, lineIterator)
+                return
+            } else {
+                throw new FileNotFoundException("Not found include file '" + includeFile.getName + "' at " + includeFile.getAbsolutePath)
+            }
+        }
+
+        // Search through all includePaths to see if includeFile exists
+        val here = new File(".")
+        val tail = includePaths.toList
+        val allIncludePaths: List[File] = here :: tail
+        for (includePath <- allIncludePaths) {
+            val pathedIncludeFile = new File(includePath, includeFile.toString)
+            if (pathedIncludeFile.exists()) {
+                logger.debug("Found relative-pathed include file " + includeFile.getName + " at " + pathedIncludeFile.getAbsolutePath)
+                val lineIterator = Source.fromFile(pathedIncludeFile).getLines()
+                contexts += SourceContext(includeFile, 0, lineIterator)
+                return
+            } else {
+                logger.debug("Not found include file " + includeFile.getName + " at " + pathedIncludeFile.getAbsolutePath)
+            }
+        }
+        throw new FileNotFoundException("Include file '" + includeFile.getName + "' not found in current directory or any include path")
     }
 }

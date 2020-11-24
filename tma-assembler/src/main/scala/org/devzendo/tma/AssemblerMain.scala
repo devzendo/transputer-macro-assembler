@@ -18,8 +18,10 @@ package org.devzendo.tma
 
 import java.io.File
 
-import org.devzendo.tma.codegen.{AssemblyModel, CodeGenerationException, CodeGenerator, CasedSymbolName, OffsetTransformer}
+import org.devzendo.tma.codegen.{AssemblyModel, CasedSymbolName, CodeGenerationException, CodeGenerator, OffsetTransformer}
 import org.devzendo.tma.parser.{AssemblyParser, AssemblyParserException, MacroManager}
+
+import scala.collection.mutable.ArrayBuffer
 
 class AssemblerMain(val argList: List[String]) {
     private val logger = org.log4s.getLogger
@@ -29,6 +31,7 @@ class AssemblerMain(val argList: List[String]) {
     var outputFile: Option[File] = None
     var binaryFile: Option[File] = None
     var listingFile: Option[File] = None
+    var includePaths: ArrayBuffer[File] = new ArrayBuffer[File]()
     var debugParser = false
     var debugExpansion = false
     var showParserOutput = false
@@ -80,6 +83,21 @@ class AssemblerMain(val argList: List[String]) {
             case "-l" | "--listing" =>
                 listingFile = expectFileName()
 
+            case "-I" | "--includepath" =>
+                val maybeIncludePath = expectFileName()
+                val includePath = maybeIncludePath.head
+                if (includePath.exists()) {
+                    if (includePath.isDirectory) {
+                        includePaths += includePath
+                    } else {
+                        logger.error(s"Include path '" + includePath.toString + "' is not a directory")
+                        quit()
+                    }
+                } else {
+                    logger.error(s"Include path '" + includePath.toString + "' does not exist")
+                    quit()
+                }
+
             case _ =>
                 if (f.startsWith("-")) {
                     logger.error(s"Unknown command line option: '$f'")
@@ -103,6 +121,7 @@ class AssemblerMain(val argList: List[String]) {
     def start(): Unit = {
         val macroManager = new MacroManager(debugExpansion)
         val includer = new SourceIncludingReader
+        includePaths.foreach(includer.addIncludePath)
         val parser = new AssemblyParser(debugParser, showParserOutput, macroManager, includer)
         val inmodel = new AssemblyModel(debugCodegen)
         val codegen = new CodeGenerator(debugCodegen, inmodel)

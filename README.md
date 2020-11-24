@@ -37,7 +37,7 @@ The assembler has built a binary of eForth without any parsing/code gen errors (
 to MASM! I can't generate a binary with MASM - linking fails - but the listing is sufficient for verification.
 
 Current work:
-       
+  
 Remaining work:
   * Escape codes do not work in DB strings? \12 ? \n ? \r ?
   * local labels
@@ -61,6 +61,7 @@ Release Notes
 0.0.2 Second release (in preparation)
   * Added the INCLUDE directive to allow separate files to be included in the main assembly file, in lieu of building
     linkable object files.
+  * Added configurable include search paths.
 
 0.0.1 First release
 * Bugfix: Any offsets to symbols in direct instructions (which required offset transformation) were not

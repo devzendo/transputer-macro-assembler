@@ -16,13 +16,15 @@
 
 package org.devzendo.tma
 
-import java.io.File
+import java.io.{File, FileNotFoundException, IOException}
 
 import org.devzendo.tma.util.TempFolder
 import org.junit.{Rule, Test}
 import org.junit.rules.ExpectedException
-import org.scalatest.MustMatchers
+import org.scalatest.{DiagrammedAssertions, MustMatchers}
 import org.scalatest.junit.AssertionsForJUnit
+import org.scalatest.DiagrammedAssertions.diagrammedAssertionsHelper
+
 
 class TestSourceIncludingReader extends TempFolder with AssertionsForJUnit with MustMatchers {
     val sourceFile: File = File.createTempFile("temp.", ".asm", temporaryDirectory)
@@ -62,7 +64,7 @@ class TestSourceIncludingReader extends TempFolder with AssertionsForJUnit with 
     }
 
     @Test
-    def includeFileIsPushedYieldsCorrectIteratorBehaviour(): Unit = {
+    def pushedIncludeFileYieldsCorrectIteratorBehaviour(): Unit = {
         writeLinesToFile(includeFile, "i.one", "i.two", "i.three", "") // note blank!
 
         writeLinesToFile(sourceFile, "one", "include includefile", "three")
@@ -107,6 +109,101 @@ class TestSourceIncludingReader extends TempFolder with AssertionsForJUnit with 
     def sourceItemCurrentSourceLocationMultipleFiles(): Unit = {
         val si = SourceItem(List(SourceLocation(sourceFileName, 3), SourceLocation(includeFileName, 7)), SourceLocation(includeFileName, 7), "LDA 0xC9")
         si.currentSourceLocationPath must be(sourceFileName + ":3/" + includeFileName + ":7")
+    }
+
+    @Test
+    def relativeIncludeFileDoesNotExist(): Unit = {
+        val nonexistant = new File(temporaryDirectory, "doesnotexist.inc")
+
+        thrown.expect(classOf[FileNotFoundException])
+        thrown.expectMessage("Not found include file 'doesnotexist.inc' at " + nonexistant.getAbsoluteFile)
+
+        reader.openSourceIterator(sourceFile)
+        reader.pushIncludeFile(nonexistant)
+    }
+
+    @Test
+    def absoluteIncludeFileDoesNotExist(): Unit = {
+        thrown.expect(classOf[FileNotFoundException])
+        thrown.expectMessage("Include file 'doesnotexist.inc' not found in current directory or any include path")
+
+        reader.openSourceIterator(sourceFile)
+        reader.pushIncludeFile(new File("doesnotexist.inc"))
+    }
+
+    @Test
+    def includePathDoesNotExist(): Unit = {
+        thrown.expect(classOf[FileNotFoundException])
+        thrown.expectMessage("Include path 'doesnotexist.dir' does not exist")
+
+        reader.addIncludePath(new File("doesnotexist.dir"))
+    }
+
+    @Test
+    def includePathIsNotADirectory(): Unit = {
+        // Use the 'sourceFile' as an include path.
+        writeLinesToFile(sourceFile, "make it a file")
+
+        thrown.expect(classOf[IOException])
+        thrown.expectMessage("Include path '" + sourceFile.getName() + "' is not a directory")
+
+        reader.addIncludePath(sourceFile)
+    }
+
+    @Test
+    def includePathSearchedForRelativeIncludeFile(): Unit = {
+        reader.addIncludePath(new File("src/test/resources/subdirectory/anothersubdirectory"))
+
+        val sourceFileName = "TESTINCLUDEPATHS.ASM"
+        val sourceFilePath = "src/test/resources/" + sourceFileName
+        val iterator = reader.openSourceIterator(new File(sourceFilePath))
+
+        iterator.hasNext must be(true)
+        iterator.next() must be(SourceItem(List(SourceLocation(sourceFileName, 1)), SourceLocation(sourceFileName, 1), "\tINCLUDE DEEPFILE.INC"))
+        // Note that the reader knows nothing of the content of the lines: it doesn't know that's an include directive.
+        // The parser would detect this being an include file, and...
+        val includeFileName = "DEEPFILE.INC"
+        reader.pushIncludeFile(new File(includeFileName))
+
+        iterator.hasNext must be(true)
+
+        val expectedIncludedSource = SourceItem(List(SourceLocation(sourceFileName, 1), SourceLocation(includeFileName, 1)), SourceLocation(includeFileName, 1), "\tDB 0x23")
+        DiagrammedAssertions.assert(iterator.next() == expectedIncludedSource)
+    }
+
+    @Test
+    def includePathNotSearchedForAbsoluteIncludeFile(): Unit = {
+        writeLinesToFile(includeFile, "\tDB 0x23")
+
+        reader.addIncludePath(new File("src/test/resources/subdirectory/anothersubdirectory"))
+
+        val sourceFileName = "TESTINCLUDEPATHS.ASM"
+        val sourceFilePath = "src/test/resources/" + sourceFileName
+        val iterator = reader.openSourceIterator(new File(sourceFilePath))
+
+        iterator.hasNext must be(true)
+        iterator.next() must be(SourceItem(List(SourceLocation(sourceFileName, 1)), SourceLocation(sourceFileName, 1), "\tINCLUDE DEEPFILE.INC"))
+        // Note that the reader knows nothing of the content of the lines: it doesn't know that's an include directive.
+        // The parser would detect this being an include file, and...
+        reader.pushIncludeFile(includeFile) // This is an absolute path that's not under the include paths.
+
+        iterator.hasNext must be(true)
+
+        val expectedIncludedSource = SourceItem(List(SourceLocation(sourceFileName, 1), SourceLocation(includeFileName, 1)), SourceLocation(includeFileName, 1), "\tDB 0x23")
+        DiagrammedAssertions.assert(iterator.next() == expectedIncludedSource)
+    }
+
+    @Test
+    def includeFileDoesNotExistInAnyIncludePath(): Unit = {
+        reader.addIncludePath(new File("src/test/resources"))
+        reader.addIncludePath(new File("src/test/resources/subdirectory"))
+        reader.addIncludePath(new File("src/test/resources/subdirectory/anothersubdirectory"))
+
+        thrown.expect(classOf[FileNotFoundException])
+        thrown.expectMessage("Include file 'doesnotexist.inc' not found in current directory or any include path")
+
+        reader.openSourceIterator(sourceFile)
+        reader.pushIncludeFile(new File("doesnotexist.inc"))
     }
 
     private def writeLinesToFile(file: File, lines: String*) = {
