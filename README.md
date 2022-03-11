@@ -8,7 +8,7 @@ of Microsoft MASM 5.1.
 It also supports the instruction set of the Inmos T414/T800/T801/T805 Transputer,
 when the .TRANSPUTER directive is given.
 
-(C) 2018-2020 Matt J. Gumbley
+(C) 2018-2022 Matt J. Gumbley
 matt.gumbley@devzendo.org
 @mattgumbley @devzendo
 http://devzendo.github.io/parachute
@@ -230,7 +230,7 @@ Twitter.
 
 Building
 --------
-Just requires Java 8 and Maven 3.2.x.
+Just requires Java 8 and Maven 3.6.x. My builds use Java 8.0.321 and Maven 3.6.0 on macOS Catalina.
 
 'mvn clean package' is all you need.
 
@@ -238,7 +238,7 @@ Just requires Java 8 and Maven 3.2.x.
 License
 -------
 This code is released under the Apache 2.0 License: http://www.apache.org/licenses/LICENSE-2.0.html.
-(C) 2018-2019 Matt Gumbley, DevZendo.org
+(C) 2018-2022 Matt Gumbley, DevZendo.org
 
 
 Acknowledgements
