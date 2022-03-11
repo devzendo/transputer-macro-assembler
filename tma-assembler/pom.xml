@@ -6,7 +6,7 @@
     <name>Transputer Macro Assembler Code</name>
     <packaging>jar</packaging>
     <description>The Transputer Macro Asesmbler Code
-        (Apache License v2) 2018-2020 Matt Gumbley, DevZendo.org
+        (Apache License v2) 2018-2022 Matt Gumbley, DevZendo.org
     </description>
 
     <parent>

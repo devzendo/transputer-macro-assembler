@@ -6,7 +6,7 @@
     <name>Packaging for macOS</name>
     <packaging>pom</packaging>
     <description>macOS launcher for the Transputer Macro Assembler command line utility.
-        (Apache License v2) 2018-2020 Matt Gumbley, DevZendo.org
+        (Apache License v2) 2018-2022 Matt Gumbley, DevZendo.org
     </description>
 
     <parent>

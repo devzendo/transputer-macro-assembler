@@ -9,7 +9,7 @@
     <name>Transputer Macro Assembler - Top level project</name>
     <description>A simple Macro Assembler, using a subset of MASM syntax, for
 the Transputer instruction set. Generates binary output or ELF object files.
-(Apache License v2) 2018-2019 Matt Gumbley, DevZendo.org
+(Apache License v2) 2018-2022 Matt Gumbley, DevZendo.org
     </description>
     <url>http://devzendo.github.io/parachute</url>
 
@@ -31,7 +31,7 @@ the Transputer instruction set. Generates binary output or ELF object files.
         <connection>scm:git:https://github.com/devzendo/transputer-macro-assembler.git</connection>
         <developerConnection>scm:git:git@github.com:devzendo/transputer-macro-assembler.git</developerConnection>
       <tag>HEAD</tag>
-  </scm>
+    </scm>
 
     <developers>
         <developer>
