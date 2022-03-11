@@ -431,6 +431,7 @@ class CodeGenerator(debugCodegen: Boolean, model: AssemblyModel) {
             case DirectInstruction(_, opbyte, expr) => processDirectInstruction(indexedLine, stmt.asInstanceOf[DirectInstruction], opbyte, expr)
             case DirectEncodedInstruction(_, opbytes) => model.allocateInstructionStorageForLine(indexedLine, opbytes)
             case IndirectInstruction(_, opbytes) => model.allocateInstructionStorageForLine(indexedLine, opbytes)
+            case Include(_) => // This will have been handled by an earlier phase, so do nothing.
         }
     }
 
