@@ -29,7 +29,7 @@ the Transputer instruction set. Generates binary output or ELF object files.
     <scm>
         <url>https://github.com/devzendo/transputer-macro-assembler.git</url>
         <connection>scm:git:https://github.com/devzendo/transputer-macro-assembler.git</connection>
-        <developerConnection>scm:git:git@github.com:devzendo/transputer-macro-assembler.git</developerConnection>
+        <developerConnection>scm:git:https://github.com/devzendo/transputer-macro-assembler.git</developerConnection>
       <tag>HEAD</tag>
     </scm>
 
@@ -63,39 +63,44 @@ the Transputer instruction set. Generates binary output or ELF object files.
         <cross.platform.launcher.plugin.version>1.3.0</cross.platform.launcher.plugin.version>
     </properties>
 
-    <build>
-        <plugins>
+    <profiles>
+        <profile>
+            <id>ci</id>
+            <build>
+                <plugins>
 
-            <plugin>
-                <groupId>org.apache.maven.plugins</groupId>
-                <artifactId>maven-gpg-plugin</artifactId>
-                <version>1.6</version>
-                <executions>
-                    <execution>
-                        <id>sign-artifacts</id>
-                        <phase>verify</phase>
-                        <goals>
-                            <goal>sign</goal>
-                        </goals>
+                    <plugin>
+                        <groupId>org.apache.maven.plugins</groupId>
+                        <artifactId>maven-gpg-plugin</artifactId>
+                        <version>1.6</version>
+                        <executions>
+                            <execution>
+                                <id>sign-artifacts</id>
+                                <phase>verify</phase>
+                                <goals>
+                                    <goal>sign</goal>
+                                </goals>
+                                <configuration>
+                                    <executable>gpg2</executable>
+                                </configuration>
+                            </execution>
+                        </executions>
+                    </plugin>
+
+                    <plugin>
+                        <groupId>org.sonatype.plugins</groupId>
+                        <artifactId>nexus-staging-maven-plugin</artifactId>
+                        <version>1.6.8</version>
+                        <extensions>true</extensions>
                         <configuration>
-                            <executable>gpg2</executable>
+                            <serverId>sonatype-nexus-staging</serverId>
+                            <nexusUrl>https://oss.sonatype.org/</nexusUrl>
+                            <skipStagingRepositoryClose>true</skipStagingRepositoryClose> <!-- because we have many platforms to deploy from -->
                         </configuration>
-                    </execution>
-                </executions>
-            </plugin>
+                    </plugin>
 
-            <plugin>
-                <groupId>org.sonatype.plugins</groupId>
-                <artifactId>nexus-staging-maven-plugin</artifactId>
-                <version>1.6.8</version>
-                <extensions>true</extensions>
-                <configuration>
-                    <serverId>sonatype-nexus-staging</serverId>
-                    <nexusUrl>https://oss.sonatype.org/</nexusUrl>
-                    <skipStagingRepositoryClose>true</skipStagingRepositoryClose> <!-- because we have many platforms to deploy from -->
-                </configuration>
-            </plugin>
-
-        </plugins>
-    </build>
+                </plugins>
+            </build>
+        </profile>
+    </profiles>
 </project>
