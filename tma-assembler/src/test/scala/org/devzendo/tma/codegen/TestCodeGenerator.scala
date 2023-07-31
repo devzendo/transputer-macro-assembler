@@ -618,6 +618,20 @@ class TestCodeGenerator extends CodeGeneratorFixture with SourcedValuesFixture w
     }
 
     @Test
+    def checkForUnresolvedSymbolForwardReferencesInInstructionAtCreateModelTime(): Unit = {
+        // Set up the model with an unresolved symbol forward reference, that'll cause the unresolved forward reference
+        // check to throw. (Only if that check is called in createModel)
+        thrown.expect(classOf[CodeGenerationException])
+        thrown.expectMessage("Symbol forward references remain unresolved at end of Pass 1: (FNORD: #1)")
+
+        generateFromLines(List(
+            Line(SourceLocation("", 1), ".TRANSPUTER", None, Some(Processor("TRANSPUTER"))),
+            Line(SourceLocation("", 2), "CALL FNORD", None, Some(DirectInstruction("CALL", 144, SymbolArg("FNORD")))),
+            Line(SourceLocation("", 3), "END", None, Some(End(None)))
+        ))
+    }
+
+    @Test
     def addressOfPass1BlockStoredOnIf1(): Unit = {
         generateFromLines(List(
             Line(SourceLocation("", 1), "", None, Some(Org(Number(42)))),
