@@ -8,9 +8,10 @@ of Microsoft MASM 5.1.
 It also supports the instruction set of the Inmos T414/T800/T801/T805 Transputer,
 when the .TRANSPUTER directive is given.
 
-(C) 2018-2022 Matt J. Gumbley
+(C) 2018-2023 Matt J. Gumbley
 matt.gumbley@devzendo.org
-@mattgumbley @devzendo
+Mastodon: @M0CUV@mastodon.radio
+Twitter: (abandoned) @mattgumbley @devzendo
 http://devzendo.github.io/parachute
 
 The assembler is to be used in the building of the
