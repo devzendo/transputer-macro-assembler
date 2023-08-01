@@ -63,6 +63,9 @@ Release Notes
   * Added the INCLUDE directive to allow separate files to be included in the main assembly file, in lieu of building
     linkable object files.
   * Added configurable include search paths.
+  * Bugfix: Symbols in direct instructions that need to be converged, but that are not defined are now detected and
+    cause pass 1 to fail, with the message "Symbol forward references remain unresolved at end of Pass 1 (still 
+    converging)".
 
 0.0.1 First release
 * Bugfix: Any offsets to symbols in direct instructions (which required offset transformation) were not

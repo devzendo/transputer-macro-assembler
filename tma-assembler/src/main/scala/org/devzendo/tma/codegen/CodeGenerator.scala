@@ -119,7 +119,10 @@ class CodeGenerator(debugCodegen: Boolean, model: AssemblyModel) {
             case ame: AssemblyModelException => codeGenerationErrors += new CodeGenerationException(0, ame.getMessage)
         }
 
-        // TODO in converge mode still? there must be unresolveds then...
+        logger.debug("At End of Pass 1, converge mode: " + convergeMode + "; symbols to converge: " + symbolsToConverge)
+        if (convergeMode) {
+            codeGenerationErrors += new CodeGenerationException(0, "Symbol forward references remain unresolved at end of Pass 1 (still converging): " + symbolsToConverge)
+        }
 
         logger.info("Pass 2: Updating model with " + p2Structures.size + " pass 2 section(s)")
         try {
@@ -202,6 +205,7 @@ class CodeGenerator(debugCodegen: Boolean, model: AssemblyModel) {
                     resolveConvergeSetSymbol(CasedSymbolName(label))
                 })
 
+                logger.debug("Converge mode: " + convergeMode + "; symbolsToConverge has " + symbolsToConverge.size + " entries")
                 if (convergeMode && symbolsToConverge.isEmpty) {
                     endConvergeLineIndex = indexedLine.lineIndex
                     logger.debug("End of convergable lines on line index " + indexedLine.lineIndex + " line number " + modifiedIndexedLine.location.lineNumber)
@@ -377,7 +381,7 @@ class CodeGenerator(debugCodegen: Boolean, model: AssemblyModel) {
 
                 } catch {
                     case ste: StatementTransformationException =>
-                        logger.debug(s"Rethowing ${ste.getMessage}")
+                        logger.debug(s"Rethrowing ${ste.getMessage}")
                         throw new CodeGenerationException(indexedLine.location.lineNumber, ste.getMessage)
                 }
             case None =>

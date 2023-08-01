@@ -622,7 +622,7 @@ class TestCodeGenerator extends CodeGeneratorFixture with SourcedValuesFixture w
         // Set up the model with an unresolved symbol forward reference, that'll cause the unresolved forward reference
         // check to throw. (Only if that check is called in createModel)
         thrown.expect(classOf[CodeGenerationException])
-        thrown.expectMessage("Symbol forward references remain unresolved at end of Pass 1: (FNORD: #1)")
+        thrown.expectMessage("0: Symbol forward references remain unresolved at end of Pass 1 (still converging): Set(FNORD)")
 
         generateFromLines(List(
             Line(SourceLocation("", 1), ".TRANSPUTER", None, Some(Processor("TRANSPUTER"))),
