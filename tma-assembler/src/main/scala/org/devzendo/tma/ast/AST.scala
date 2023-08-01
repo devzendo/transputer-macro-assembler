@@ -16,6 +16,7 @@
 
 package org.devzendo.tma.ast
 
+import org.devzendo.commoncode.string.HexDump
 import org.devzendo.tma.SourceLocation
 import org.devzendo.tma.ast.AST._
 
@@ -36,7 +37,7 @@ case class Sub() extends Operator("-")
 case class Negate() extends Operator("-")
 case class Offset() extends Operator("OFFSET")
 case class OffsetFrom(address: Int) extends Operator("OFFSETFROM") { // Offset is replaced by this in the CodeGenerator
-    override def toString: Label = s"OFFSETFROM($address)"
+    override def toString: Label = "OFFSETFROM(0x" + HexDump.int2hex(address) + ")"
 }
 case class Mult() extends Operator("*")
 case class Div() extends Operator("/")

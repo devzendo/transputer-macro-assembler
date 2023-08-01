@@ -225,7 +225,7 @@ class AssemblyModel(debugCodegen: Boolean) {
     }
     def setDollarSilently(n: Int): Unit = {
         // Set $ without storing back reference to a Line, since there isn't one.
-        logger.debug("Variable $ (silently) = " + n)
+        logger.debug("Variable $ (silently) = 0x" + HexDump.int2hex(n))
         symbols.put(dollar, Value(n, SymbolType.Variable, 0))
     }
     def incrementDollar(n: Int): Unit = {
@@ -285,7 +285,7 @@ class AssemblyModel(debugCodegen: Boolean) {
         symbols.put(casedSymbolName, Value(n, symbolType, indexedLine.location.lineNumber))
         sourcedValuesArrayBufferForLineIndex(indexedLine.lineIndex) += AssignmentValue(n, indexedLine, symbolType)
         if (debugCodegen) {
-            logger.info(symbolType + " " + casedSymbolName + " = " + n)
+            logger.info(symbolType + " " + casedSymbolName + " = 0x" + HexDump.int2hex(n))
         }
         resolveForwardReferences(casedSymbolName, n, symbolType)
     }
@@ -518,7 +518,7 @@ class AssemblyModel(debugCodegen: Boolean) {
                 hexnumStrings.mkString(" ")
             }
             // This diagnostic does not honour endianness.
-            logger.info(s"Storage @ ${HexDump.int2hex(storage.address)} ${widthToDx(storage.cellWidth)} (${data(storage.cellWidth, storage.data)})")
+            logger.info(s"Storage @ 0x${HexDump.int2hex(storage.address)} ${widthToDx(storage.cellWidth)} (${data(storage.cellWidth, storage.data)})")
         }
     }
 

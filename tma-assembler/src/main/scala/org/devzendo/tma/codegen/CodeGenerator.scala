@@ -241,7 +241,7 @@ class CodeGenerator(debugCodegen: Boolean, model: AssemblyModel) {
 
     private def converge(): Unit = {
         if (debugCodegen) {
-            logger.info("Converging line indices [" + startConvergeLineIndex + " .. " + endConvergeLineIndex + "] Start $ " + HexDump.int2hex(startConvergeDollar))
+            logger.info("Converging line indices [" + startConvergeLineIndex + " .. " + endConvergeLineIndex + "] Start 0x" + HexDump.int2hex(startConvergeDollar))
         }
         model.setConvergeMode(true) // relax symbol redefinitions
         var iteration = 0
@@ -462,7 +462,7 @@ class CodeGenerator(debugCodegen: Boolean, model: AssemblyModel) {
                 throw new CodeGenerationException(lineNumber, "Undefined symbol(s) '" + undefinedSymbols.mkString(",") + "'")
             case Right(org) =>
                 if (debugCodegen) {
-                    logger.info("Org: " + HexDump.int2hex(org))
+                    logger.info("Org: 0x" + HexDump.int2hex(org))
                 }
                 model.setDollar(org, indexedLine)
         }
