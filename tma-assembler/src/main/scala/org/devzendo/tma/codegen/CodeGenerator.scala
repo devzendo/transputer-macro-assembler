@@ -284,7 +284,7 @@ class CodeGenerator(debugCodegen: Boolean, model: AssemblyModel) {
 
                             case Right(value) =>
                                 if (debugCodegen) {
-                                    logger.debug("Defined: Encoding value " + value)
+                                    logger.debug("Defined: Encoding value 0x" + HexDump.int2hex(value))
                                 }
 
                                 // This evaluation needs to take the encoded instruction length into account, when a
@@ -293,7 +293,7 @@ class CodeGenerator(debugCodegen: Boolean, model: AssemblyModel) {
 
                                 val encoded = DirectInstructionEncoder.apply(di.opbyte, valueToEncode)
                                 if (debugCodegen) {
-                                    logger.debug(s"Defined: Encoding direct instruction (convergence); original value to encode $value; after length adjustment $valueToEncode")
+                                    logger.debug(s"Defined: Encoding direct instruction (convergence); original value to encode 0x${HexDump.int2hex(value)}; after length adjustment 0x${HexDump.int2hex(valueToEncode)}")
                                     logger.debug("Defined: New encoded size for direct instruction: " + encoded.size)
                                 }
                                 if (encoded.size > currentSize) {
@@ -596,7 +596,7 @@ class CodeGenerator(debugCodegen: Boolean, model: AssemblyModel) {
                 // Unary(OffsetFrom(x)) is in the expression. Here and in convergent evaluation.
                 val valueToEncode = encodeOffsetValue(di, value)
 
-                logger.debug(s"Encoding direct instruction (non-convergence); original value to encode $value; after length adjustment $valueToEncode")
+                logger.debug(s"Encoding direct instruction (non-convergence); original value to encode 0x${HexDump.int2hex(value)}; after length adjustment 0x${HexDump.int2hex(valueToEncode)}")
                 val prefixedBytes = DirectInstructionEncoder.apply(opbyte, valueToEncode)
                 model.allocateInstructionStorageForLine(indexedLine, prefixedBytes)
             case Left(undefineds) =>
