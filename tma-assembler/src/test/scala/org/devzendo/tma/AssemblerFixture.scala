@@ -17,12 +17,14 @@
 package org.devzendo.tma
 
 import org.devzendo.tma.ast.Line
-import org.devzendo.tma.codegen.{AssemblyModel, CodeGenerator, OffsetTransformer}
+import org.devzendo.tma.codegen.{AssemblyModel, CodeGenerationException, CodeGenerator, OffsetTransformer}
 import org.devzendo.tma.parser.{AssemblyParser, MacroManager}
+import org.log4s.Logger
 
 import scala.collection.mutable
 
 trait AssemblerFixture {
+    private val logger: Logger = org.log4s.getLogger
 
     // Higher-level, not from Lines, but from text input to parse into Lines... do a 'proper' assembly...
     def assemble(linesToParse: List[String]): AssemblyModel = {
@@ -33,12 +35,21 @@ trait AssemblerFixture {
         val codegen = new CodeGenerator(true, model)
         codegen.addStatementTransformer(new OffsetTransformer(model).transform)
 
+        val controller = new AssemblerController(includer, parser, codegen)
+
         val parsedLinesSoFar = mutable.ArrayBuffer[Line]()
         linesToParse.zipWithIndex.foreach((p: (String, Int)) => {
             parsedLinesSoFar ++= parser.parse(p._1, SourceLocation("", p._2 + 1))
         })
-        codegen.createModel(parsedLinesSoFar.toList)
-        codegen.endCheck()
+        parsedLinesSoFar.foreach((line) => {controller.addParsedLine(line)});
+        controller.generateModel()
+
+        val codeGenerationExceptions = controller.getCodeGenerationExceptions
+        if (codeGenerationExceptions.nonEmpty) {
+            logger.error("Code generation errors:")
+            codeGenerationExceptions.foreach((f: CodeGenerationException) => logger.error(f.getMessage))
+            throw new RuntimeException("Cannot continue")
+        }
 
         model
     }

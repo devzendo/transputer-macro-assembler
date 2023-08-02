@@ -69,7 +69,8 @@ class TestOffsetTransformerAssembly extends AssemblerFixture with SourcedValuesF
         )
         linesToParse ++= lines
         linesToParse ++= List(
-            "AFTER:"
+            "AFTER:",
+            "END"
         )
         linesToParse
     }
