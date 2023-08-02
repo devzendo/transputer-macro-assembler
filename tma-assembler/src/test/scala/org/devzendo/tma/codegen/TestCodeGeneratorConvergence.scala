@@ -16,7 +16,7 @@
 
 package org.devzendo.tma.codegen
 
-import org.devzendo.tma.SourceLocation
+import org.devzendo.tma.{AssemblerFixture, SourceLocation}
 import org.devzendo.tma.ast.AST.SymbolName
 import org.devzendo.tma.ast._
 import org.devzendo.tma.output.ShowListingFixture
@@ -25,8 +25,10 @@ import org.log4s.Logger
 import org.scalatest.MustMatchers
 import org.scalatest.junit.AssertionsForJUnit
 
+import scala.collection.mutable.ArrayBuffer
+
 // Converge mode processing
-class TestCodeGeneratorConvergence extends CodeGeneratorFixture with SourcedValuesFixture with ShowListingFixture with AssertionsForJUnit with MustMatchers {
+class TestCodeGeneratorConvergence extends CodeGeneratorFixture with AssemblerFixture with SourcedValuesFixture with ShowListingFixture with AssertionsForJUnit with MustMatchers {
     val logger: Logger = org.log4s.getLogger
 
     // Since DB c DUP v is translated by the OffsetTransformer, and this class doesn't have that bound into the
@@ -105,6 +107,7 @@ class TestCodeGeneratorConvergence extends CodeGeneratorFixture with SourcedValu
 
     @Test
     def convergeModeExample3(): Unit = {
+        // Not a test! The "general case" from The Transputer Handbook, p48. (with PRINTF defined).
         val lines = List(
             Line(SourceLocation("", 1), "\t.TRANSPUTER", None, Some(Processor("TRANSPUTER"))),
             Line(SourceLocation("", 2), "L2:\tDB\t'again'", Some("L2"), Some(DB(List(Characters("again"))))),
@@ -122,6 +125,7 @@ class TestCodeGeneratorConvergence extends CodeGeneratorFixture with SourcedValu
 
     @Test
     def convergeModeExample4(): Unit = {
+        // Not a test!
         // lines needing convergence are in the middle section
         val lines = List(
             Line(SourceLocation("", 1), "\t.TRANSPUTER", None, Some(Processor("TRANSPUTER"))),
@@ -140,6 +144,141 @@ class TestCodeGeneratorConvergence extends CodeGeneratorFixture with SourcedValu
         )
         val model = generateFromLines(lines)
         showListing(model)
+    }
+
+    private def wrapInPrologueAndEpilogue(lines: String*): ArrayBuffer[String] = {
+        val linesToParse = new ArrayBuffer[String]()
+        linesToParse ++= List(
+            "\t.TRANSPUTER",
+            "\tMemStart EQU 0x80000070",
+            // First byte in a binary is the number of bytes that follow..
+            "\tORG MemStart - 1",
+            "\tDB STOP - START",
+            "\tORG MemStart",
+            "START:"
+        )
+        linesToParse ++= lines
+        linesToParse ++= List(
+            "\tEND",
+            "STOP:"
+        )
+        linesToParse
+    }
+
+    // Found when trying to implement iserver hello world
+    // Many of these 'call' examples have been verified on the emulator to call the right address, and have the
+    // call encoding that's tested here.
+    @Test
+    // This would run forever, but the call offset is correct.
+    def convergeToSingleByteLowerBound(): Unit = {
+        val model = assemble(wrapInPrologueAndEpilogue(
+            "LINK0_OUTPUT EQU 0x80000000", // line index 6
+            "\tajw 0x10",
+            "\tcall OUTSHORTZERO",
+            "OUTSHORTZERO:",
+            "\tldc LINK0_OUTPUT",
+            "\tret",
+        ).toList)
+        showListing(model)
+
+        val callLineStorages = model.getSourcedValuesForLineIndex(8)
+        callLineStorages must have size 1
+        val callLineStorage = singleStorage(callLineStorages)
+        callLineStorage.address must be(0x80000072)
+        callLineStorage.cellWidth must be(1)
+        callLineStorage.data.toList must be(List(0x90)) // call offset has been expanded to point to the ldc
+    }
+
+    @Test
+    def convergeToOneByteUpperBound(): Unit = {
+        val model = assemble(wrapInPrologueAndEpilogue(
+            "LINK0_OUTPUT EQU 0x80000000", // line index 6
+            "\tajw 0x10",
+            "\tcall OUTSHORTZERO",
+            "\tterminate",
+            "\tDB 0x0D DUP(0x00)",
+            "OUTSHORTZERO:",
+            "\tldc LINK0_OUTPUT",
+            "\tret",
+        ).toList)
+        showListing(model)
+
+        val callLineStorages = model.getSourcedValuesForLineIndex(8)
+        callLineStorages must have size 1
+        val callLineStorage = singleStorage(callLineStorages)
+        callLineStorage.address must be(0x80000072)
+        callLineStorage.cellWidth must be(1)
+        callLineStorage.data.toList must be(List(0x9f)) // call offset has been expanded to point to the ldc
+    }
+
+    @Test
+    def convergeToTwoBytesLowerBound(): Unit = {
+        val model = assemble(wrapInPrologueAndEpilogue(
+            "LINK0_OUTPUT EQU 0x80000000", // line index 6
+            "\tajw 0x10",
+            "\tcall OUTSHORTZERO",
+            "\tterminate",
+            "\tDB 0x0E DUP(0x00)",
+            "OUTSHORTZERO:",
+            "\tldc LINK0_OUTPUT",
+            "\tret",
+        ).toList)
+        showListing(model)
+
+        val callLineStorages = model.getSourcedValuesForLineIndex(8)
+        callLineStorages must have size 1
+        val callLineStorage = singleStorage(callLineStorages)
+        callLineStorage.address must be(0x80000072)
+        callLineStorage.cellWidth must be(1)
+        callLineStorage.data.toList must be(List(0x21, 0x90)) // call offset has been expanded to point to the ldc
+    }
+
+    @Test
+    // Can't boot a transputer with this since the code is larger than the 0xFF bytes of the first stage boot.
+    // So this hasn't been tested on the emulator.
+    def convergeToTwoBytesUpperBound(): Unit = {
+        val model = assemble(wrapInPrologueAndEpilogue(
+            "LINK0_OUTPUT EQU 0x80000000", // line index 6
+            "\tajw 0x10",
+            "\tcall OUTSHORTZERO",
+            "\tterminate",
+            "\tDB 0xFD DUP(0x00)",
+            "OUTSHORTZERO:",
+            "\tldc LINK0_OUTPUT",
+            "\tret",
+        ).toList)
+        showListing(model)
+
+        val callLineStorages = model.getSourcedValuesForLineIndex(8)
+        callLineStorages must have size 1
+        val callLineStorage = singleStorage(callLineStorages)
+        callLineStorage.address must be(0x80000072)
+        callLineStorage.cellWidth must be(1)
+        callLineStorage.data.toList must be(List(0x2F, 0x9F)) // call offset has been expanded to point to the ldc
+    }
+
+    @Test
+    // Can't boot a transputer with this since the code is larger than the 0xFF bytes of the first stage boot.
+    // So this hasn't been tested on the emulator.
+    def convergeToThreeBytesLowerBound(): Unit = {
+        val model = assemble(wrapInPrologueAndEpilogue(
+            "LINK0_OUTPUT EQU 0x80000000", // line index 6
+            "\tajw 0x10",
+            "\tcall OUTSHORTZERO",
+            "\tterminate",
+            "\tDB 0xFE DUP(0x00)",
+            "OUTSHORTZERO:",
+            "\tldc LINK0_OUTPUT",
+            "\tret",
+        ).toList)
+        showListing(model)
+
+        val callLineStorages = model.getSourcedValuesForLineIndex(8)
+        callLineStorages must have size 1
+        val callLineStorage = singleStorage(callLineStorages)
+        callLineStorage.address must be(0x80000072)
+        callLineStorage.cellWidth must be(1)
+        callLineStorage.data.toList must be(List(0x21, 0x20, 0x90)) // call offset has been expanded to point to the ldc
     }
 
     @Test
