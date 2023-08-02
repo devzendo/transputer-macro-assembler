@@ -55,7 +55,7 @@ object DirectInstructionEncoder {
             previousInstructionLength = instructionLength
             logger.debug("iterateEncodedExpressionValue - calculating length of instruction encoding " + offset)
             val prefixedBytes = DirectInstructionEncoder.apply(irrelevantOpByte, offset)
-            logger.debug("iterateEncodedExpressionValue - recalculating length of instruction encoding " + (offset - prefixedBytes.length))
+            logger.debug("iterateEncodedExpressionValue - prefixed bytes: " + prefixedBytes  + "; recalculating length of instruction encoding " + (offset - prefixedBytes.length))
             instructionLength = DirectInstructionEncoder.apply(irrelevantOpByte, offset - prefixedBytes.length).length
             logger.debug("iterateEncodedExpressionValue - length of instruction encoding " + instructionLength)
             if (instructionLength == previousInstructionLength) {
