@@ -331,14 +331,14 @@ class AssemblyModel(debugCodegen: Boolean) {
       * @return undefined variable names, or the evaluated value.
       */
     def evaluateExpression(expr: Expression): Either[Set[CasedSymbolName], Int] = {
-        //logger.debug("Evaluating " + expr)
+        logger.debug("Evaluating " + expr)
         val undefineds = findUndefineds(expr)
         if (undefineds.nonEmpty) {
-            //logger.debug("Undefined symbols: " + undefineds)
+            logger.debug("Undefined symbols: " + undefineds)
             Left(undefineds)
         } else {
             val value = evaluateExpressionWithNoUndefineds(expr)
-            //logger.debug("Evaluation of " + expr + " = " + value)
+            logger.debug("Evaluation of " + expr + " = 0x" + HexDump.int2hex(value))
             Right(value)
         }
     }
