@@ -66,6 +66,8 @@ Release Notes
   * Bugfix: Symbols in direct instructions that need to be converged, but that are not defined are now detected and
     cause pass 1 to fail, with the message "Symbol forward references remain unresolved at end of Pass 1 (still 
     converging)".
+  * Changed many diagnostic numeric outputs to hex.
+  * Added more examples of convergence offset calculation.
 
 0.0.1 First release
 * Bugfix: Any offsets to symbols in direct instructions (which required offset transformation) were not

@@ -281,6 +281,41 @@ class TestCodeGeneratorConvergence extends CodeGeneratorFixture with AssemblerFi
         callLineStorage.data.toList must be(List(0x21, 0x20, 0x90)) // call offset has been expanded to point to the ldc
     }
 
+    private def assertStorage(model: AssemblyModel, indexedLine: Int, expectedAddress: Int, expectedData: List[Int]): Unit = {
+        val storages = model.getSourcedValuesForLineIndex(indexedLine)
+        storages must have size 1
+        val storage = singleStorage(storages)
+        storage.address must be(expectedAddress)
+        storage.cellWidth must be(1)
+        storage.data.toList must be(expectedData)
+    }
+
+    @Test
+    def convergeHelloWorldExample(): Unit = {
+        val model = assembleResource("HELLO3.ASM")
+        model.convergeMode must be(false)
+        showListing(model)
+
+        assertStorage(model, 6, 0x80000070, List(0x0C)) // j MAIN
+        model.getLabel(CasedSymbolName("MAIN")) must be(0x8000007D)
+
+        assertStorage(model, 15, 0x80000080, List(0x61, 0x4D)) // ldc HWSTR - _M1
+        model.getLabel(CasedSymbolName("_M1")) must be(0x80000084)
+
+        assertStorage(model, 18, 0x80000084, List(0x92)) // call putConsolePString
+        model.getLabel(CasedSymbolName("putConsolePString")) must be(0x80000087)
+
+        assertStorage(model, 29, 0x8000008D, List(0x23, 0x98)) // call strlen <-- this is where the convergence bug shows up, currently 0x23, 0x99
+        model.getLabel(CasedSymbolName("strlen")) must be(0x800000C7) // currently, incorrectly at 0x800000C8
+
+        assertStorage(model, 33, 0x80000093, List(0x22, 0x94)) // call outshort0 <-- this is where the convergence bug shows up, currently 0x22, 0x96
+        assertStorage(model, 41, 0x800000AA, List(0x9E)) // call outshort0 <-- this is where the convergence bug shows up, currently 0x21, 0x90
+        model.getLabel(CasedSymbolName("outshort0")) must be(0x800000B9) // currently, incorrectly at 0x800000BA
+
+        assertStorage(model, 65, 0x800000CD, List(0xA5)) // cj _sl_end
+        model.getLabel(CasedSymbolName("_sl_end")) must be(0x800000D3) // currently, incorrectly at 0x800000D4
+    }
+
     @Test
     def convergedAdjustedLabelsCauseUpdateToStorage(): Unit = {
         val lines = List(

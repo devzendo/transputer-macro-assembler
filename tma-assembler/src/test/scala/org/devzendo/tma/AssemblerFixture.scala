@@ -21,7 +21,9 @@ import org.devzendo.tma.codegen.{AssemblyModel, CodeGenerationException, CodeGen
 import org.devzendo.tma.parser.{AssemblyParser, MacroManager}
 import org.log4s.Logger
 
+import java.io.File
 import scala.collection.mutable
+import scala.collection.mutable.ArrayBuffer
 
 trait AssemblerFixture {
     private val logger: Logger = org.log4s.getLogger
@@ -52,5 +54,17 @@ trait AssemblerFixture {
         }
 
         model
+    }
+
+    // Perform a proper assembly on a resource file.
+    def assembleResource(filePath: String): AssemblyModel = {
+        val reader = new SourceIncludingReader()
+        val sourceFilePath = "src/test/resources/" + filePath
+        val iterator = reader.openSourceIterator(new File(sourceFilePath))
+        val linesToParse = new ArrayBuffer[String]()
+        while (iterator.hasNext) {
+            linesToParse += iterator.next().line;
+        }
+        assemble(linesToParse.toList)
     }
 }
