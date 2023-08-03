@@ -68,6 +68,8 @@ Release Notes
     converging)".
   * Changed many diagnostic numeric outputs to hex.
   * Added more examples of convergence offset calculation.
+  * Bugfix: Fix offset generation/start addresses when iterating through convergence. Ensure all parts of the model are
+    updated with offset/start location/size information, as storage is adjusted.
 
 0.0.1 First release
 * Bugfix: Any offsets to symbols in direct instructions (which required offset transformation) were not

@@ -16,6 +16,7 @@
 
 package org.devzendo.tma.codegen
 
+import org.devzendo.commoncode.string.HexDump
 import org.devzendo.tma.ast._
 import org.devzendo.tma.TransputerDirectInstructions
 import org.log4s.Logger
@@ -64,18 +65,23 @@ class OffsetTransformer(model: AssemblyModel) extends TransputerDirectInstructio
     // 1000: ldc 0x1234abcd => 0x21, 0x22, 0x23, 0x24, 0x2a, 0x2b, 0x2c, 0x4d
     // $ would be 1000 but after execution when an offset is needed, IPtr now being 1007.
     def convertSymbolArgToOffset(expr: Expression, dollar: Int = model.getDollar): Expression = {
-        logger.debug("convertSymbolArgToOffset(" + expr + ") $=" + dollar)
-        expr match {
+        logger.debug("convertSymbolArgToOffset(" + expr + ") $=" + dollar + " = 0x" + HexDump.int2hex(dollar))
+        val outExpr = expr match {
             case SymbolArg(name) => {
                 Unary(OffsetFrom(dollar), expr)
             }
             case Unary(op, uExpr) =>
                 op match {
+                    // Recompute OffsetFrom with the current dollar
+                    case OffsetFrom(_) => Unary(OffsetFrom(dollar), uExpr)
+                    // Otherwise, replace an Offset with an OffsetFrom
                     case Offset() => Unary(OffsetFrom(dollar), uExpr)
                     case _ => expr
                 }
             case _ => expr
         }
+        logger.debug("convertSymbolArgToOffset(...) = " + outExpr)
+        outExpr
     }
 
     // If an expression contains an Offset, convert it to an OffsetFrom with a given (defaulted) $.

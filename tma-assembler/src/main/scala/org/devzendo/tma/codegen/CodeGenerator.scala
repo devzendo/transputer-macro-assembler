@@ -79,6 +79,7 @@ class CodeGenerator(debugCodegen: Boolean, model: AssemblyModel) {
     private var symbolsToConverge = mutable.HashSet[CasedSymbolName]()
     case class DirectInstructionState(directInstruction: DirectInstruction, currentSize: Int) {
     }
+    // This is the map of direct instructions that contain (as yet) undefined symbols; their currentSize is initially 1.
     private val directInstructionByLineIndex = mutable.HashMap[Int, DirectInstructionState]()
     private var startConvergeDollar = 0
 
@@ -188,6 +189,7 @@ class CodeGenerator(debugCodegen: Boolean, model: AssemblyModel) {
                     symbolsToConverge ++= directUndefineds
                 }
 
+                logger.debug("Before statement transformers, $=0x" + HexDump.int2hex(model.getDollar))
                 val (modifiedIndexedLine, maybeStatement) = applyStatementTransformers(indexedLine)
                 model.addLine(modifiedIndexedLine)
 
@@ -268,7 +270,10 @@ class CodeGenerator(debugCodegen: Boolean, model: AssemblyModel) {
             // Convergence should only occur in pass 1. Pass 2 could add Storages that this would clear.
 
             for (lineIndex <- startConvergeLineIndex to endConvergeLineIndex) {
-                val indexedLine = inputLines(lineIndex)
+                logger.debug("Re-applying statement transformers")
+                val (indexedLine, _) = applyStatementTransformers(inputLines(lineIndex))
+                inputLines(lineIndex) = indexedLine
+                model.replaceLine(lineIndex, indexedLine)
                 if (debugCodegen) {
                     logger.info("Converging line index " + lineIndex + ": " + indexedLine)
                 }
@@ -277,10 +282,14 @@ class CodeGenerator(debugCodegen: Boolean, model: AssemblyModel) {
                 val maybeElement = directInstructionByLineIndex.get(lineIndex)
                 maybeElement match {
                     case Some(DirectInstructionState(di: DirectInstruction, currentSize: Int)) =>
+                        // Update the DirectInstructionState to have the latest version of the DirectInstruction -
+                        // it could have changed (it could have an OffsetFrom that's been adjusted).
+                        val updatedDirectInstruction = indexedLine.stmt.get.asInstanceOf[DirectInstruction]
+                        directInstructionByLineIndex.put(lineIndex, DirectInstructionState(updatedDirectInstruction, currentSize))
                         if (debugCodegen) {
                             logger.debug("Current size for direct instruction: " + currentSize)
                         }
-                        model.evaluateExpression(di.expr) match {
+                        model.evaluateExpression(updatedDirectInstruction.expr) match {
 
                             case Right(value) =>
                                 if (debugCodegen) {
@@ -289,9 +298,9 @@ class CodeGenerator(debugCodegen: Boolean, model: AssemblyModel) {
 
                                 // This evaluation needs to take the encoded instruction length into account, when a
                                 // Unary(OffsetFrom(x)) is in the expression. Here and in non-convergent evaluation.
-                                val valueToEncode = encodeOffsetValue(di, value)
+                                val valueToEncode = encodeOffsetValue(updatedDirectInstruction, value)
 
-                                val encoded = DirectInstructionEncoder.apply(di.opbyte, valueToEncode)
+                                val encoded = DirectInstructionEncoder.apply(updatedDirectInstruction.opbyte, valueToEncode)
                                 if (debugCodegen) {
                                     logger.debug(s"Defined: Encoding direct instruction (convergence); original value to encode 0x${HexDump.int2hex(value)}; after length adjustment 0x${HexDump.int2hex(valueToEncode)}")
                                     logger.debug("Defined: New encoded size for direct instruction: " + encoded.size)
@@ -301,17 +310,19 @@ class CodeGenerator(debugCodegen: Boolean, model: AssemblyModel) {
                                         logger.debug("Defined: Another byte of storage required")
                                     }
                                     // requires more size
-                                    directInstructionByLineIndex.put(lineIndex, DirectInstructionState(di, currentSize + 1))
+                                    directInstructionByLineIndex.put(lineIndex, DirectInstructionState(updatedDirectInstruction, currentSize + 1))
                                     model.incrementDollar(currentSize + 1)
                                     again = true
                                 } else {
                                     if (debugCodegen) {
-                                        logger.debug("Defined: Storage size ok; allocating")
+                                        logger.debug("Defined: Storage size ok (has not changed); allocating")
                                     }
                                     model.allocateStorageForLine(indexedLine, 1, encoded map Number) // silently increments $
                                 }
 
                             case Left(undefineds) =>
+                                // Can this case ever occur? We enter convergence when the set of undefined symbols in
+                                // the range of lines is empty..
                                 if (debugCodegen) {
                                     logger.debug("Undefined: Storage size static: Symbol(s) (" + undefineds + ") are not yet defined; allocating 1 byte")
                                 }
@@ -363,11 +374,13 @@ class CodeGenerator(debugCodegen: Boolean, model: AssemblyModel) {
         indexedLine.stmt match {
             case Some(initialStmt) =>
                 // Apply all statement transformers to the statement...
+                logger.debug("Applying statement transformers to " + initialStmt)
                 try {
 
                     val stmt = statementTransformers.foldLeft(initialStmt) {
                         (prevStmt: Statement, transformer: StatementTransformer) => transformer(prevStmt)
                     }
+                    logger.debug("Transformed statement is " + stmt)
 
                     if (stmt != initialStmt) {
                         if (debugCodegen) {

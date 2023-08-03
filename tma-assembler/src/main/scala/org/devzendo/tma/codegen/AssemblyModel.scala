@@ -431,6 +431,10 @@ class AssemblyModel(debugCodegen: Boolean) {
         lines += indexedLine
     }
 
+    def replaceLine(lineIndex: Int, indexedLine: IndexedLine): Unit = {
+        lines.update(lineIndex, indexedLine)
+    }
+
     def getSourcedValuesForLineIndex(lineIndex: Int): List[SourcedValue] = {
         sourcedValuesForLineIndices.getOrElse(lineIndex, ArrayBuffer[SourcedValue]()).toList
     }
