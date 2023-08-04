@@ -1,6 +1,6 @@
 transputer-macro-assembler
 ==========================
-This is a simple byte-building macro assembler, that can build binary files,
+This is a byte-building macro assembler, that can build binary files,
 irrespective of actual CPU instructions. You can build your set of 'opcodes'
 via macros and ALIGN/DB/DD/DW directives. Its input language is a small subset
 of Microsoft MASM 5.1.
