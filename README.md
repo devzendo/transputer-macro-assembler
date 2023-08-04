@@ -246,7 +246,7 @@ Just requires Java 8 and Maven 3.6.x. My builds use Java 8.0.321 and Maven 3.6.0
 License
 -------
 This code is released under the Apache 2.0 License: http://www.apache.org/licenses/LICENSE-2.0.html.
-(C) 2018-2022 Matt Gumbley, DevZendo.org
+(C) 2018-2023 Matt Gumbley, DevZendo.org
 
 
 Acknowledgements
