@@ -53,6 +53,7 @@ the Transputer instruction set. Generates binary output (or later, ELF object fi
     </distributionManagement>
 
     <modules>
+        <module>tma-includes</module>
         <module>tma-assembler</module>
         <module>tma-osx</module>
         <module>tma-linux</module>

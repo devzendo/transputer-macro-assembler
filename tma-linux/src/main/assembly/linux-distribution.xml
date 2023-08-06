@@ -22,5 +22,22 @@
             <destName>README-transputer-macro-assembler.md</destName>
         </file>
     </files>
+    <dependencySets>
+        <dependencySet>
+            <useProjectArtifact>false</useProjectArtifact>
+            <outputDirectory>./</outputDirectory>
+            <scope>provided</scope>
+            <includes>
+                <include>org.devzendo:tma-includes:jar:includes</include>
+            </includes>
+            <unpack>true</unpack>
+            <unpackOptions>
+                <excludes>
+                    <exclude>META-INF/**</exclude>
+                </excludes>
+            </unpackOptions>
+        </dependencySet>
+    </dependencySets>
+
 
 </assembly>
