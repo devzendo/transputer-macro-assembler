@@ -105,7 +105,7 @@ ethos.
 MASM 6 is a fine product; I wish Microsoft would make old systems freely available
 via some legitimate archive... but this is not likely.
 
-I tried assembling it with JWasm, the open source version of the Watcom
+I tried assembling eForth with JWasm, the open source version of the Watcom
 assembler, but this had issues with relocation and endianness. Yes, I could have
 investigated this and submitted patches... but what is required for this project
 is not complex, and does not need an x86 assembler just acting as a macro
@@ -223,6 +223,8 @@ constants and labels are converted to upper case. To switch to processing variab
 constants and labels in a case-sensitive manner, use the -x (--caseSensitive) option.
 This is like MASM's /Cx option.
 
+The system include files are present in the include directory. For now, this includes
+a secondary bootstrap mechanism that may be included at the start of large binaries.
 
 Contributing
 ------------
@@ -232,8 +234,8 @@ contributions to keep code coverage/testability as high as possible.
 
 All contributions are welcome!
 
-Contact me, Matt Gumbley via matt.gumbley@devzendo.org, or @mattgumbley on
-Twitter.
+Contact me, Matt Gumbley via matt.gumbley@devzendo.org, or @M0CUV@mastodon.radio on
+Mastodon.
 
 
 Building

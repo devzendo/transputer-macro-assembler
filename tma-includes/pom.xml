@@ -1,0 +1,89 @@
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+    <groupId>org.devzendo</groupId>
+    <artifactId>tma-linux</artifactId>
+    <version>0.0.2-SNAPSHOT</version>
+    <name>Packaging for Linux</name>
+    <packaging>pom</packaging>
+    <description>Linux launcher for the Transputer Macro Assembler command line utility.
+        (Apache License v2) 2018-2023 Matt Gumbley, DevZendo.org
+    </description>
+
+    <parent>
+        <groupId>org.devzendo</groupId>
+        <artifactId>transputer-macro-assembler-parent</artifactId>
+        <version>0.0.2-SNAPSHOT</version>
+        <relativePath>..</relativePath>
+    </parent>
+
+    <properties>
+        <appName>tmasm</appName>
+    </properties>
+
+    <build>
+        <plugins>
+            <!--
+              Create the Linux Shell command launcher structure under
+              target/linux.
+            -->
+            <plugin>
+                <groupId>org.devzendo</groupId>
+                <artifactId>cross-platform-launcher-plugin</artifactId>
+                <version>${cross.platform.launcher.plugin.version}</version>
+                <configuration>
+                    <os>Linux</os>
+                    <launcherType>Console</launcherType>
+                    <applicationName>${appName}</applicationName>
+                    <mainClassName>org.devzendo.tma.AssemblerMain
+                    </mainClassName>
+                </configuration>
+                <executions>
+                    <execution>
+                        <id>createlauncher</id>
+                        <phase>package</phase>
+                        <goals>
+                            <goal>createlauncher</goal>
+                        </goals>
+                    </execution>
+                </executions>
+            </plugin>
+
+            <plugin>
+                <artifactId>maven-assembly-plugin</artifactId>
+                <version>3.1.1</version>
+                <configuration>
+                    <descriptors>
+                        <descriptor>src/main/assembly/linux-distribution.xml</descriptor>
+                    </descriptors>
+                </configuration>
+                <executions>
+                    <execution>
+                        <id>make-assembly</id>
+                        <phase>package</phase>
+                        <goals>
+                            <goal>single</goal>
+                        </goals>
+                    </execution>
+                </executions>
+            </plugin>
+
+        </plugins>
+    </build>
+
+    <dependencies>
+        <dependency>
+            <!-- This is shaded, and includes the scala library, which will be found to be a transitive, so knock
+             that out. -->
+            <groupId>org.devzendo</groupId>
+            <artifactId>tma-assembler</artifactId>
+            <version>0.0.2-SNAPSHOT</version>
+            <exclusions>
+                <exclusion>
+                    <groupId>org.scala-lang</groupId>
+                    <artifactId>scala-library</artifactId>
+                </exclusion>
+            </exclusions>
+        </dependency>
+    </dependencies>
+
+</project>
