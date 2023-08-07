@@ -70,6 +70,9 @@ Release Notes
   * Added more examples of convergence offset calculation.
   * Bugfix: Fix offset generation/start addresses when iterating through convergence. Ensure all parts of the model are
     updated with offset/start location/size information, as storage is adjusted.
+  * Add the system include directory (e.g. on macOS, /opt/parachute/include/tmasm) to the list of include paths.
+  * Add the -s  (--showIncludePaths) command line option to show all the include paths that have been given, including
+    the system include directory.
 
 0.0.1 First release
 * Bugfix: Any offsets to symbols in direct instructions (which required offset transformation) were not
@@ -184,6 +187,9 @@ LABEL:    ; A label starting a line with a colon; a semicolon introduces a comme
                          ; LDC OFFSET MYLABEL. This is especially useful for CJ/J/CALL instructions which work with
                          ; offsets to instructions rather than addresses - to allow code to be position-independent.
                          ; OFFSETs are also recomputed during convergence (see below).
+          INCLUDE "include/file/path.asm"
+                         ; Inserts the text of the file "include/file/path.asm" at the point of the INCLUDE
+                         ; directive. All include file paths are searched for this file.                        
 ```
 
 Convergence
