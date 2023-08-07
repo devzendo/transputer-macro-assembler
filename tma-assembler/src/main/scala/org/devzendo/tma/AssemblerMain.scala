@@ -22,6 +22,7 @@ import org.devzendo.tma.codegen.{AssemblyModel, CasedSymbolName, CodeGenerationE
 import org.devzendo.tma.parser.{AssemblyParser, AssemblyParserException, MacroManager}
 
 import scala.collection.mutable.ArrayBuffer
+import scala.collection.JavaConverters._
 
 class AssemblerMain(val argList: List[String]) {
     private val logger = org.log4s.getLogger
@@ -35,6 +36,7 @@ class AssemblerMain(val argList: List[String]) {
     var debugParser = false
     var debugExpansion = false
     var showParserOutput = false
+    var showIncludePaths = false
     var debugCodegen = false
 
     def existingFile(fileType: String, f: String): Option[File] = {
@@ -48,6 +50,8 @@ class AssemblerMain(val argList: List[String]) {
         }
     }
 
+    systemIncludePath().map( (path: File) => includePaths += path)
+    
     while (argIndex < argList.length)
     {
         val f = argList(argIndex)
@@ -71,6 +75,7 @@ class AssemblerMain(val argList: List[String]) {
             case "-p" | "--parser"  => debugParser = true
             case "-e" | "--expansion"  => debugExpansion = true
             case "-P" | "--parserOutput"  => showParserOutput = true
+            case "-s" | "--showIncludePaths"  => showIncludePaths = true
             case "-c" | "--codegen"  => debugCodegen = true
             case "-x" | "--caseSensitive"  => CasedSymbolName.setCaseSensitivity(true)
 
@@ -117,7 +122,32 @@ class AssemblerMain(val argList: List[String]) {
     if (outputFile.isEmpty && binaryFile.isEmpty) {
         errorQuit("No output or binary output specified")
     }
+    if (showIncludePaths) {
+        logger.info("Include paths:")
+        includePaths.toList.foreach((f: File) => {
+            logger.info(f.toString)
+        })
+        exit()
+    }
 
+    def systemIncludePath(): Option[File] = {
+        val properties = System.getProperties().asScala
+        val javaLibraryPath = new File(properties("java.library.path"))
+        val canonJavaLibraryPath = javaLibraryPath.getCanonicalFile
+        if (canonJavaLibraryPath.exists()) {
+            val systemIncludePath = new File(canonJavaLibraryPath, "../include/tmasm").getCanonicalFile
+            if (systemIncludePath.exists()) {
+                Some(systemIncludePath)
+            } else {
+                logger.warn("The expected system include path " + systemIncludePath.getAbsolutePath + " does not exist")
+                None
+            }
+        } else {
+            logger.error("The java.library.path does not exist (how can I be running?!)")
+            None
+        }
+    }
+    
     def start(): Unit = {
         val macroManager = new MacroManager(debugExpansion)
         val includer = new SourceIncludingReader
@@ -184,6 +214,7 @@ class AssemblerMain(val argList: List[String]) {
         logger.info("-p|--parser                - enable parser diagnostics")
         logger.info("-P|--showParserOutput      - show parser text input and AST output")
         logger.info("-c|--codegen               - enable code generation diagnostics")
+        logger.info("-s|--showIncludePaths      - show set of include paths")
         logger.info("Logging output control options:")
         logger.info("--debug                    - set the log level to debug (default is info)")
         logger.info("--warn                     - set the log level to warning")
