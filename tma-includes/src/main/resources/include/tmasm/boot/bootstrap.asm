@@ -19,10 +19,11 @@
 ; larger than 255 bytes (the maximum size of code that can be loaded via a
 ; Transputer's built-in boot-from-link mechanism).
 ;
-; The final binary will be larger than 255 bytes - and can be up to 255+64KB.
+; The final binary will be larger than 255 bytes - and can be up to
+; 255 + 4,294,967,295 bytes.
 ; The IServer will send all of it down the link. The first byte gives the
 ; length of this primary bootstrap. This primary bootstrap will then be read
-; at MemStart, and executed. The final word Boot2Length (16 bits) at the end
+; at MemStart, and executed. The final word Boot2Length (32 bits) at the end
 ; of this bootstrap declares the size of your larger program. You must declare
 ; the Boot2End symbol at the end of your code, and this is used to determine
 ; the size of your code.
@@ -151,9 +152,9 @@ ll3:			ldnl    0					; (a=length, b=channel, c=address)
 				ldc		Boot2Start
 				gcall
 
-				ALIGN
+				ALIGN	4
 
-Boot2Length:    DW  Boot2End - Boot2Start
+Boot2Length:    DD  Boot2End - Boot2Start
 Boot1End:
 
 Boot2Start:
