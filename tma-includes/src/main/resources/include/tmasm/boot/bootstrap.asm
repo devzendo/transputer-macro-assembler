@@ -61,7 +61,7 @@ LoopValue       EQU     1           ; for the lend instruction to work.
 				ajw		40	
 
 				; Store old registers.
-				stl		OldIptr
+				stl		OldIPtr
 				stl		OldWdesc
 				stl		LinkInAddress
 
@@ -77,8 +77,8 @@ LoopValue       EQU     1           ; for the lend instruction to work.
 ;
 ; Standard Transputer initialisation -----------------------------------------
 ;
-TptrLoc0        EQU     0x80000024
-TptrLoc1        EQU     0x80000028
+TPtrLoc0        EQU     0x80000024
+TPtrLoc1        EQU     0x80000028
 StartTime       EQU     0
 
 				mint                ; A=NotProcess.p = mint = 0x80000000
