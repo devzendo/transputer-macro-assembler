@@ -248,9 +248,10 @@ class CodeGenerator(debugCodegen: Boolean, model: AssemblyModel) {
         model.setConvergeMode(true) // relax symbol redefinitions
         var iteration = 0
         val lineNumbersInConvergence = setOfLineNumbersInConvergence()
-        if (debugCodegen) {
-            logger.info("Line numbers in convergence: " + lineNumbersInConvergence)
-        }
+        // Not sure if these lines are really adding anything.
+        //        if (debugCodegen) {
+        //            logger.info("Line numbers in convergence: " + lineNumbersInConvergence)
+        //        }
 
         var again = false
         do {
