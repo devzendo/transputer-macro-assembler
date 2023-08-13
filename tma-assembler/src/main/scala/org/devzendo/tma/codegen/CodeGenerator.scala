@@ -23,6 +23,7 @@ import org.log4s.Logger
 
 import scala.collection.mutable
 import scala.collection.mutable.ArrayBuffer
+import scala.math.abs
 
 class CodeGenerator(debugCodegen: Boolean, model: AssemblyModel) {
     val logger: Logger = org.log4s.getLogger
@@ -404,6 +405,9 @@ class CodeGenerator(debugCodegen: Boolean, model: AssemblyModel) {
     }
 
     private def processStatement(indexedLine: IndexedLine, stmt: Statement): Unit = {
+        if (debugCodegen) {
+            logger.debug("Processing statement: IL " + indexedLine + ": STMT " + stmt)
+        }
         val lineNumber = indexedLine.location.lineNumber
 
         // Pass 2 fixups run after pass 1 (duh!), and require processing of statements after this check would have
@@ -456,13 +460,21 @@ class CodeGenerator(debugCodegen: Boolean, model: AssemblyModel) {
     private def processAlign(indexedLine: IndexedLine, alignment: Int): Unit = {
         val dollar = model.getDollar
         val remainder = dollar % alignment
-        if (remainder > 0) {
-            val newDollar = alignment - remainder
-            if (debugCodegen) {
-                logger.info("Align: from " + HexDump.int2hex(dollar) + " to " + HexDump.int2hex(newDollar))
-            }
-            model.incrementDollar(newDollar)
+        if (debugCodegen) {
+            logger.info("Align: original $ 0x" + HexDump.int2hex(dollar) + " dec (" + dollar + "); remainder " + remainder)
         }
+        if (remainder == 0) {
+            return
+        }
+        val increment = if (remainder < 0) {
+            abs(remainder)
+        } else {
+            alignment - remainder
+        }
+        if (debugCodegen) {
+            logger.info("Align: from " + HexDump.int2hex(dollar) + " to " + HexDump.int2hex(dollar + increment))
+        }
+        model.incrementDollar(increment)
     }
 
     private def processOrg(indexedLine: IndexedLine, expr: Expression): Unit = {

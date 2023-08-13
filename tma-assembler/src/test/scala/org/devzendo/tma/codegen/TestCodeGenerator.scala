@@ -114,7 +114,7 @@ class TestCodeGenerator extends CodeGeneratorFixture with SourcedValuesFixture w
     }
 
     @Test
-    def alignmentAdjusts(): Unit = {
+    def alignmentAdjusts8(): Unit = {
         for (i <- 1 to 7) {
             logger.debug("Aligning address of " + i + " to 8 bytes")
             val inmodel = new AssemblyModel(true)
@@ -126,6 +126,65 @@ class TestCodeGenerator extends CodeGeneratorFixture with SourcedValuesFixture w
             ))
             model.getDollar must be(8)
         }
+    }
+
+    @Test
+    def alignmentAdjusts4(): Unit = {
+        for (i <- 1 to 3) {
+            logger.debug("Aligning address of " + i + " to 4 bytes")
+            val inmodel = new AssemblyModel(true)
+            val localCodeGen = new CodeGenerator(true, inmodel)
+            val model = localCodeGen.createModel(List(
+                Line(SourceLocation("", 1), "", None, Some(Org(Number(i)))),
+                Line(SourceLocation("", 2), "", None, Some(Align(4))),
+                Line(SourceLocation("", 3), "", None, Some(End(None)))
+            ))
+            model.getDollar must be(4)
+        }
+    }
+
+    @Test
+    def alignmentExample(): Unit = {
+        val inmodel = new AssemblyModel(true)
+        val localCodeGen = new CodeGenerator(true, inmodel)
+        val initialDollar = 0x80002EA3
+        logger.info("initial $ as a dec is " + initialDollar)
+        val model = localCodeGen.createModel(List(
+            Line(SourceLocation("", 1), "", None, Some(Org(Number(initialDollar)))),
+            Line(SourceLocation("", 2), "", None, Some(Align(4))),
+            Line(SourceLocation("", 3), "", None, Some(End(None)))
+        ))
+        logger.info("$ as a dec is " + model.getDollar)
+        model.getDollar must be(0x80002EA4)
+    }
+
+    def alignment4Address(initialDollar: Int): Int = {
+        val inmodel = new AssemblyModel(true)
+        val localCodeGen = new CodeGenerator(true, inmodel)
+        logger.info(">> initial $ as a dec is " + initialDollar)
+        val model = localCodeGen.createModel(List(
+            Line(SourceLocation("", 1), "", None, Some(Org(Number(initialDollar)))),
+            Line(SourceLocation("", 2), "", None, Some(Align(4))),
+            Line(SourceLocation("", 3), "", None, Some(End(None)))
+        ))
+        logger.info("<< $ as a dec is " + model.getDollar)
+        model.getDollar
+    }
+
+    @Test
+    def alignment4AroundZero(): Unit = {             // remainder
+        alignment4Address(-6) must be(-4) // -2
+        alignment4Address(-5) must be(-4) // -1
+        alignment4Address(-4) must be(-4) // 0
+        alignment4Address(-3) must be(0)  // -3
+        alignment4Address(-2) must be(0)  // -2
+        alignment4Address(-1) must be(0)  // -1
+        alignment4Address(0) must be(0)   // 0
+        alignment4Address(1) must be(4)   // 1
+        alignment4Address(2) must be(4)   // 2
+        alignment4Address(3) must be(4)   // 3
+        alignment4Address(4) must be(4)   // 0
+        alignment4Address(5) must be(8)   // 1
     }
 
     @Test

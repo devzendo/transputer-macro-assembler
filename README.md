@@ -3,10 +3,14 @@ transputer-macro-assembler
 This is a byte-building macro assembler, that can build binary files,
 irrespective of actual CPU instructions. You can build your set of 'opcodes'
 via macros and ALIGN/DB/DD/DW directives. Its input language is a small subset
-of Microsoft MASM 5.1.
+of Microsoft MASM 5.1's directives. It does not understand the Intel CPU
+instruction set.
 
 It also supports the instruction set of the Inmos T414/T800/T801/T805 Transputer,
-when the .TRANSPUTER directive is given.
+when the .TRANSPUTER directive is given. As the Transputer has a variable length
+instruction encoding, branches to as-yet-unknown addresses can vary, requiring a
+longer encoding, thereby moving the location to which the branch jumps! See
+'Convergence', below.
 
 (C) 2018-2023 Matt J. Gumbley
 matt.gumbley@devzendo.org
@@ -33,13 +37,16 @@ In active development.
 Parser, macro expansion, code generation and output of binary file and listing are done. Optimally encodes direct
 instructions into pfix/nfix sequences - especially for forward references where location might not yet be known.
 
-The assembler has built a binary of eForth without any parsing/code gen errors (using macros, not .TRANSPUTER mode yet)
-- and a close inspection of the listing side-by-side with that produced by MASM suggests that I'm assembling identically
-to MASM! I can't generate a binary with MASM - linking fails - but the listing is sufficient for verification.
+The assembler has built a binary of eForth without any parsing/code gen errors (initially using opcode-building macros,
+and now with .TRANSPUTER mode) - and a close inspection of the listing side-by-side with that produced by MASM suggests
+that I'm assembling identically to MASM! I can't generate a binary with MASM - linking fails - but the listing is
+sufficient for verification.
 
 Current work:
   
 Remaining work:
+  * Transputer instructions in macros lose their comments when the macro is expanded (see CODE and COLON macros in
+    eForth)
   * Escape codes do not work in DB strings? \12 ? \n ? \r ?
   * local labels
   * global and extern symbols
@@ -70,9 +77,11 @@ Release Notes
   * Added more examples of convergence offset calculation.
   * Bugfix: Fix offset generation/start addresses when iterating through convergence. Ensure all parts of the model are
     updated with offset/start location/size information, as storage is adjusted.
-  * Add the system include directory (e.g. on macOS, /opt/parachute/include/tmasm) to the list of include paths.
-  * Add the -s  (--showIncludePaths) command line option to show all the include paths that have been given, including
+  * Add the system include directory (e.g. on macOS, /opt/parachute/include/tmasm) to the list of include-paths.
+  * Add the -s  (--showIncludePaths) command line option to show all the include-paths that have been given, including
     the system include directory.
+  * Bugfix: ALIGN directive worked for positive addresses, but not negative - Transputer addresses are signed so that if
+    the most significant bit is set, the address is negative and precedes any positive address.
 
 0.0.1 First release
 * Bugfix: Any offsets to symbols in direct instructions (which required offset transformation) were not
