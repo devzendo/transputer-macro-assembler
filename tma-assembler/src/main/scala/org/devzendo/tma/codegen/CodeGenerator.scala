@@ -83,6 +83,7 @@ class CodeGenerator(debugCodegen: Boolean, model: AssemblyModel) {
     // This is the map of direct instructions that contain (as yet) undefined symbols; their currentSize is initially 1.
     private val directInstructionByLineIndex = mutable.HashMap[Int, DirectInstructionState]()
     private var startConvergeDollar = 0
+    private var startConvergeVariables = mutable.HashMap[CasedSymbolName, Int]()
 
     // End of converge mode state
 
@@ -182,6 +183,10 @@ class CodeGenerator(debugCodegen: Boolean, model: AssemblyModel) {
                     if (!convergeMode) {
                         convergeMode = true
                         startConvergeDollar = model.getDollar
+                        startConvergeVariables.clear()
+                        startConvergeVariables ++= model.getVariables
+                        // Capture the current values of all variables, and reset them silently at the start of each
+                        // convergence loop.
                         directInstructionByLineIndex.clear()
                         startConvergeLineIndex = indexedLine.lineIndex
                         logger.debug("Start of convergable lines at line index " + indexedLine.lineIndex + " line number " + indexedLine.location.lineNumber + " $=" + HexDump.int2hex(startConvergeDollar))
@@ -258,7 +263,8 @@ class CodeGenerator(debugCodegen: Boolean, model: AssemblyModel) {
         do {
             iteration += 1
             again = false
-            model.setDollarSilently(startConvergeDollar)
+            // Reset all variables to their initial values at the start of the convergence
+            model.resetVariablesSilently(startConvergeVariables.toMap)
             if (debugCodegen) {
                 logger.info("Convergence iteration " + iteration)
             }

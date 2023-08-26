@@ -259,6 +259,49 @@ class TestAssemblyModel extends AssertionsForJUnit with MustMatchers {
         }
     }
 
+    // Variable bulk get/reset -----------------------------------------------------------------------------------------
+
+    @Test
+    def getAllVariables(): Unit = {
+        val vDollar = CasedSymbolName("$")
+        val vOne = CasedSymbolName("V_ONE")
+        val vTwo = CasedSymbolName("V_TWO")
+
+        model.setVariable(vOne, 1, genDummyLine(0))
+        model.setVariable(vTwo, 2, genDummyLine(1))
+        model.getVariable(vOne) must be(1)
+        model.getVariable(vTwo) must be(2)
+
+        val cThree = CasedSymbolName("C_THREE")
+        model.setConstant(cThree, 3, genDummyLine(2))
+        model.getConstant(cThree) must be(3)
+
+        val lFour = CasedSymbolName("L_FOUR")
+        model.setLabel(lFour, 4, genDummyLine(3))
+        model.getLabel(lFour) must be(4)
+
+        val vars = model.getVariables()
+        vars.size must be(3)
+        logger.info("vars is " + vars)
+        vars.keySet must contain theSameElementsAs(Set(vDollar, vOne, vTwo))
+        vars.get(vDollar) must be(Some(0))
+        vars.get(vOne) must be(Some(1))
+        vars.get(vTwo) must be(Some(2))
+    }
+
+    @Test
+    def resetVariablesSilently(): Unit = {
+        val vChanges = CasedSymbolName("V_Changes")
+        model.setVariable(vChanges, 1, genDummyLine(0))
+        val vars = model.getVariables()
+
+        model.setVariable(vChanges, 2, genDummyLine(1))
+        model.getVariable(vChanges) must be(2)
+
+        model.resetVariablesSilently(vars)
+        model.getVariable(vChanges) must be(1)
+    }
+
     // Constants -------------------------------------------------------------------------------------------------------
 
     @Test

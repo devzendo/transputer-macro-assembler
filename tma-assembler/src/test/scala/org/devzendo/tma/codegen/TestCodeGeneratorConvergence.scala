@@ -281,6 +281,29 @@ class TestCodeGeneratorConvergence extends CodeGeneratorFixture with AssemblerFi
         callLineStorage.data.toList must be(List(0x21, 0x20, 0x90)) // call offset has been expanded to point to the ldc
     }
 
+    @Test
+    // Can't boot a transputer with this since the code is larger than the 0xFF bytes of the first stage boot.
+    // So this hasn't been tested on the emulator.
+    def variablesInTheConvergeSetAreResetAtStartOfConvergeLoop(): Unit = {
+        val model = assemble(wrapInPrologueAndEpilogue(
+            "LINK0_OUTPUT EQU 0x80000000", // line index 6
+            "_USER = 0x10",
+            "\tajw 0x10",
+            "\tcall OUTSHORTZERO",
+            "\tterminate",
+            "\tDB 0xFE DUP(0x00)",
+            "_USER = _USER + 4",
+            "OUTSHORTZERO:",
+            "\tldc LINK0_OUTPUT",
+            "\tret",
+        ).toList)
+        showListing(model)
+
+        model.getVariable(CasedSymbolName("_USER")) must be(0x00000014)
+        // Prior to resetting all variables (not just $) at the start of the convergence loop, this would be
+        // 0x00000020 - following 3 iterations.
+    }
+
     private def assertStorage(model: AssemblyModel, indexedLine: Int, expectedAddress: Int, expectedData: List[Int]): Unit = {
         val storages = model.getSourcedValuesForLineIndex(indexedLine)
         storages must have size 1

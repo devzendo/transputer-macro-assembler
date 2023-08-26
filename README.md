@@ -83,6 +83,8 @@ Release Notes
     the system include directory.
   * Bugfix: ALIGN directive worked for positive addresses, but not negative - Transputer addresses are signed so that if
     the most significant bit is set, the address is negative and precedes any positive address.
+  * Bugfix: Variables were not being restored to their original contents at the start of a convergence loop, leading to 
+    variables having values set multiple times leading to incorrect values.
 
 0.0.1 First release
 * Bugfix: Any offsets to symbols in direct instructions (which required offset transformation) were not

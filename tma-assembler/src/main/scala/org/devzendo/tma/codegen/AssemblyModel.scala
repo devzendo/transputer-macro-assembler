@@ -242,6 +242,33 @@ class AssemblyModel(debugCodegen: Boolean) {
         setVariableInternal(n, indexedLine, casedSymbolName, SymbolType.Variable)
     }
 
+    // For use during convergence...
+    def getVariables(): Map[CasedSymbolName, Int] = {
+        def toNamedInt(pair: (CasedSymbolName, Value)): (CasedSymbolName, Int) = {
+            (pair._1, pair._2.value)
+        }
+        val variablesList = symbols.toList.filter(
+            (p: (CasedSymbolName, Value)) => {
+                p._2.symbolType == SymbolType.Variable
+            })
+        variablesList.map(toNamedInt).toMap
+    }
+
+    def resetVariablesSilently(vars: Map[CasedSymbolName, Int]): Unit = {
+        def resetVariable(pair: (CasedSymbolName, Int)): Unit = {
+            // Like storeSymbolInternal but with a silent diagnostic. Used in convergence where storage will be cleared
+            // at the start of each iteration.
+            val orig = symbols.get(pair._1).get
+            symbols.put(pair._1, Value(pair._2, SymbolType.Variable, orig.definitionLine))
+            // sourcedValuesArrayBufferForLineIndex(indexedLine.lineIndex) += AssignmentValue(n, indexedLine, symbolType)
+            if (debugCodegen) {
+                logger.debug("Variable " + pair._1 + " (silently) = 0x" + HexDump.int2hex(pair._2))
+            }
+            //resolveForwardReferences(casedSymbolName, n, symbolType)
+        }
+        vars.foreach(resetVariable)
+    }
+
     def getConstant(casedSymbolName: CasedSymbolName): Int = {
         getSymbolValue(SymbolType.Constant, casedSymbolName)
     }
