@@ -45,6 +45,7 @@ sufficient for verification.
 Current work:
   
 Remaining work:
+  * Fix variable-reset convergence bug - see TODO.md.
   * Transputer instructions in macros lose their comments when the macro is expanded (see CODE and COLON macros in
     eForth)
   * Escape codes do not work in DB strings? \12 ? \n ? \r ?
