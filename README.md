@@ -258,7 +258,23 @@ Mastodon.
 
 Building
 --------
-Just requires Java 8 and Maven 3.6.x. My builds use Java 8.0.321 and Maven 3.6.0 on macOS Catalina.
+Just requires Java 8 and Maven 3.6.x. Although it's written in Scala, Maven
+will download the specified version of the Scala compiler and library.
+
+My builds use Java 8.0.321 and Maven 3.6.0 on macOS Catalina.
+
+I also build on Maven 3.9.4, Java 8.0.382 on Linux Mint 21.2 (Ubuntu 22.04).
+Note: On this system I also had openjdk 11 installed, and had errors with log4s macro usage as shown below:
+```
+[ERROR] /home/matt/Documents/DevZendo.org/transputer-macro-assembler/tma-assembler/src/main/scala/org/devzendo/tma/AssemblerController.scala:30: error: macro implementation not found: getLogger
+[ERROR] (the most common reason for that is that you cannot use macro implementations in the same compilation run that defines them)
+[ERROR]     private val logger: Logger = org.log4s.getLogger
+[ERROR]                                            ^
+[ERROR] /home/matt/Documents/DevZendo.org/transputer-macro-assembler/tma-assembler/src/main/scala/org/devzendo/tma/AssemblerMain.scala:47: error: macro implementation not found: error
+[ERROR] (the most common reason for that is that you cannot use macro implementations in the same compilation run that defines them)
+[ERROR]             logger.error(s"The $fileType file '$f' does not exist")
+```
+This turned out to be known (https://github.com/scala/scala-dev/issues/480); I uninstalled openjdk 11 and this went away.
 
 'mvn clean package' is all you need.
 

@@ -10,9 +10,9 @@ sudo mkdir -p $BINDIR
 sudo mkdir -p $LIBDIR
 sudo mkdir -p $INCDIR
 
-if [ -f tma-osx/target/macosx/bin/tmasm ]; then
-	sudo cp tma-osx/target/macosx/bin/tmasm $BINDIR
-	sudo cp tma-osx/target/macosx/lib/* $LIBDIR
+if [ -f tma-linux/target/linux/bin/tmasm ]; then
+	sudo cp tma-linux/target/linux/bin/tmasm $BINDIR
+	sudo cp tma-linux/target/linux/lib/* $LIBDIR
 	sudo cp -r tma-includes/target/classes/include/* $INCDIR
 fi
 
