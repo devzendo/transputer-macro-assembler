@@ -6,7 +6,7 @@
     <name>Assembler include files for use by other programs</name>
     <packaging>pom</packaging>
     <description>Transputer include files.
-        (Apache License v2) 2018-2023 Matt Gumbley, DevZendo.org
+        (Apache License v2) 2018-2024 Matt Gumbley, DevZendo.org
     </description>
 
     <parent>

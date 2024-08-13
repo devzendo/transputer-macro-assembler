@@ -12,7 +12,7 @@ instruction encoding, branches to as-yet-unknown addresses can vary, requiring a
 longer encoding, thereby moving the location to which the branch jumps! See
 'Convergence', below.
 
-(C) 2018-2023 Matt J. Gumbley
+(C) 2018-2024 Matt J. Gumbley
 matt.gumbley@devzendo.org
 Mastodon: @M0CUV@mastodon.radio
 Twitter: (abandoned) @mattgumbley @devzendo
@@ -68,6 +68,7 @@ Remaining work:
 Release Notes
 -------------
 0.0.2 Second release (in preparation)
+  * Upgrade to JDK 17.
   * Added the INCLUDE directive to allow separate files to be included in the main assembly file, in lieu of building
     linkable object files.
   * Added configurable include search paths.
@@ -85,6 +86,8 @@ Release Notes
     the most significant bit is set, the address is negative and precedes any positive address.
   * Bugfix: Variables were not being restored to their original contents at the start of a convergence loop, leading to 
     variables having values set multiple times leading to incorrect values.
+  * Bugfix: Attempts to assemble code that overflows the MaxINT address 0x7fffffff is now not allowed. You can assemble
+    up to that point, but not beyond.
 
 0.0.1 First release
 * Bugfix: Any offsets to symbols in direct instructions (which required offset transformation) were not
@@ -221,7 +224,7 @@ Even if a constant is defined to refer to a changing address.
 
 Using the Assembler
 -------------------
-The assembler requires Java 8, with the 'java' JRE runtime available on your PATH.
+The assembler requires Java 17, with the 'java' JRE runtime available on your PATH.
 For convenience, add the 'bin' directory of the assembler's distribution to your PATH.
 
 Distributions of the Parachute project will include the assembler in its bin/lib directories.
@@ -246,7 +249,7 @@ a secondary bootstrap mechanism that may be included at the start of large binar
 
 Contributing
 ------------
-The assembler is written in Scala, and requires Java 8. The build system is
+The assembler is written in Scala, and requires Java 17. The build system is
 Maven. I use Scala's Parser Combinators. I use TDD rigourously, and require
 contributions to keep code coverage/testability as high as possible. 
 
@@ -258,13 +261,15 @@ Mastodon.
 
 Building
 --------
-Just requires Java 8 and Maven 3.6.x. Although it's written in Scala, Maven
+Just requires Java 17 and Maven 3.6.x. My builds use Java 17.0.7 (Temurin/OpenJDK) and Maven 3.6.0 on macOS Catalina,
+and Java 17.0.12 (Temurin/OpenJDK), Maven 3.6.3 on Ubuntu 24.04 LTS. 
+
+Although it's written in Scala, Maven
 will download the specified version of the Scala compiler and library.
 
-My builds use Java 8.0.321 and Maven 3.6.0 on macOS Catalina.
+'mvn clean package' is all you need.
 
-I also build on Maven 3.9.4, Java 8.0.382 on Linux Mint 21.2 (Ubuntu 22.04).
-Note: On this system I also had openjdk 11 installed, and had errors with log4s macro usage as shown below:
+Note: On one system I also had openjdk 11 installed, and had errors with log4s macro usage as shown below:
 ```
 [ERROR] /home/matt/Documents/DevZendo.org/transputer-macro-assembler/tma-assembler/src/main/scala/org/devzendo/tma/AssemblerController.scala:30: error: macro implementation not found: getLogger
 [ERROR] (the most common reason for that is that you cannot use macro implementations in the same compilation run that defines them)
@@ -276,13 +281,11 @@ Note: On this system I also had openjdk 11 installed, and had errors with log4s 
 ```
 This turned out to be known (https://github.com/scala/scala-dev/issues/480); I uninstalled openjdk 11 and this went away.
 
-'mvn clean package' is all you need.
-
 
 License
 -------
 This code is released under the Apache 2.0 License: http://www.apache.org/licenses/LICENSE-2.0.html.
-(C) 2018-2023 Matt Gumbley, DevZendo.org
+(C) 2018-2024 Matt Gumbley, DevZendo.org
 
 
 Acknowledgements
