@@ -178,6 +178,7 @@ class AssemblyModel(debugCodegen: Boolean) {
     val logger: Logger = org.log4s.getLogger
 
     private val dollar = CasedSymbolName("$")
+    private var memoryOverflow: Boolean = false // from 0x7fffffff round to 0x8000000
 
     var title = ""
     var rows = 25
@@ -229,7 +230,21 @@ class AssemblyModel(debugCodegen: Boolean) {
         symbols.put(dollar, Value(n, SymbolType.Variable, 0))
     }
     def incrementDollar(n: Int): Unit = {
+        val preDollar: Int = getDollar
         setDollarSilently(getDollar + n)
+        val postDollar: Int = getDollar
+        // Have we wrapped over the end of memory? That's OK if we're assembling that final byte, but we should not
+        // accept any more after that.
+
+        // 0x7fffffff is MaxINT 0x80000000 is MinINT - Int is signed
+        // Using Long to get round JVM lack of unsigned ints; also Java 1.8's Integer.toUnsignedLong prevents sign
+        // extension of the Int.
+        val preUnsignedDollar: Long = Integer.toUnsignedLong(preDollar)
+        val postUnsignedDollar: Long = Integer.toUnsignedLong(postDollar)
+        if ((preUnsignedDollar <= 0x000000007FFFFFFF) && (postUnsignedDollar >= 0x000000008000000)) {
+            logger.warn("$ has wrapped over the end of memory [before: " + HexDump.int2hex(preDollar) + " after: " + HexDump.int2hex(postDollar) + "]")
+            memoryOverflow = true
+        }
     }
 
     def getVariable(casedSymbolName: CasedSymbolName): Int = {
@@ -506,6 +521,7 @@ class AssemblyModel(debugCodegen: Boolean) {
         // elements of a Characters expression to an individual Number.
         val characterExpandedExprs = expandCharacterExpressions(exprs)
 
+        validateMemoryOverflow()
         val storage = Storage(getDollar, cellWidth, Array.ofDim[Int](characterExpandedExprs.size), indexedLine, characterExpandedExprs)
         existingSourcedValues += storage
 
@@ -528,6 +544,12 @@ class AssemblyModel(debugCodegen: Boolean) {
         incrementDollar(cellWidth * characterExpandedExprs.size)
 
         storage
+    }
+
+    private def validateMemoryOverflow(): Unit = {
+        if (memoryOverflow) {
+            throw new AssemblyModelException("The current address ($) has wrapped around the end of memory and storage attempted")
+        }
     }
 
     private def dumpStorage(storage: Storage): Unit = {
@@ -564,6 +586,7 @@ class AssemblyModel(debugCodegen: Boolean) {
         val lineNumber = indexedLine.location.lineNumber
         val existingSourcedValues = sourcedValuesArrayBufferForLineIndex(indexedLine.lineIndex)
 
+        validateMemoryOverflow()
         val storage = Storage(getDollar, 1, opbytes.toArray, indexedLine, opbytes map { Number })
         existingSourcedValues += storage
 

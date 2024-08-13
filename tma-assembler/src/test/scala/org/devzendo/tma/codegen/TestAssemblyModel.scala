@@ -95,6 +95,56 @@ class TestAssemblyModel extends AssertionsForJUnit with MustMatchers {
         numberOfSourcedValues must be(0)
     }
 
+    @Test
+    def incrementDollarCanWrapJustPastEndOfMemory(): Unit = {
+        model.setDollarSilently(0x7FFFFFFF) // MaxINT
+
+        val cellWidth = 1
+
+        val exprs = List(Number(201))
+        val line = IndexedLine(2, SourceLocation("", 3), "irrelevant", None, Some(DB(exprs)))
+        model.allocateStorageForLine(line, cellWidth, exprs)
+
+        model.getDollar must be(0x80000000) // MinINT: Wrap is fine - we should be able to assemble the final byte of memory.
+    }
+
+    @Test
+    def incrementDollarCanWrapJustPastEndOfMemoryButCantCreateStoragePastThat(): Unit = {
+        thrown.expect(classOf[AssemblyModelException])
+        thrown.expectMessage("The current address ($) has wrapped around the end of memory and storage attempted")
+
+        model.setDollarSilently(0x7FFFFFFF) // MaxINT
+
+        val cellWidth = 1
+
+        val exprs1 = List(Number(201))
+        val line1 = IndexedLine(2, SourceLocation("", 3), "irrelevant", None, Some(DB(exprs1)))
+        model.allocateStorageForLine(line1, cellWidth, exprs1)
+
+        val exprs2 = List(Number(162))
+        val line2 = IndexedLine(3, SourceLocation("", 4), "irrelevant", None, Some(DB(exprs2)))
+        model.allocateStorageForLine(line2, cellWidth, exprs2) // boom
+    }
+
+    @Test
+    def incrementDollarCanWrapJustPastEndOfMemoryButCantCreateInstructionsPastThat(): Unit = {
+        thrown.expect(classOf[AssemblyModelException])
+        thrown.expectMessage("The current address ($) has wrapped around the end of memory and storage attempted")
+
+        model.setDollarSilently(0x7FFFFFFF) // MaxINT
+
+        val cellWidth = 1
+
+        val exprs1 = List(Number(201))
+        val line1 = IndexedLine(2, SourceLocation("", 3), "irrelevant", None, Some(DB(exprs1)))
+        model.allocateStorageForLine(line1, cellWidth, exprs1)
+
+        val bytes = List(0x29, 0x4c, 0x2a, 0xfb)
+        val line2 = IndexedLine(4, SourceLocation("", 5), "fpuclrerr", None, Some(IndirectInstruction("FPUCLRERR", bytes)))
+        model.allocateInstructionStorageForLine(line2, bytes) // boom
+    }
+
+
     private def numberOfSourcedValues = {
         var count = 0
         model.foreachSourcedValue((_: Int, _: List[SourcedValue]) => {
