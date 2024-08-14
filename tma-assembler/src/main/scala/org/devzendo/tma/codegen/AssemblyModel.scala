@@ -223,6 +223,7 @@ class AssemblyModel(debugCodegen: Boolean) {
     def getDollar: Int = getVariable(dollar)
     def setDollar(n: Int, indexedLine: IndexedLine): Unit = {
         setVariable(dollar, n, indexedLine)
+        memoryOverflow = false
     }
     def setDollarSilently(n: Int): Unit = {
         // Set $ without storing back reference to a Line, since there isn't one.
@@ -237,12 +238,11 @@ class AssemblyModel(debugCodegen: Boolean) {
         // accept any more after that.
 
         // 0x7fffffff is MaxINT 0x80000000 is MinINT - Int is signed
-        // Using Long to get round JVM lack of unsigned ints; also Java 1.8's Integer.toUnsignedLong prevents sign
-        // extension of the Int.
-        val preUnsignedDollar: Long = Integer.toUnsignedLong(preDollar)
-        val postUnsignedDollar: Long = Integer.toUnsignedLong(postDollar)
-        if ((preUnsignedDollar <= 0x000000007FFFFFFF) && (postUnsignedDollar >= 0x000000008000000)) {
-            logger.warn("$ has wrapped over the end of memory [before: " + HexDump.int2hex(preDollar) + " after: " + HexDump.int2hex(postDollar) + "]")
+        val positiveBefore = preDollar >= 0
+        val negativeAfter = postDollar < 0
+        if (positiveBefore && negativeAfter) {
+            // This is not an error condition yet - only if more data is stored.
+            logger.info("$ has wrapped over the end of memory [before: " + HexDump.int2hex(preDollar) + " after: " + HexDump.int2hex(postDollar) + "]")
             memoryOverflow = true
         }
     }

@@ -144,6 +144,39 @@ class TestAssemblyModel extends AssertionsForJUnit with MustMatchers {
         model.allocateInstructionStorageForLine(line2, bytes) // boom
     }
 
+    @Test
+    def incrementDollarCanGoJustBeforeEndOfMemoryAndCanCreateStorageThere(): Unit = {
+        model.setDollarSilently(0x7FFFFFFE) // 2 bytes before MaxINT
+
+        val cellWidth = 1
+
+        val exprs1 = List(Number(201))
+        val line1 = IndexedLine(2, SourceLocation("", 3), "irrelevant", None, Some(DB(exprs1)))
+        model.allocateStorageForLine(line1, cellWidth, exprs1)
+
+        val exprs2 = List(Number(162))
+        val line2 = IndexedLine(3, SourceLocation("", 4), "irrelevant", None, Some(DB(exprs2)))
+        model.allocateStorageForLine(line2, cellWidth, exprs2) // no boom
+    }
+
+    @Test
+    def incrementDollarCanReachEndOfMemoryButAnOrgResetsOverflow(): Unit = {
+        model.setDollarSilently(0x7FFFFFFF) // 1 byte before MaxINT
+
+        val cellWidth = 1
+
+        val exprs1 = List(Number(201))
+        val line1 = IndexedLine(2, SourceLocation("", 3), "irrelevant", None, Some(DB(exprs1)))
+        model.allocateStorageForLine(line1, cellWidth, exprs1) // The overflow flag is now set.
+
+        val line4 = IndexedLine(3, SourceLocation("", 4), "ORG 0x7EEEEEEE", None, Some(Org(Number(0x7EEEEEEE))))
+        model.setDollar(3, line4) // The overflow flag is now reset.
+
+        val exprs3 = List(Number(162))
+        val line3 = IndexedLine(4, SourceLocation("", 5), "irrelevant", None, Some(DB(exprs3)))
+        model.allocateStorageForLine(line3, cellWidth, exprs3) // no boom
+    }
+
 
     private def numberOfSourcedValues = {
         var count = 0
