@@ -167,7 +167,7 @@ LABEL:    ; A label starting a line with a colon; a semicolon introduces a comme
                          ; or hex as per DB. Range 0-65535. 
           DD 0xAA55AA55  ; Assemble one or more double words, separated by commas. Decimal
                          ; or hex, range 0-4294967295.
-          DB 5 DUP 7     ; Assemble 5 instances of the byte 7. Same as DB 7,7,7,7,7. Can
+          DB 5 DUP(7)    ; Assemble 5 instances of the byte 7. Same as DB 7,7,7,7,7. Can
                          ; also use DW count DUP n, and DD count DUP n.
           TITLE My Title ; Sets the title given in the listing.
           PAGE 80,25     ; Sets the page size in the listing.
