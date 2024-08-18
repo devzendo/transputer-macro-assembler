@@ -35,6 +35,7 @@ class BinaryWriter(val outputFile: File) {
         logger.info("End address 0x" + HexDump.int2hex(end))
         val fileSize = end - start
         val raf = new RandomAccessFile(outputFile, "rw")
+        raf.getChannel.truncate(0)
         try {
             logger.debug("Zeroing 0x" + HexDump.int2hex(fileSize) + " byte(s)")
             zero(raf, fileSize)

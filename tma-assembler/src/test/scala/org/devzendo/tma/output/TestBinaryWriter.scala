@@ -276,4 +276,45 @@ class TestBinaryWriter extends TempFolder with AssertionsForJUnit with MustMatch
             ba.byte(0x0007) must be(0xEF.toByte)
         })
     }
+
+    @Test
+    def filesAreTruncatedBeforeWriting(): Unit = {
+        write512BytesOfDataToFile
+
+        // Now encode a small model
+        val model = new AssemblyModel(true)
+        model.endianness = Endianness.Big
+        val words = List(Number(0x01234567), Number(0x89ABCDEF))
+        model.allocateStorageForLine(IndexedLine(0, SourceLocation("", 1), "", None, Some(new DD(words))), 4, words)
+        val size = model.highestStorageAddress - model.lowestStorageAddress // these are inclusive addresses - you can
+        // store 8 bytes between addresses 0 to 7.
+        size must be(0x07)
+
+        writer.encode(model)
+        binaryFile.length() must be(8L) // So that's 8 bytes in total.
+    }
+
+    @Test
+    def emptyModelEncodesAnEmptyFile(): Unit = {
+        write512BytesOfDataToFile
+
+        // Now encode an empty model
+        val model = new AssemblyModel(true)
+        model.endianness = Endianness.Big
+        val size = model.highestStorageAddress - model.lowestStorageAddress
+        size must be(0x00)
+
+        writer.encode(model)
+        binaryFile.length() must be(0L)
+    }
+
+    private def write512BytesOfDataToFile = {
+        // Put some data in the file before writing it.
+        val stuffChunkSize = 128
+        val stuff = Array.fill[Byte](stuffChunkSize)(123)
+        val raf = new RandomAccessFile(binaryFile, "rw")
+        raf.write(stuff)
+        raf.close()
+        binaryFile.length() must be(128L)
+    }
 }

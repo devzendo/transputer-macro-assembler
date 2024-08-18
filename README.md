@@ -88,6 +88,7 @@ Release Notes
     variables having values set multiple times leading to incorrect values.
   * Bugfix: Attempts to assemble code that overflows the MaxINT address 0x7fffffff is now not allowed. You can assemble
     up to that point, but not beyond.
+  * Bugfix: Output files were not being truncated to zero size before being written.
 
 0.0.1 First release
 * Bugfix: Any offsets to symbols in direct instructions (which required offset transformation) were not
