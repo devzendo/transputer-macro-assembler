@@ -817,7 +817,7 @@ class AssemblyModel(debugCodegen: Boolean) {
                             case storage: Storage =>
                                 val start = storage.address
                                 val end = start + (storage.cellWidth * storage.data.length) - 1
-                                logger.debug("start " + start + " end " + end + " (" + (end - start + 1) + " byte(s))")
+                                logger.debug("start 0x" + HexDump.int2hex(start) + " end 0x" + HexDump.int2hex(end) + " (" + (end - start + 1) + " byte(s))")
                                 if (start < lowStorageAddress) {
                                     logger.debug("new low bound")
                                     lowStorageAddress = start
