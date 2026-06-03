@@ -9,7 +9,7 @@
     <name>Transputer Macro Assembler - Top level project</name>
     <description>A Macro Assembler, using a subset of MASM syntax, for
 the Transputer instruction set. Generates binary output (or later, ELF object files).
-(Apache License v2) 2018-2024 Matt Gumbley, DevZendo.org
+(Apache License v2) 2018-2026 Matt Gumbley, DevZendo.org
     </description>
     <url>http://devzendo.github.io/parachute</url>
 
@@ -43,12 +43,12 @@ the Transputer instruction set. Generates binary output (or later, ELF object fi
 
     <distributionManagement>
         <snapshotRepository>
-            <id>sonatype-nexus-snapshots</id>
-            <url>https://oss.sonatype.org/content/repositories/snapshots</url>
+            <id>maven-snapshots</id>
+            <url>http://nexus.build.devzendo.org:8081/repository/maven-snapshots/</url>
         </snapshotRepository>
         <repository>
-            <id>sonatype-nexus-staging</id>
-            <url>https://oss.sonatype.org/service/local/staging/deploy/maven2/</url>
+            <id>devzendo</id>
+            <url>http://nexus.build.devzendo.org:8081/repository/devzendo/</url>
         </repository>
     </distributionManagement>
 
@@ -94,8 +94,8 @@ the Transputer instruction set. Generates binary output (or later, ELF object fi
                         <version>1.6.8</version>
                         <extensions>true</extensions>
                         <configuration>
-                            <serverId>sonatype-nexus-staging</serverId>
-                            <nexusUrl>https://oss.sonatype.org/</nexusUrl>
+                            <serverId>devzendo</serverId>
+                            <nexusUrl>http://nexus.build.devzendo.org:8081/nexus/</nexusUrl>
                             <skipStagingRepositoryClose>true</skipStagingRepositoryClose> <!-- because we have many platforms to deploy from -->
                         </configuration>
                     </plugin>

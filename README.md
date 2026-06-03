@@ -12,7 +12,7 @@ instruction encoding, branches to as-yet-unknown addresses can vary, requiring a
 longer encoding, thereby moving the location to which the branch jumps! See
 'Convergence', below.
 
-(C) 2018-2024 Matt J. Gumbley
+(C) 2018-2026 Matt J. Gumbley
 matt.gumbley@devzendo.org
 Mastodon: @M0CUV@mastodon.radio
 Twitter: (abandoned) @mattgumbley @devzendo
@@ -25,13 +25,13 @@ Project](https://devzendo.github.io/parachute) and its future languages.
 
 Status
 ------
+Last changes in early June 2026 in preparation for release.
+
 First release 0.0.1 Midsummer 2019 (12 June 2019) as part of Parachute 0.0.1.
 
 Project started 19 April 2018.
 
 Successful eForth assembly verified 25 June 2018.
-
-In active development.
 
 
 Parser, macro expansion, code generation and output of binary file and listing are done. Optimally encodes direct

@@ -6,13 +6,13 @@
     <name>Transputer Macro Assembler Code</name>
     <packaging>jar</packaging>
     <description>The Transputer Macro Asesmbler Code
-        (Apache License v2) 2018-2024 Matt Gumbley, DevZendo.org
+        (Apache License v2) 2018-2026 Matt Gumbley, DevZendo.org
     </description>
 
     <parent>
         <groupId>org.devzendo</groupId>
         <artifactId>group-parent-scala</artifactId>
-        <version>1.1.0</version>
+        <version>1.1.1-SNAPSHOT</version>
         <relativePath />
     </parent>
 
@@ -191,7 +191,7 @@
                     <plugin>
                         <groupId>org.owasp</groupId>
                         <artifactId>dependency-check-maven</artifactId>
-                        <version>7.0.0</version>
+                        <version>12.2.2</version>
                         <executions>
                             <execution>
                                 <goals>
