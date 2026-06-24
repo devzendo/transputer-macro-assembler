@@ -38,6 +38,8 @@
                     <janelDirectory>bin</janelDirectory>
                     <janelBits>64</janelBits>
                     <janelVersion>4.2</janelVersion>
+                    <!-- Important, since we're shading the main jar - don't need two copies of everything! -->
+                    <copyTransitiveArtifacts>false</copyTransitiveArtifacts>
                 </configuration>
                 <executions>
                     <execution>

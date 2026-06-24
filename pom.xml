@@ -61,7 +61,7 @@ the Transputer instruction set. Generates binary output (or later, ELF object fi
     </modules>
 
     <properties>
-        <cross.platform.launcher.plugin.version>1.4.0</cross.platform.launcher.plugin.version>
+        <cross.platform.launcher.plugin.version>1.5.0</cross.platform.launcher.plugin.version>
     </properties>
 
     <profiles>

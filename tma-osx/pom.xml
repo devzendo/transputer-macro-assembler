@@ -40,6 +40,8 @@
                       I don't have an assigned creator code
                       <bundleSignature>BM</bundleSignature>
                     -->
+                    <!-- Important, since we're shading the main jar - don't need two copies of everything! -->
+                    <copyTransitiveArtifacts>false</copyTransitiveArtifacts>
                 </configuration>
                 <executions>
                     <execution>
