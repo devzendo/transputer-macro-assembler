@@ -29,7 +29,7 @@ the Transputer instruction set. Generates binary output (or later, ELF object fi
     <scm>
         <url>https://github.com/devzendo/transputer-macro-assembler.git</url>
         <connection>scm:git:https://github.com/devzendo/transputer-macro-assembler.git</connection>
-        <developerConnection>scm:git:git@github.com:devzendo/transputer-macro-assembler.git</developerConnection>
+        <developerConnection>scm:git:https://github.com/devzendo/transputer-macro-assembler.git</developerConnection>
         <tag>HEAD</tag>
     </scm>
 
