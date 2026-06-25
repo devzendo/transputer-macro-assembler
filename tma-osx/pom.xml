@@ -2,7 +2,7 @@
     <modelVersion>4.0.0</modelVersion>
     <groupId>org.devzendo</groupId>
     <artifactId>tma-osx</artifactId>
-    <version>0.0.2-SNAPSHOT</version>
+    <version>0.0.2</version>
     <name>Packaging for macOS</name>
     <packaging>pom</packaging>
     <description>macOS launcher for the Transputer Macro Assembler command line utility.
@@ -12,7 +12,7 @@
     <parent>
         <groupId>org.devzendo</groupId>
         <artifactId>transputer-macro-assembler-parent</artifactId>
-        <version>0.0.2-SNAPSHOT</version>
+        <version>0.0.2</version>
         <relativePath>..</relativePath>
     </parent>
 
@@ -82,7 +82,7 @@
              that out. -->
             <groupId>org.devzendo</groupId>
             <artifactId>tma-assembler</artifactId>
-            <version>0.0.2-SNAPSHOT</version>
+            <version>0.0.2</version>
             <exclusions>
                 <exclusion>
                     <groupId>org.scala-lang</groupId>
@@ -93,7 +93,7 @@
         <dependency>
             <groupId>org.devzendo</groupId>
             <artifactId>tma-includes</artifactId>
-            <version>0.0.2-SNAPSHOT</version>
+            <version>0.0.2</version>
             <classifier>includes</classifier>
             <scope>provided</scope>
         </dependency>

@@ -4,7 +4,7 @@
 
     <groupId>org.devzendo</groupId>
     <artifactId>transputer-macro-assembler-parent</artifactId>
-    <version>0.0.2-SNAPSHOT</version>
+    <version>0.0.2</version>
     <packaging>pom</packaging>
     <name>Transputer Macro Assembler - Top level project</name>
     <description>A Macro Assembler, using a subset of MASM syntax, for
@@ -30,7 +30,7 @@ the Transputer instruction set. Generates binary output (or later, ELF object fi
         <url>https://github.com/devzendo/transputer-macro-assembler.git</url>
         <connection>scm:git:https://github.com/devzendo/transputer-macro-assembler.git</connection>
         <developerConnection>scm:git:https://github.com/devzendo/transputer-macro-assembler.git</developerConnection>
-        <tag>HEAD</tag>
+        <tag>transputer-macro-assembler-parent-0.0.2</tag>
     </scm>
 
     <developers>

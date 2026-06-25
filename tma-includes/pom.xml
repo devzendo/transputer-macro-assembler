@@ -2,7 +2,7 @@
     <modelVersion>4.0.0</modelVersion>
     <groupId>org.devzendo</groupId>
     <artifactId>tma-includes</artifactId>
-    <version>0.0.2-SNAPSHOT</version>
+    <version>0.0.2</version>
     <name>Assembler include files for use by other programs</name>
     <packaging>pom</packaging>
     <description>Transputer include files.
@@ -12,7 +12,7 @@
     <parent>
         <groupId>org.devzendo</groupId>
         <artifactId>transputer-macro-assembler-parent</artifactId>
-        <version>0.0.2-SNAPSHOT</version>
+        <version>0.0.2</version>
         <relativePath>..</relativePath>
     </parent>
 
