@@ -157,7 +157,7 @@ ll3:			ldnl    0					; (a=length, b=channel, c=address)
 				; Like the Transputer's initial conditions after boot from link,
 				; set the Wdesc to the first location after the secondary code
 				; (+1 => Low priority).
-				ajw		((Boot2End - Boot1Workspace) / 4)
+				ajw		((Boot2End - Boot1Workspace + 3) / 4)
 
 				; Execute it.
 				ldc		Boot2Start
