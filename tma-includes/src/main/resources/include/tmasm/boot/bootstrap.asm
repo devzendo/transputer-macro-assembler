@@ -57,8 +57,14 @@ LoopValue       EQU     1           ; for the lend instruction to work.
 ; Store initial boot state ---------------------------------------------------
 ; See Compiler Writer's Guide, p74
 ;
-				; Leave room for workspace plus a bit for secondary bootstrap.
-				ajw		40	
+				; After loading the primary boot code, Wdesc is set to the first
+				; location at the end of the primary boot code (| 1, to indicate
+				; low priority task).
+				; i.e. MemStart + Boot1Length + 1 = Boot2Start.
+				; There's space defined for the workspace in this boot loader just
+				; before there, so use that, rather than clobbering the secondary.
+				; Move Wdesc back from the end, to point to our declared space.
+				ajw		-((Boot2Start - Boot1Workspace) / 4)
 
 				; Store old registers.
 				stl		OldIPtr
@@ -148,9 +154,27 @@ StartTime       EQU     0
 ll3:			ldnl    0					; (a=length, b=channel, c=address)
 				in
 
+				; Like the Transputer's initial conditions after boot from link,
+				; set the Wdesc to the first location after the secondary code
+				; (+1 => Low priority).
+				ajw		((Boot2End - Boot1Workspace) / 4)
+
 				; Execute it.
 				ldc		Boot2Start
 				gcall
+
+				ALIGN	4
+;
+; Workspace
+;
+Boot1Workspace: ; (e.g. initially set to Boot2Start (0x80000120) then ajw'd to here: 0x8000011C)
+				DD  0   ; 8000011C Workspace[0] cannot be used; outbyte uses it.
+				DD  0   ; 80000120 LoopValue for the lend instruction to work.
+				DD  0   ; 80000124 LoopEnd - LoopEnd/LoopValue must be together
+				DD  0   ; 80000128 LinkOutAddress
+				DD  0   ; 8000012C LinkInAddress
+				DD  0   ; 80000130 OldWdesc
+				DD  0   ; 80000134 OldIPtr
 
 				ALIGN	4
 
@@ -158,4 +182,4 @@ Boot2Length:    DD  Boot2End - Boot2Start
 Boot1End:
 
 Boot2Start:
-; NB: Your code must define Boot2End at its end.
+; NB: Your code must define Boot2End at its end. The boot loader places Wdesc there.
