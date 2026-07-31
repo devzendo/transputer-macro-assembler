@@ -36,6 +36,8 @@
 
 MemStart        EQU     0x80000070
 Boot1Length     EQU     Boot1End - Boot1Start
+WordMask        EQU     0xFFFFFFFC  ; ~ByteSelectMask to get word part
+LowPriority     EQU     0x00000001
 
 				ORG     MemStart - 1
 				DB      Boot1Length
@@ -154,10 +156,22 @@ StartTime       EQU     0
 ll3:			ldnl    0					; (a=length, b=channel, c=address)
 				in
 
+				; Optimise here? Areg is not affected by in, so still holds Boot2Length.
+
 				; Like the Transputer's initial conditions after boot from link,
 				; set the Wdesc to the first location after the secondary code
-				; (+1 => Low priority).
-				ajw		((Boot2End - Boot1Workspace + 3) / 4)
+				; (with lower two bits set to 01 => Low priority).
+				; Derive this from the Boot2Length.
+				; i.e. Wdesc = ((Boot2End - Boot1Workspace + 3) / 4)
+				ldc     Boot2Length
+				ldnl    0
+				adc     Boot2Start
+				; Retain low priority.
+				ldc     WordMask
+				and
+				ldc     LowPriority
+				or
+				gajw
 
 				; Execute it.
 				ldc		Boot2Start
@@ -167,7 +181,7 @@ ll3:			ldnl    0					; (a=length, b=channel, c=address)
 ;
 ; Workspace
 ;
-Boot1Workspace: ; (e.g. initially set to Boot2Start (0x80000120) then ajw'd to here: 0x8000011C)
+Boot1Workspace: ; (e.g. initially set to Boot2Start (0x80000159) then ajw'd to here: 0x80000139)
 				DD  0   ; 8000011C Workspace[0] cannot be used; outbyte uses it.
 				DD  0   ; 80000120 LoopValue for the lend instruction to work.
 				DD  0   ; 80000124 LoopEnd - LoopEnd/LoopValue must be together
