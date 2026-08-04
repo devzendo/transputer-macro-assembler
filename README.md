@@ -56,7 +56,8 @@ Remaining work:
   * ELF writing (or other object format: TCOFF?)  
 
 * nice-to-haves...
-  * binary map listing, showing symbols sorted by address and the binary dump at those addresses.
+  * binary map listing, showing symbols sorted by address and the binary dump at those addresses. There's a script,
+    bin/tmasm-lst-to-sym.pl that'll do some of this for now.
   * handling conversion of exceptions that the macro manager might throw when expanding
   * macros shouldn't be able to replace keywords
   * exception handling - is... odd..... use Try instead of throwing? Easier collection of phase errors?
@@ -92,6 +93,8 @@ Release Notes
   * Bugfix: Packaging was created a shaded jar containing all dependencies, and also adding all dependency libraries.
     Having two copies of everything was causing an SLF4J warning of duplicate classes, in addition to being wasteful of
     disk space.
+  * Added the `bin/tmasm-lst-to-sym.pl` perl script to extract symbols and their addresses from a listing file, for
+    use by the emulator during debugging.
 
 0.0.1 First release
 * Bugfix: Any offsets to symbols in direct instructions (which required offset transformation) were not
