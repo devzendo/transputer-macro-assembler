@@ -25,7 +25,7 @@ Project](https://devzendo.github.io/parachute) and its future languages.
 
 Status
 ------
-Last changes in late June 2026 in preparation for release.
+Last changes in August 2026 in preparation for release.
 
 First release 0.0.1 Midsummer 2019 (12 June 2019) as part of Parachute 0.0.1.
 
