@@ -15,7 +15,7 @@
             <outputDirectory>./</outputDirectory>
         </fileSet>
         <fileSet>
-            <directory>${project.basedir}/tma-scripts</directory>
+            <directory>${project.basedir}/../tma-scripts</directory>
             <includes/>
             <outputDirectory>./bin</outputDirectory>
         </fileSet>
